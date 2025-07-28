@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "INTERSIG",
-    "slug": "app-intersig",
+    "name": "ESTOQUE INTERSIG",
+    "slug": "app-estoque-intersig",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.everton421.appestoqueintersig",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,19 +25,16 @@
         "backgroundColor": "#ffffff"
       },
       "versionCode": 1,
-      "package": "com.everton421.appintersig",
       "permissions": [
         "ACCESS_NETWORK_STATE",
-        "ACCESS_WIFI_STATE"
-      ]
+        "ACCESS_WIFI_STATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.everton421.appestoqueintersig"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "74c7d393-dcc5-47f0-bd03-56678a77a9f3"
-      }
     },
     "plugins": [
       [
@@ -46,7 +47,20 @@
           }
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "251662c0-acae-4891-974f-297b8e7f507c"
+      }
+    }
   }
 }

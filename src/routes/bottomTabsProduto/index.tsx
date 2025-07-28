@@ -1,14 +1,9 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Categoria  } from "../../screens/categorias";
-import { NavigationContainer } from "@react-navigation/native";
 import { Produtos } from "../../screens/Produtos";
-import { ViewTabProdutos } from "../../screens/tabProdutos";
-import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Marcas } from "../../screens/marcas";
-import { Text, View } from "react-native";
+import { Setores } from "../../screens/setores";
+
 const BottomProduto = createBottomTabNavigator()
 
 export const BottomTabProdutos= ()=>{
@@ -27,6 +22,7 @@ export const BottomTabProdutos= ()=>{
               }}
               
             />
+            {/**
             <BottomProduto.Screen 
              name="categorias"
               component={Categoria}
@@ -38,11 +34,11 @@ export const BottomTabProdutos= ()=>{
                 headerShown:false,
 
 
-              }} />
+              }} />*/}
 
       <BottomProduto.Screen 
-             name="marcas"
-              component={Marcas}
+             name="setores"
+              component={Setores}
               options={{
                 tabBarStyle:{ backgroundColor:'#185FED' , height:55 },
                 tabBarActiveBackgroundColor: '#00129A',
@@ -51,7 +47,7 @@ export const BottomTabProdutos= ()=>{
                 headerShown:false,
 
               }} />
-
+ 
               {/* <FontAwesome name="bookmark" size={24} color="black" />*/}
            
          </BottomProduto.Navigator>

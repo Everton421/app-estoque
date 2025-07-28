@@ -1,5 +1,4 @@
 import { createStackNavigator } from "@react-navigation/stack"
-import { Api_config } from "../../screens/api_config";
 import { Inicio } from "../../screens/inicio";
 import { Login } from "../../screens/login";
 import { Enviar_codigo  } from "../../screens/enviar_codigo";

@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react"
-import { Alert, Button, FlatList, Image, Modal, Text, TouchableOpacity, View } from "react-native"
-import { TextInput } from "react-native-gesture-handler"
+import { Alert, TextInput,Button, FlatList, Image, Modal, Text, TouchableOpacity, View } from "react-native"
 import { RenderModalCategorias } from "./modalCategorias"
 import { RenderModalMarcas } from "./modalMarcas"
 import useApi from "../../services/api"
@@ -51,7 +50,7 @@ export const Cadastro_produto: React.FC  = ( { route, navigation }:any ) => {
     const [ referencia, setReferencia ] = useState<string>('');
 
 
-    const [visible, setVisible] = useState<Boolean>(false);
+    const [visible, setVisible] = useState (false);
     const [link, setLink] = useState("");
     const [fotos, setFotos] = useState<typeFotoProduto[]>([]);
 
@@ -154,7 +153,7 @@ export const Cadastro_produto: React.FC  = ( { route, navigation }:any ) => {
                             
                         if(responseApi.status === 200){
 
-                                let imgsProd:typeFotoProduto[] = await useQueryFotos.selectByCode(codigo_produto);
+                                let imgsProd:typeFotoProduto[] | any = await useQueryFotos.selectByCode(codigo_produto);
                                 if ( imgsProd.length > 0 ||imgs?.length === 0  ){
                                     await useQueryFotos.deleteByCodeProduct(codigo_produto);
                                 }  
@@ -300,7 +299,7 @@ export const Cadastro_produto: React.FC  = ( { route, navigation }:any ) => {
       const gravarImgs = () => {
         if (link === "") return;
       
-        let sequencia = imgs.length > 0 ? Math.max(...imgs.map((i) => i.sequencia)) + 1 : 1;
+        let sequencia = imgs && imgs.length > 0 ? Math.max(...imgs.map((i) => i.sequencia)) + 1 : 1;
       
         const newImage: typeFotoProduto = {
           produto: codigo_produto,
@@ -430,7 +429,7 @@ export const Cadastro_produto: React.FC  = ( { route, navigation }:any ) => {
                             <View style={{ alignItems:"center", flexDirection:"row", width: '50%',backgroundColor: '#fff' ,borderRadius: 5,  elevation: 5}}>
                                 <Text style={{fontWeight:"bold" , color:'#868686'}} > Estoque: </Text>
                                     <TextInput
-                                    onChangeText={(value)=> setEstoque( value )}
+                                    onChangeText={(value:any)=> setEstoque( value )}
                                     style={{ height:30,backgroundColor:'#FFF', width: '50%'}}
                                     keyboardType="numeric"
                                     value={String( estoque )}

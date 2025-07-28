@@ -1,6 +1,5 @@
 import { useState } from "react"
-import { Alert, Text, TextInput, View } from "react-native"
-import { TouchableOpacity } from "react-native-gesture-handler"
+import { Alert, Text, TextInput, View, TouchableOpacity} from "react-native"
 import useApi from "../../services/api"
 
 export const Enviar_codigo = ( {navigation} )=>{

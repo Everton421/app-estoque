@@ -3,7 +3,6 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, Tou
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Api_config } from "../api_config";
 import { useState } from "react";
 import useApi from "../../services/api";
 import { LodingComponent } from "../../components/loading";

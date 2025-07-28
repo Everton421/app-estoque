@@ -2,6 +2,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { formatItem } from "../../services/formatStrings";
 import { useFotosProdutos } from "../queryFotosProdutos/queryFotosProdutos";
 
+type foto= { link:string}
  export type produto = {
         codigo:number,
         estoque?:number,
@@ -15,13 +16,14 @@ import { useFotosProdutos } from "../queryFotosProdutos/queryFotosProdutos";
         class_fiscal:string,
         cst:string,
         num_fabricante:string,
+        num_original:string,
         observacoes1:string,
         observacoes2:string,
         observacoes3:string,
         data_cadastro:string,
         data_recadastro:string,
         tipo?:string
-
+      fotos?: foto[]
     }
     
 export const useProducts = ()=>{
@@ -57,8 +59,9 @@ export const useProducts = ()=>{
 
           async function selectAllLimit(limit:number) {
             const result = await db.getAllAsync(
-             `SELECT * 
-             FROM produtos
+             `   SELECT p.*, sum(ps.estoque ) as estoque 
+                  from produtos as p
+                  join produto_setor   ps on p.codigo = ps.produto
               limit ${limit}
              `);
      //  console.log(result);
@@ -67,9 +70,41 @@ export const useProducts = ()=>{
 
           
           async function selectByDescription( query:any, limit:number ) {
-            const result = await db.getAllAsync(`SELECT * FROM produtos WHERE  descricao like ? OR codigo like ? LIMIT ?`, `%${query}%`, `%${query}%`,`${limit}` );
-          //  console.log(result);
-            return result;
+         
+              let sql = `
+                  SELECT 
+                  p.*
+                   , 
+                    coalesce( sum(ps.estoque ) , 0) as estoque 
+                  from produtos as p
+                    join produto_setor 
+                     ps on p.codigo = ps.produto  
+                 `
+
+                  let conditions = [ ]
+                  let values = []
+                  if(query != ''){
+                    conditions.push(' p.descricao like ? ')
+                    values.push(`%${query}%`)
+                  }
+                   if(query != ''){
+                     conditions.push('   p.codigo like ? ')
+                     values.push(`%${query}%`)
+                   }
+          
+                  let whereClause = ' WHERE '
+                  
+
+                     let finalsql = sql
+                  if( conditions.length > 0 ){
+                     finalsql = sql +  whereClause + conditions.join(' OR ') + ` group by p.codigo limit  ${limit} ` 
+                  }else{
+                   finalsql = sql + ' by p.codigo ';
+                  }
+
+            const result = await db.getAllAsync(finalsql, values )
+                  return result;
+
              }
      
              async function selectProductAndImgsByDescription( query:any, limit:number ) {
@@ -79,9 +114,9 @@ export const useProducts = ()=>{
             //  console.log(result);
 
                   if(result.length > 0 ){
-                     result.forEach( async (i)=>{
+                     result.forEach( async (i:any)=>{
                           let fotos = await useQueryFotos.selectByCode(i.codigo)
-                          if(fotos.length > 0 ){
+                          if(fotos && fotos.length > 0 ){
                             i.fotos = fotos;
                           }else{
                             i.fotos = [];

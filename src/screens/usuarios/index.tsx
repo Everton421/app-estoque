@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react"
 import { Alert, Text, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View, FlatList } from "react-native"
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Api_config } from "../api_config";
 import useApi from "../../services/api";
 import { AntDesign } from "@expo/vector-icons";
 import { useUsuario } from "../../database/queryUsuario/queryUsuario";
