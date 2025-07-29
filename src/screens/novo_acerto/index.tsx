@@ -5,8 +5,7 @@ import { CameraView, useCameraPermissions } from "expo-camera"
 import { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, Alert, Button, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { ListaProdutos } from "./components/produtos_";
-import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useProducts } from "../../database/queryProdutos/queryProdutos";
+import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { prod_setor, useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
 import { FlatList } from "react-native-gesture-handler";
 import { useSetores } from "../../database/querySetores/querySetores";
@@ -17,7 +16,7 @@ import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
 
  type historico = { historico :string }
  
- type dataProdMov =  prod_setor &   historico    
+ type dataProdMov =  prod_setor & historico    
 
 
 export const NovoAcerto = ()=>{
@@ -35,7 +34,6 @@ export const NovoAcerto = ()=>{
 
         const [loadingDataProd , setLoadingDataProd ] = useState(false);
 
-        const useQueryProdutos = useProducts();
         const useQueryMovimento = useMovimentos();
 
         const useQuerySetores = useSetores();
@@ -66,6 +64,7 @@ export const NovoAcerto = ()=>{
         };
 
         function hadleCodeRead(data:string){
+            setProdSeletor( {codigo: data})
             setModalvisible(false)
         }
         function handleSetores(){
@@ -123,16 +122,17 @@ export const NovoAcerto = ()=>{
            }
 
             async function gravar(data:dataProdMov[]){
+                 
                    try{ 
                                 setLoadingInsertItem(true)
                     let verifi = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(Number(data[0].produto), Number(data[0].setor))
-                        if( verifi && verifi.length > 0   ){
+                            data[0].data_recadastro = moment.dataHoraAtual();
+                        
+                       if( verifi && verifi.length > 0   ){
                             let resultUpdate = await useQueryProdutoSetores.update(data[0])
-                           
-
                         }else{
+
                              let resultInsert = await useQueryProdutoSetores.create(data[0])
-                    
                         }
                          await useQueryMovimento.create(
                              {
@@ -144,6 +144,7 @@ export const NovoAcerto = ()=>{
                               setor: Number(data[0].setor) 
                              }
                          )
+                         
                               setLoadingInsertItem(false)
                                 setDataProd([])
                                 setProdSeletor(undefined)
@@ -157,7 +158,6 @@ export const NovoAcerto = ()=>{
                        } finally{
                                 setLoadingInsertItem(false)
                    }
-
             }
 
         useEffect(()=>{
@@ -205,6 +205,7 @@ export const NovoAcerto = ()=>{
                        <ListaProdutos produto={prodSeletor} setProduto={handleSelectProduct} /> 
                       <TouchableOpacity style={{backgroundColor: "#185FED",height:47,alignItems:"center",justifyContent:"center",elevation:5,   width:'20%' ,right:5,  borderRadius:3}} 
                              onPress={()=>{handleOpenCamera}} >
+                                
                           <MaterialCommunityIcons name="barcode-scan" size={30} color="#FFF" />
                     </TouchableOpacity>
                 </View>

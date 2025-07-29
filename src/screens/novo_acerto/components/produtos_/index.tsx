@@ -32,11 +32,13 @@ export const ListaProdutos = ({produto , setProduto}:{ produto:any, setProduto:R
   const adiciona = (dado:any) => {
     setPesquisa(dado);
   };
-
+  //////////////////
   useEffect(() => {
     const busca = async () => {
       try {
-        let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
+       let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
+        //   let aux: any = await useQueryProdutos.selectAll();
+
         for( let p of aux ){
           let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
           if(dadosFoto?.length > 0 ){
@@ -85,7 +87,7 @@ export const ListaProdutos = ({produto , setProduto}:{ produto:any, setProduto:R
                   Código: {item.codigo}
                 </Text>
                 <Text style={[styles.txt ]}>
-                  R$: {item?.preco.toFixed(2)}
+                  R$: {  item && item.preco && item?.preco.toFixed(2)}
                 </Text>
 
                 <Text style={[styles.txt  ]}>
@@ -162,7 +164,7 @@ export const ListaProdutos = ({produto , setProduto}:{ produto:any, setProduto:R
                   <FlatList
                     data={data}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.codigo.toString()}
+                  //  keyExtractor={(item) => item.codigo.toString()}
                   />
                 )}
               </View>

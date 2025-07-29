@@ -20,7 +20,6 @@ export  const ModalProdutoSetor = ({  codigoProduto ,active, setActive  }:props)
     //let [ active, setActive ] = useState<boolean>(false);
 
     const [ data, setData] = useState([])
-  
  
     useEffect(
         ()=>{
@@ -35,9 +34,6 @@ export  const ModalProdutoSetor = ({  codigoProduto ,active, setActive  }:props)
         },[codigoProduto]
     )
 
- 
- 
-        
         const renderItem = ({item}:any)=>{
             return(
                 <View>

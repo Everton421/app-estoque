@@ -34,8 +34,8 @@ async function selectAll(){
 async function selectByCodeProductAndCodeSector( code:number, sector:number ):Promise<prod_setor[] | undefined>{
     try{
         let result:prod_setor[] = await db.getAllAsync(`SELECT *,
-              
-                  strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro  FROM produto_setor 
+                                    strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro 
+                   FROM produto_setor 
                   where produto = ${ code } and setor = ${sector} `);
         return result;
     }catch( e){
@@ -43,7 +43,24 @@ async function selectByCodeProductAndCodeSector( code:number, sector:number ):Pr
     } 
 }
 
- 
+ async function selectUltimaAlteracao(data:string ):Promise<prod_setor[] | undefined>{
+      
+    try{
+             const sql= `SELECT *,
+                     strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro 
+                   FROM produto_setor 
+                  where  data_recadastro   > ? ;`
+
+                  
+        let result:prod_setor[] = await db.getAllAsync(sql,[data] );
+
+             
+        return result;
+    }catch( e){
+        console.log(`erro os produtos nos setores, filtro por data: ${data}`, e);
+    } 
+}
+
 async function selectByCodeProduct ( code:number ):Promise<prod_setor[] | undefined>{
     try{
         let result:prod_setor[] = await db.getAllAsync(`SELECT *,
@@ -188,5 +205,5 @@ async function create( obj:prod_setor ): Promise<SQLiteRunResult | any>{
 
  
 
-return {   selectAll, create,  selectByCodeProductAndCodeSector, selectCompleteProdSector, selectByCodeProduct, update     } 
+return {   selectAll, create, selectUltimaAlteracao, selectByCodeProductAndCodeSector, selectCompleteProdSector, selectByCodeProduct, update     } 
 }

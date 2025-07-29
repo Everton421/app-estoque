@@ -51,7 +51,6 @@ export const useProducts = ()=>{
                  const result = await db.getAllAsync(
                   `SELECT * 
                   FROM produtos
-                 
                   `);
           //  console.log(result);
                  return result;
@@ -73,11 +72,10 @@ export const useProducts = ()=>{
          
               let sql = `
                   SELECT 
-                  p.*
-                   , 
+                  p.*  , 
                     coalesce( sum(ps.estoque ) , 0) as estoque 
                   from produtos as p
-                    join produto_setor 
+                  left  join produto_setor 
                      ps on p.codigo = ps.produto  
                  `
 
@@ -88,22 +86,21 @@ export const useProducts = ()=>{
                     values.push(`%${query}%`)
                   }
                    if(query != ''){
-                     conditions.push('   p.codigo like ? ')
+                     conditions.push('  p.codigo like ? ')
                      values.push(`%${query}%`)
                    }
           
                   let whereClause = ' WHERE '
                   
-
                      let finalsql = sql
                   if( conditions.length > 0 ){
-                     finalsql = sql +  whereClause + conditions.join(' OR ') + ` group by p.codigo limit  ${limit} ` 
+                     finalsql = sql +  whereClause + conditions.join(' OR ')  + ` group by p.codigo limit  ${limit} ` 
                   }else{
-                   finalsql = sql + ' by p.codigo ';
+                   finalsql = sql  + ' by p.codigo ';
                   }
-
-            const result = await db.getAllAsync(finalsql, values )
-                  return result;
+            const result = await db.getAllAsync(finalsql, values ) 
+                
+            return result;
 
              }
      

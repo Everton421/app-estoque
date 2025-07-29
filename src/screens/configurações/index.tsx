@@ -15,6 +15,7 @@ import { useUsuario } from "../../database/queryUsuario/queryUsuario"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useSetores } from "../../database/querySetores/querySetores"
 import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor"
+import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos"
 
 const LoadingData = ({ isLoading, item , progress }:any) => (
   <Modal animationType='slide' transparent={true} visible={isLoading}>
@@ -25,7 +26,7 @@ const LoadingData = ({ isLoading, item , progress }:any) => (
     </View>
   </Modal>
 );
-const LoadingOrders = ({ isLoadingOrder        }:any) => (
+const LoadingOrders = ({ isLoadingOrder   }:any) => (
   <Modal animationType='slide' transparent={true} visible={isLoadingOrder}>
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color="#FFF" />
@@ -50,6 +51,7 @@ export const Configurações = () => {
   const useQueryUsuario = useUsuario();
   const useQuerySetores = useSetores();
   const useQueryProdutoSetores = useProdutoSetores();
+  const useQueryMovimentos = useMovimentos();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
@@ -120,13 +122,14 @@ setMsgApi('')
      url:'',
      porta:3306,
      token:'',
-     data_sinc: useMoment.dataHoraAtual()
+     data_sinc: useMoment.dataHoraAtual(),
+      data_env:'0000-00-00 00:00:00'
    }
 
       if( validConfig && validConfig?.length > 0   ){
           dataUltSinc = validConfig[0].data_sinc
           console.log("Ultima Sincronizacao : ", validConfig[0].data_sinc )
-          useQueryConfigApi.update(data)
+          useQueryConfigApi.updateByParam(data)
       }else{
        let aux = await useQueryConfigApi.create(data);
        dataUltSinc ='';
@@ -236,33 +239,64 @@ setMsgApi('')
 
     const fetchProdutoSetor = async (data:string) => {
     setItem('produtos nos setores');
-    try {
-      const aux = await api.get('/offline/produto_setor',
-        { params :{ data_recadastro : data}}
-      );
-      const dados = aux.data;
-      let totalProduto_setor = dados.length
-      if( totalProduto_setor > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-          const verifi:any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(dados[i].produto,dados[i].setor );
-          if (verifi.length > 0) {
-            let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-            console.log(`categoria: ${data_recadastro } > ${verifi[0].data_recadastro}` )
-            if (data_recadastro > verifi[0].data_recadastro ) {
-              await useQueryProdutoSetores.update( dados[i] );
+      try {
+        const aux = await api.get('/offline/produto_setor',
+          { params :{ data_recadastro : data}}
+        );
+        const dados = aux.data;
+        let totalProduto_setor = dados.length
+        if( totalProduto_setor > 0 ){
+          for (let i = 0; i < dados.length; i++ ) {
+            const verifi:any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(dados[i].produto,dados[i].setor );
+            if (verifi.length > 0) {
+              let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
+              console.log(`categoria: ${data_recadastro } > ${verifi[0].data_recadastro}` )
+              if (data_recadastro > verifi[0].data_recadastro ) {
+                await useQueryProdutoSetores.update( dados[i] );
+              }
+            } else {
+              await useQueryProdutoSetores.create(dados[i]);
             }
-          } else {
-            await useQueryProdutoSetores.create(dados[i]);
-          }
-          const progressPercentage = Math.floor(((i + 1) / totalProduto_setor) * 100);
-          setProgress(progressPercentage); // Atualiza progresso
-        }        
-      }else{
-        console.log("Produto setor: ", dados);
+            const progressPercentage = Math.floor(((i + 1) / totalProduto_setor) * 100);
+            setProgress(progressPercentage); // Atualiza progresso
+          }        
+        }else{
+          console.log("Produto setor: ", dados);
+        }
+      } catch (e) {
+        console.log(" ocorreu um erro ao processar   Produto_setor", e);
       }
-    } catch (e) {
-      console.log(" ocorreu um erro ao processar   Produto_setor", e);
-    }
+
+        try{
+            let validConfig = await useQueryConfigApi.select(1)
+            let dataEnv = '0000-00-00 00:00:00'
+
+          if( validConfig && validConfig?.length > 0   ){
+              dataEnv =  validConfig[0].data_env; 
+            }
+
+                const dataProdSector   = await useQueryProdutoSetores.selectAll();
+              console.log('Produtos_setor: ' ,dataProdSector)
+            const dataPost =[]
+              
+               if(dataProdSector && dataProdSector?.length > 0 ){
+                  for(let i of dataProdSector ){
+                      if( new Date(i.data_recadastro) > new Date(data) ){
+                        dataPost.push(i)
+                      }
+                  }
+                    const resultApi = await api.post('/offline/produto_setor' ,dataProdSector );
+                     console.log(" reposta backend: ",resultApi.data)
+                    if( resultApi.status === 200 ){
+                       //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
+                    }
+
+                }
+                
+        }catch(e){
+          console.log("Ocorreu um erro ao tentar fazer o envio dos dados da tabela produto_setores",e )
+        }
+
   };
   const fetchMarcas = async (data:string) => {
     setItem('marcas');
@@ -338,6 +372,47 @@ setMsgApi('')
 
     }
   };
+
+  const fetchMoviments = async (data:string ) => {
+    setItem('movimentos produtos');
+
+    try {
+      const aux = await api.get('/offline/movimentos_produtos',
+        { params :{ data_recadastro : data}}
+      );
+      const dados = aux.data;
+
+      const totalSetores = dados.length
+       if( totalSetores > 0 ){
+        for (let i = 0; i < dados.length; i++ ) {
+        const verifiVeic:any = await useQueryMovimentos.findByCodeMoviment(dados[i].codigo);
+        if (verifiVeic.length > 0) {
+          let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
+          console.log(`movimentos: ${data_recadastro } > ${verifiVeic[i].data_recadastro}` )
+          if (data_recadastro > verifiVeic[0].data_recadastro ) {
+            await useQueryMovimentos.update( dados[i] );
+          }
+        } else {
+          await useQueryMovimentos.createByCode(dados[i]);
+        }
+
+        const progressPercentage = Math.floor(((i + 1) / totalSetores) * 100);
+        setProgress(progressPercentage); // Atualiza progresso
+      
+        } 
+      }else{
+        console.log("movimentos produtos: ", dados)
+      }
+    } catch (e:any) {
+      console.log(e);
+      console.log(e.response.data.msg);
+
+    }
+  };
+
+
+
+
 /*
   const fetchImgs = async (data:string) => {
     setItem('fotos');
@@ -389,7 +464,7 @@ setMsgApi('')
 //        await fetchUsers(dataSinc);
          await fetchSetores(dataSinc)
          await fetchProdutoSetor(dataSinc)
-
+        await fetchMoviments(dataSinc);
 
         //await fetchMarcas(dataSinc);
         //await fetchCategorias(dataSinc)

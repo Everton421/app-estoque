@@ -84,12 +84,13 @@ export const restartDatabaseService = ()=>{
         data_recadastro TEXT NOT NULL 
       );
  
-      CREATE TABLE IF NOT EXISTS api_config (
+       CREATE TABLE IF NOT EXISTS api_config (
        codigo INTEGER PRIMARY KEY NOT NULL,
        url TEXT NOT NULL,
        porta INTEGER  NOT NULL DEFAULT 3000,
        token TEXT NOT NULL,
-       data_sinc TEXT NOT NULL
+       data_sinc TEXT NOT NULL,
+       data_env TEXT DEFAULT '0000-00-00 00:00:00' 
       );
 
       CREATE TABLE IF NOT EXISTS empresas (

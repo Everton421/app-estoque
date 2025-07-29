@@ -43,10 +43,21 @@
      } 
  }
  
+  async function findByCodeMoviment( code:number ):Promise<movimentos[] | undefined>{
+     try{
+         let result:movimentos[] = await db.getAllAsync(`SELECT *,
+                   
+                   strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro  FROM movimentos_produtos 
+                   where codigo = ${code} `);
+         return result;
+     }catch( e){
+         console.log(`erro ao buscar movimento codigo: ${code} `, e);
+     } 
+ }
+
    /**
     *  busca por tipo de movimento 
     * @param code 
-    * @param sector 
     * @returns 
     */
  async function findByTypeMoviment( mov:string ):Promise<movimentos[] | undefined>{
@@ -168,8 +179,40 @@
      }catch(e   ){ console.log( `erro ao registrar o movimento do  Produto ${obj.produto}  ` , e )}
  }
  
+ async function createByCode( obj:movimentos ): Promise<SQLiteRunResult | any>{
+     try{
+ 
+         let result = await db.runAsync(
+             `
+             INSERT INTO movimentos_produtos 
+            (
+             codigo,
+            setor,
+            produto,
+            quantidade,
+            tipo,
+            historico,
+            data_recadastro 
+
+            ) VALUES (
+                 ${obj.codigo},
+                 ${obj.setor},
+                 ${obj.produto},
+                 ${obj.quantidade},
+                '${obj.tipo}',
+                '${obj.historico}',
+                '${obj.data_recadastro}'           
+             );`
+         )
+         console.log(` Registrado o movimento do produto ${obj.produto} `);
+
+         return result;
+     }catch(e   ){ console.log( `erro ao registrar o movimento do  Produto ${obj.produto}  ` , e )}
+ }
+ 
+  
   
  
- return {   selectAll, create,findByTypeMoviment,selectQuery,  selectByCodeProductAndCodeSector,  selectByCodeProduct, update     } 
+ return {   selectAll,findByCodeMoviment, createByCode, create, findByTypeMoviment,selectQuery,  selectByCodeProductAndCodeSector,  selectByCodeProduct, update     } 
  }
   
