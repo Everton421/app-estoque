@@ -28,9 +28,6 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="cadastro_setores" component={Cadastro_Setores}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
                     <StackConfig.Screen name="acertos" component={Acertos}  options={ { headerShown:false}} />
                     <StackConfig.Screen name="novo_acerto" component={NovoAcerto}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
-
-
-                    <StackConfig.Screen name="teste" component={Teste}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
                                 
             </StackConfig.Navigator>
     )

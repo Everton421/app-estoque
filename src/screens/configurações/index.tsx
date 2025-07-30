@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useSetores } from "../../database/querySetores/querySetores"
 import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor"
 import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos"
+import { ConfigProdSeletor } from "./components/configProdSeletor"
 
 const LoadingData = ({ isLoading, item , progress }:any) => (
   <Modal animationType='slide' transparent={true} visible={isLoading}>
@@ -267,16 +268,9 @@ setMsgApi('')
         console.log(" ocorreu um erro ao processar   Produto_setor", e);
       }
 
-        try{
-            let validConfig = await useQueryConfigApi.select(1)
-            let dataEnv = '0000-00-00 00:00:00'
-
-          if( validConfig && validConfig?.length > 0   ){
-              dataEnv =  validConfig[0].data_env; 
-            }
-
+         try{
                 const dataProdSector   = await useQueryProdutoSetores.selectAll();
-              console.log('Produtos_setor: ' ,dataProdSector)
+            //  console.log('Produtos_setor: ' ,dataProdSector)
             const dataPost =[]
               
                if(dataProdSector && dataProdSector?.length > 0 ){
@@ -285,17 +279,26 @@ setMsgApi('')
                         dataPost.push(i)
                       }
                   }
-                    const resultApi = await api.post('/offline/produto_setor' ,dataProdSector );
-                     console.log(" reposta backend: ",resultApi.data)
-                    if( resultApi.status === 200 ){
-                       //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
-                    }
+                   try{
+                    console.log('enviando:', dataPost)
+                  const resultApi = await api.post('/offline/produto_setor' ,dataPost );
+                      console.log(" reposta backend: ",resultApi.data)
+                     if( resultApi.status === 200 ){
+                        //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
+                     }
 
-                }
+                   }catch(e){
+                    console.log("Erro ao tentar enviar os dados da prod_setor ", e )
+                   }   
+
+                  }else{
+                    return 
+                  }
                 
         }catch(e){
           console.log("Ocorreu um erro ao tentar fazer o envio dos dados da tabela produto_setores",e )
         }
+        
 
   };
   const fetchMarcas = async (data:string) => {
@@ -378,27 +381,31 @@ setMsgApi('')
 
     try {
       const aux = await api.get('/offline/movimentos_produtos',
-        { params :{ data_recadastro : data}}
+        { params :{ 
+          //data_recadastro : data,
+          usuario:usuario.codigo
+        }}
       );
       const dados = aux.data;
+      const totalMovimentos = dados.length
 
-      const totalSetores = dados.length
-       if( totalSetores > 0 ){
+       if( totalMovimentos > 0 ){
         for (let i = 0; i < dados.length; i++ ) {
-        const verifiVeic:any = await useQueryMovimentos.findByCodeMoviment(dados[i].codigo);
-        if (verifiVeic.length > 0) {
+           
+        const verifi = await useQueryMovimentos.findByCodeMoviment(dados[i].codigo);
+
+        if (verifi && verifi.length > 0) {
           let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-          console.log(`movimentos: ${data_recadastro } > ${verifiVeic[i].data_recadastro}` )
-          if (data_recadastro > verifiVeic[0].data_recadastro ) {
-            await useQueryMovimentos.update( dados[i] );
-          }
+           if (data_recadastro > verifi[0].data_recadastro ) {
+             await useQueryMovimentos.update( dados[i] );
+           }
         } else {
-          await useQueryMovimentos.createByCode(dados[i]);
+           await useQueryMovimentos.createByCode(dados[i]);
         }
 
-        const progressPercentage = Math.floor(((i + 1) / totalSetores) * 100);
+        const progressPercentage = Math.floor(((i + 1) / totalMovimentos) * 100);
         setProgress(progressPercentage); // Atualiza progresso
-      
+ 
         } 
       }else{
         console.log("movimentos produtos: ", dados)
@@ -408,6 +415,33 @@ setMsgApi('')
       console.log(e.response.data.msg);
 
     }
+
+    
+        try{
+                const dataMoviments   = await useQueryMovimentos.selectAll();
+            const dataPost =[]
+              
+               if(dataMoviments && dataMoviments?.length > 0 ){
+                  for(let i of dataMoviments ){
+                      if( new Date(i.data_recadastro) > new Date(data) ){
+                        i.usuario = usuario.codigo
+                        dataPost.push(i);
+                      }
+                  }
+                    if( dataPost.length > 0 ){
+                    console.log('enviando movimentos: ' ,dataPost)
+                     const resultApi = await api.post('/offline/movimentos_produtos' ,dataPost );
+                      console.log(" reposta backend movimentos_produtos: ",resultApi.data)
+                     if( resultApi.status === 200 ){
+                     }
+                    }
+                     
+                }
+                
+        }catch(e){
+          console.log("Ocorreu um erro ao tentar fazer o envio dos movimentos dos produtos ",e )
+        }
+       
   };
 
 
@@ -466,8 +500,8 @@ setMsgApi('')
          await fetchProdutoSetor(dataSinc)
         await fetchMoviments(dataSinc);
 
-        //await fetchMarcas(dataSinc);
-        //await fetchCategorias(dataSinc)
+         await fetchMarcas(dataSinc);
+         await fetchCategorias(dataSinc)
 
       setData([]); // Atualiza o estado para mostrar dados após a sincronização
     } catch (e) {
@@ -584,40 +618,11 @@ setMsgApi('')
                   </TouchableOpacity>
             </View >
 
-          {/***** enviar/receber pedidos 
-              <View style={{margin:5,borderRadius:5, padding:10, backgroundColor:'#FFF', elevation:3, width:'98%', alignItems:"center", justifyContent:"center"  }} >
-                  <View style={{ flexDirection:"row", gap:5}}>
-                       <Text style={{ color:'#185FED', fontWeight:"bold", fontSize:17}} >
-                         enviar/receber pedidos a partir de :
-                      </Text>
-                  </View>         
-                      
-                    <TouchableOpacity onPress={() => setShowPicker(true)} style={{ flexDirection: 'row', gap: 7 }}>
-                        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
-                          { dataSelecionada  || formatDate(new Date()) }
-                        </Text>
-                      <Fontisto name="date" size={24} color="black" />
+        <View style={{ marginTop:15, margin:5,borderRadius:5, padding:10, backgroundColor:'#FFF', elevation:3, width:' 98%', alignItems:"center", justifyContent:"center"  }} >
+                  <ConfigProdSeletor/>
+              </View >
 
-                    </TouchableOpacity>
-
-                  {
-                    showPicker && (
-                      <DateTimePicker
-                        value={date}
-                        display="calendar"
-                        mode="date"
-                        onChange={handleEvent}
-                      // locale="pt-BR"
-                      />
-                  )
-                  }
-                    
-                    <TouchableOpacity  style={ {margin:15, elevation:3,padding:5,flexDirection:"row",alignItems:'center' ,borderRadius: 5,backgroundColor:'#185FED' }} onPress={()=>{ syncOrders()}}>
-                      <MaterialCommunityIcons name="folder-sync" size={35} color='#FFF' />
-                      
-                        <Text style={{ color:'#FFF', fontWeight:"bold" }} > enviar/receber pedidos</Text>
-                    </TouchableOpacity>
-              </View >*/}
+          
               <TouchableOpacity  style={ { marginTop:50, alignItems:"center", elevation:3,padding:5, flexDirection:"row", borderRadius: 5,backgroundColor:'#185FED' }}  onPress={() =>   restart() } >
                 <MaterialCommunityIcons name="database-remove" size={35} color="#FFF" />
                   <Text style={{ color:'#FFF',fontWeight:"bold" }} > limpar base de dados</Text>

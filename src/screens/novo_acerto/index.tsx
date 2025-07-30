@@ -13,8 +13,14 @@ import { configMoment } from "../../services/moment";
 import { Setores } from "./components/setores";
 import { Locais } from "./components/locais";
 import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
+import { useProducts } from "../../database/queryProdutos/queryProdutos";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
  type historico = { historico :string }
+
+ type filterBarcodeOption = {
+        chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
+ }
  
  type dataProdMov =  prod_setor & historico    
 
@@ -26,33 +32,64 @@ export const NovoAcerto = ()=>{
 
         const [  permission, requestPermission] = useCameraPermissions()
         const [ prodSeletor, setProdSeletor ] = useState<any>();
-    const [ loadingInsertItem, setLoadingInsertItem ] = useState(false);
+         const [ loadingInsertItem, setLoadingInsertItem ] = useState(false);
 
-        const [ dataProd , setDataProd ] = useState< dataProdMov[]> ();
+        const [ dataProd , setDataProd ] = useState< dataProdMov[]> ([]);
         const [ dataSetores , setDataSetores ] = useState< any>();
         const [setorSelecionado, setSetorSelecionado] = useState();
-
         const [loadingDataProd , setLoadingDataProd ] = useState(false);
 
-        const useQueryMovimento = useMovimentos();
+        const [defaultConfigFilter , setDefaultConfigFilter ]= useState< 'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
 
-        const useQuerySetores = useSetores();
-        const useQueryProdutoSetores = useProdutoSetores();
-        const moment = configMoment();
+            const useQueryMovimento = useMovimentos();
+            const useQueryProdutos = useProducts();
+            const useQuerySetores = useSetores();
+            const useQueryProdutoSetores = useProdutoSetores();
+            const moment = configMoment();
 
     const qrcodeLock = useRef(false)
 
-        async function handleOpenCamera(){
-            try{
-                const { granted } = await requestPermission();
-                if( !granted){
-                    return Alert.alert("Camera", "É necessario habilitar o uso da camera")
+      
+       async function getDefaultConfig(){
+                        try{
+                           let value:any =  await AsyncStorage.getItem('configProduto');
+                            if (value !== null) {
+                                    setDefaultConfigFilter(value)
+                            }
+                            }catch(e){
+                        console.log('erro ao tentar obter a configuração no AsyncStorage')
+                            
+                        }
+                    }
+
+       async function fyndBarcode(codeScanned:string){
+                try{
+                    setLoadingDataProd(true)
+
+
+            let resultDataProd = await useQueryProdutos.findByParam({ chave: defaultConfigFilter, value:String(codeScanned)})
+                    if(resultDataProd.length > 0 ){
+                        handleSelectProduct(resultDataProd[0])
+                    setLoadingDataProd(false)
+                    }else{
+                    setLoadingDataProd(false)
+                        console.log("produto nao foi encontrado!")
+                        setDataProd([])
+                        return Alert.alert('Atenção!',`produto nao foi encontrado, ${defaultConfigFilter} : ${codeScanned} `, )
+                    }
+
+                }catch(e){
+                    setLoadingDataProd(false)
+                    console.log(`ocorreu um erro ao tentar buscar o produto pelo ${defaultConfigFilter}`, e )
+                }finally{
+                    setLoadingDataProd(false)
                 }
-                setModalvisible(true)
-                qrcodeLock.current = false
-            }catch(e){
-                console.log(e)
             }
+
+
+          function handleCodeRead(data:string){
+                setModalvisible(false)
+                fyndBarcode(data)
         }
 
      const handleUpdateField = (fieldName: keyof dataProdMov, value: string) => {
@@ -63,10 +100,7 @@ export const NovoAcerto = ()=>{
             setDataProd(updatedData);
         };
 
-        function hadleCodeRead(data:string){
-            setProdSeletor( {codigo: data})
-            setModalvisible(false)
-        }
+   
         function handleSetores(){
             if(!prodSeletor || prodSeletor === undefined){
                 Alert.alert('',"É necessario selecionar um produto");
@@ -149,7 +183,7 @@ export const NovoAcerto = ()=>{
                                 setDataProd([])
                                 setProdSeletor(undefined)
                                 setSetorSelecionado(undefined)
-                           return  Alert.alert('OK!', ` Saldo atualizado do produto:${data[0].produto} com sucesso ! `)
+                           return  Alert.alert('OK!', `  Acerto registrado com sucesso  ! `)
 
                    }catch(e){
                     console.log("Erro ao registrar produto no setor" , e )
@@ -160,39 +194,68 @@ export const NovoAcerto = ()=>{
                    }
             }
 
-        useEffect(()=>{
-                if( prodSeletor && prodSeletor.codigo   ){
-                    findSetores()
-               }
-        },[ prodSeletor ])
 
-        useEffect(()=>{
+        //////////////
+            useEffect(()=>{
+                    if( prodSeletor && prodSeletor.codigo   ){
+                        findSetores()
+                }
+            },[ prodSeletor ])
+        //////////////
 
-            if(setorSelecionado && setorSelecionado.codigo > 0 && prodSeletor.codigo > 0 ){
-                findProdSectorByCode(prodSeletor.codigo,  setorSelecionado.codigo)
+            useEffect(()=>{
+                if(setorSelecionado && setorSelecionado.codigo > 0 && prodSeletor.codigo > 0 ){
+                    findProdSectorByCode(prodSeletor.codigo,  setorSelecionado.codigo)
+                }
+            },[ setorSelecionado   ])
+        //////////////
+            
+            useEffect(()=>{
+           getDefaultConfig()
+
+            },[])
+            //////////////
+
+        if (!permission) {
+         return null;
+        }
+
+            if ( modalVisible && !permission.granted) {
+                return (
+                <View style={{flex:1, alignItems:"center",justifyContent:"center"}}>
+                      <Text  style={{ fontWeight:"bold",margin:10, color:"#89898fff", fontSize:17}} > 
+                             você precisa liberar o acesso a camera para continuar!
+                    </Text>
+                    <Button onPress={requestPermission} title="Liberar acesso" />
+                </View>
+                );
             }
-        },[ setorSelecionado ,prodSeletor])
-        
+
+ 
 
 
     return(
 
-        <View style={{  flex:1, backgroundColor:'#FFF'  }}>
+        <View style={{  flex:1, backgroundColor:'#EAF4FE'  }}>
             {
                 loadingInsertItem && 
                 <ActivityIndicator size={50}/>
             }
-            <ScrollView  style={{     width:'100%' ,backgroundColor:'#FFF'}} 
+            <ScrollView  style={{     width:'100%' ,backgroundColor:'#EAF4FE'}} 
             contentContainerStyle={{   alignItems: 'center', paddingVertical: 10, paddingBottom: 30  }}
             > 
                   <Modal visible={modalVisible} >
                     <CameraView style={{ flex:1 }}
                      facing="back"
                      onBarcodeScanned={ ({ data } ) => { 
-                        if(data && !qrcodeLock.current){
-                            qrcodeLock.current = true
-                            setTimeout(()=> hadleCodeRead(data), 500)
-                        }
+                        //if(data && !qrcodeLock.current){
+                            //qrcodeLock.current = true
+                            //setTimeout(()=> hadleCodeRead(data), 500)
+                        //}
+                    if(data){
+                            handleCodeRead(data)
+
+                    }
                      }}
                      />
 
@@ -201,21 +264,24 @@ export const NovoAcerto = ()=>{
                     </View>
                 </Modal> 
                 
-                <View style={{ flexDirection:"row", width:'98%', top:10 , margin:2,  justifyContent:"center"}}>
-                       <ListaProdutos produto={prodSeletor} setProduto={handleSelectProduct} /> 
+                <View style={{ flexDirection:"row", width:'95%', top:10 , marginLeft:5,   justifyContent:"center"}}>
+                             <ListaProdutos produto={prodSeletor} setProduto={handleSelectProduct} /> 
+                   
                       <TouchableOpacity style={{backgroundColor: "#185FED",height:47,alignItems:"center",justifyContent:"center",elevation:5,   width:'20%' ,right:5,  borderRadius:3}} 
-                             onPress={()=>{handleOpenCamera}} >
-                                
+                             onPress={()=>{setModalvisible(true)}} >
                           <MaterialCommunityIcons name="barcode-scan" size={30} color="#FFF" />
-                    </TouchableOpacity>
+                     </TouchableOpacity>
                 </View>
                    
                   {
-                        prodSeletor ? (
+                        prodSeletor  ? (
                             <View style={{ flex:1 ,width:'95%',top:10 ,alignItems:"center",borderWidth:1 ,borderColor:'#CCC', backgroundColor:'#FFF', borderRadius:5}}>
-                                     <Text style={{ fontWeight:"bold",margin:3, color:"#89898fff", fontSize:17}} numberOfLines={4} > { prodSeletor && prodSeletor.descricao }</Text>
-                                  
-                                   <TouchableOpacity style={{ backgroundColor: "#185FED", marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"center",elevation:5, borderRadius:5}} 
+                                   {   
+                                     <Text style={{ fontWeight:"bold",margin:3, color:"#89898fff", fontSize:16}} numberOfLines={4} > 
+                                          Cód: ({ prodSeletor.codigo})  {prodSeletor.descricao}     
+                                         </Text>
+                                  } 
+                                   <TouchableOpacity style={{ backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"center",elevation:5, borderRadius:5}} 
                                      onPress={()=>{ handleSetores()}} >
                                      <AntDesign name="caretdown" size={30} color="#FFF" />
                                       <Text style={{ fontWeight:"bold" , color:"#FFF" }}> setores </Text>
@@ -224,117 +290,114 @@ export const NovoAcerto = ()=>{
                                     { loadingDataProd ?
                                         <ActivityIndicator  size={50}/>
                                         :
-                                        dataProd  ? dataProd.map((i, index)=>(
-                                        <View  key={index}
-                                            style={{  width:"100%",  marginTop:9, marginBottom:10 }}  
-                                             >
-                                                <Text numberOfLines={3} style={{ marginLeft:10, fontSize:17,fontWeight:"bold", color:"#89898fff"}} >setor (Cód:  {setorSelecionado && setorSelecionado.codigo}) /  { setorSelecionado &&  setorSelecionado.descricao}  </Text>
-                                                  <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  saldo: </Text>
-                                                     
-                                                 <View   style={{  width:"50%", alignSelf:"center", flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:5, alignItems:"center", }}    >
-                                                 
-                                                  <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
-                                            onPress={() => {
-                                                const currentEstoque = parseInt(i.estoque || '0', 10);
-                                                handleUpdateField('estoque', String(currentEstoque + 1));
-                                            }}
-                                        >
-                                            <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > + </Text>
-                                        </TouchableOpacity>
-                                            <TextInput
-                                                    style={{ fontSize: 17, alignSelf: 'center', textAlign: 'center', width: '30%', borderRadius: 3, color: "#89898fff", borderColor: '#89898fff', borderWidth: 1, padding: 5 }}
-                                                    value={String(i.estoque || '0')}
-                                                    onChangeText={(text) => {
-                                                        // Garante que apenas números sejam inseridos
-                                                        const numericValue = text.replace(/[^0-9]/g, '');
-                                                        handleUpdateField('estoque', numericValue);
-                                                    }}
-                                                    keyboardType="numeric"
-                                                />
-                                            <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
-                                              onPress={() => {
-                                                    const currentEstoque = parseInt(i.estoque || '0', 10);
-                                                    // Impede que o estoque fique negativo
-                                                        if (currentEstoque > 0) {
-                                                        handleUpdateField('estoque', String(currentEstoque - 1));
-                                                    }
-                                                    }}
+                                           dataProd   ? dataProd.map((i, index)=>(
+                                                   <View  key={index}
+                                                style={{  width:"100%",  marginTop:9, marginBottom:10 }}  
                                                 >
-                                               <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > - </Text>
-                                           </TouchableOpacity>
+                                                    <Text numberOfLines={3} style={{ marginLeft:10, fontSize:17,fontWeight:"bold", color:"#89898fff"}} >setor (Cód:  {setorSelecionado && setorSelecionado.codigo}) /  { setorSelecionado &&  setorSelecionado.descricao}  </Text>
+                                                    <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  saldo: </Text>
+                                                        
+                                                    <View   style={{  width:"50%", alignSelf:"center", flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:5, alignItems:"center", }}    >
                                                     
-                                               </View>
-
-                                            {/******** 
-                                             * locais
-                                            */}
-                                                 <View style={{ marginTop:10}} >
-                                               <Locais
-                                                item={i} setVisible={setVisibleLocais} 
-                                                visible={visibleLocais}
-                                                onUpdateField={handleUpdateField} 
-                                                />
-                                               </View>
-
-                                                 <TouchableOpacity style={{ marginLeft:5, backgroundColor: "#185FED", marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"space-around",elevation:5, borderRadius:5}} 
-                                                    onPress={()=>{ setVisibleLocais(true)}} 
-                                                    >
-                                                    <Text style={{  fontWeight:"bold" ,fontSize:15, color:"#FFF" }}>  locais</Text>
-                                                    <FontAwesome6 name="map-location-dot" size={24} color="#FFF" />
-                                                </TouchableOpacity>
-
-                                            {/******** */}
-                                            {/********
-                                             * historico
-                                             */}
-
-                                               <View style={{ marginTop:10}}> 
-                                                  <Text  style={{   fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  Historico: </Text>
-
+                                                    <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
+                                                            onPress={() => {
+                                                                const currentEstoque = parseInt(i.estoque || '0', 10);
+                                                                handleUpdateField('estoque', String(currentEstoque + 1));
+                                                            }}
+                                                        >
+                                                <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > + </Text>
+                                            </TouchableOpacity>
                                                 <TextInput
-                                                    style={{ borderWidth:2, borderColor:'#89898fff'}}
-                                                    numberOfLines={5}
-                                                    multiline={true}
-                                                    onChangeText={(text) => handleUpdateField('historico', text)}
-                                                />
-                                            </View>
-
-                                            {/******** */}
-
-                                              <TouchableOpacity style={{ alignItems: "center", padding: 10, borderRadius: 5, backgroundColor: "#185FED", elevation:5, marginTop:10}}
-                                                         onPress={() =>  gravar(dataProd)} 
+                                                        style={{ fontSize: 17, alignSelf: 'center', textAlign: 'center', width: '30%', borderRadius: 3, color: "#89898fff", borderColor: '#89898fff', borderWidth: 1, padding: 5 }}
+                                                        value={String(i.estoque || '0')}
+                                                        onChangeText={(text) => {
+                                                            // Garante que apenas números sejam inseridos
+                                                            const numericValue = text.replace(/[^0-9]/g, '');
+                                                            handleUpdateField('estoque', numericValue);
+                                                        }}
+                                                        keyboardType="numeric"
+                                                    />
+                                                <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
+                                                onPress={() => {
+                                                        const currentEstoque = parseInt(i.estoque || '0', 10);
+                                                        // Impede que o estoque fique negativo
+                                                            if (currentEstoque > 0) {
+                                                            handleUpdateField('estoque', String(currentEstoque - 1));
+                                                        }
+                                                        }}
                                                     >
-                                                <Text  style={{  color: "#FFF",width: "100%",textAlign: "center",fontSize:17,fontWeight:"bold"  }}  >
-                                                    gravar  </Text> 
-                                                 </TouchableOpacity>
-                                            </View>
-                                        )):(
+                                                <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > - </Text>
+                                            </TouchableOpacity>
+                                                </View>
+                                                {/******** 
+                                                 * locais
+                                                */}
+                                                    <View style={{ marginTop:10}} >
+                                                <Locais
+                                                    item={i} setVisible={setVisibleLocais} 
+                                                    visible={visibleLocais}
+                                                    onUpdateField={handleUpdateField} 
+                                                    />
+                                                </View>
+
+                                                    <TouchableOpacity style={{ marginLeft:5, backgroundColor: "#185FED", marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"space-around",elevation:5, borderRadius:5}} 
+                                                        onPress={()=>{ setVisibleLocais(true)}} 
+                                                        >
+                                                        <Text style={{  fontWeight:"bold" ,fontSize:15, color:"#FFF" }}>  locais</Text>
+                                                        <FontAwesome6 name="map-location-dot" size={24} color="#FFF" />
+                                                    </TouchableOpacity>
+
+                                                {/******** */}
+                                                {/********
+                                                 * historico
+                                                 */}
+
+                                                <View style={{ marginTop:10}}> 
+                                                    <Text  style={{   fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  Historico: </Text>
+
+                                                    <TextInput
+                                                        style={{ borderWidth:2,margin:5, borderColor:'#89898fff'}}
+                                                        numberOfLines={5}
+                                                        multiline={true}
+                                                        onChangeText={(text) => handleUpdateField('historico', text)}
+                                                    />
+                                                </View>
+
+                                                {/******** */}
+
+                                                <TouchableOpacity style={{ margin:10, alignItems: "center", padding: 10, borderRadius: 5, backgroundColor: "#185FED", elevation:5 }}
+                                                            onPress={() =>  gravar(dataProd)} 
+                                                        >
+                                                    <Text  style={{    color: "#FFF",width: "100%",textAlign: "center",fontSize:17,fontWeight:"bold"  }}  >
+                                                        gravar  </Text> 
+                                                    </TouchableOpacity>
+                                                    </View>
+                                            )
+                                        ):(
                                             <Text style={{ fontWeight:"bold", color:"#89898fff", fontSize:16, marginTop:5}} > selecione um setor! </Text>
-                                        )
+                                        ) 
+                                   
                                     }
                            </View>
                         ) :
-                          <Text style={{ fontWeight:"bold",margin:3, color:"#89898fff", fontSize:17}} > Selecione um produto para começar!</Text>
+                        <View style={{width:'100%' ,margin:10 }}>
+                          <Text  style={{ fontWeight:"bold",margin:3, color:"#89898fff", fontSize:17}} > Selecione um produto para começar!</Text>
+                        </View>
                     }
 
-                                <Modal    visible={ visibleModalSetores } > 
-                                    <View style={{ backgroundColor: "rgba(0, 0, 0, 0.7)", flex: 1 }} >
-                                         <View style={{ backgroundColor: "#FFF", flex: 1 , margin:15, borderRadius:15, height:'80%'}} >
-                                
-                                                <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={{  width:'15%', padding:3, margin:5}}  >
-                                                            <Ionicons name="close" size={28} color={"#6C757D"} />
-                                          </TouchableOpacity>
-
-
-                                                <FlatList
-                                                data={dataSetores}
-                                                renderItem={( {item} )=> <Setores  setor={item} selectSetor={selectSetor} /> }
-                                                
-                                                />
-                                            </View>
-
-                                        </View>
-                                 </Modal>  
+                    <Modal    visible={ visibleModalSetores } > 
+                        <View style={{ backgroundColor: "rgba(0, 0, 0, 0.7)", flex: 1 }} >
+                             <View style={{ backgroundColor: "#FFF", flex: 1 , margin:15, borderRadius:15, height:'80%'}} >
+                                    <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={{  width:'15%', padding:3, margin:5}}  >
+                                                <Ionicons name="close" size={28} color={"#6C757D"} />
+                              </TouchableOpacity>
+                                    <FlatList
+                                    data={dataSetores}
+                                    renderItem={( {item} )=> <Setores  setor={item} selectSetor={selectSetor} /> }
+                                    />
+                                </View>
+                            </View>
+                     </Modal>  
            </ScrollView>                    
          </View>
 

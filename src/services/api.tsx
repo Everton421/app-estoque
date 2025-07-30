@@ -11,8 +11,8 @@ const useApi = () => {
 
     const api = axios.create({
             //url teste local
-               baseURL: "http://100.120.164.10:3000/v1/",
-                  //  baseURL: "https://server.intersig.com.br:3000/v1/",
+              //   baseURL: "http://100.120.164.10:3000/v1/",
+                   baseURL: "https://server.intersig.com.br:3000/v1/",
                     //baseURL:"https://template-api-nu.vercel.app/v1/",
                  
     });

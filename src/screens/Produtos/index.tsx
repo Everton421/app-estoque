@@ -209,14 +209,16 @@ useEffect(()=>{
                           </Text>
                       </View>
 
-                 <View  style={{ flexDirection:"row"}} >
-                    <Text style={{fontWeight: 'bold'}}>Local 1: </Text>
-                    <Text style={{
-                         fontSize: 15,
-                         color: '#7F8C8D'
-                     }}>
-                        {item.local1_produto}
-                     </Text>
+                 <View     >
+                    
+
+ 
+                        { item.local_produto && <Text style={{fontWeight: 'bold'  }}>  Local :  <Text style={{color: '#7F8C8D'}}> { item.local_produto  } </Text></Text> }
+                        { item.local1_produto && <Text style={{fontWeight: 'bold'  }}>  Local (1):  <Text style={{color: '#7F8C8D'}}> { item.local1_produto  } </Text></Text> }
+                        { item.local2_produto && <Text style={{fontWeight: 'bold'  }}>  Local (2):  <Text style={{color: '#7F8C8D'}}> { item.local2_produto  } </Text></Text> }
+                        { item.local3_produto && <Text style={{fontWeight: 'bold'  }}>  Local (3):  <Text style={{color: '#7F8C8D'}}> { item.local3_produto  } </Text></Text> }
+                        { item.local4_produto && <Text style={{fontWeight: 'bold'  }}>  Local (4):  <Text style={{color: '#7F8C8D'}}> { item.local4_produto  } </Text></Text> }
+
                 </View>
                 </View>
 

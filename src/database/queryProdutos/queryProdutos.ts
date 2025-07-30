@@ -104,6 +104,57 @@ export const useProducts = ()=>{
 
              }
      
+    type query ={
+      chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
+      value:any
+    }
+          async function findByParam( query:query  ) {
+         
+              let sql = `
+                  SELECT 
+                  p.*  , 
+                    coalesce( sum(ps.estoque ) , 0) as estoque 
+                  from produtos as p
+                  left  join produto_setor 
+                     ps on p.codigo = ps.produto  
+                 `
+
+                  let conditions = [ ]
+                  let values = []
+                  
+                  if(query.chave === 'codigo'  ){
+                    conditions.push(' p.codigo like = ? ')
+                    values.push(`${query.value}`)
+                  }
+
+                   if(query.chave === 'num_fabricante'){
+                     conditions.push('  p.num_fabricante = ? ')
+                     values.push(`${query.value}`)
+                   }
+                 if( query.chave ===  'num_original'){
+                     conditions.push('  p.num_original = ? ')
+                     values.push(`${query.value}`)
+                   }
+
+                    if( query.chave ===  'sku'){
+                     conditions.push('  p.sku = ? ')
+                     values.push(`${query.value}`)
+                   }
+                  let whereClause = ' WHERE '
+                  
+                     let finalsql = sql
+                  if( conditions.length > 0 ){
+                     finalsql = sql +  whereClause + conditions.join(' OR ')  + ` group by p.codigo limit 1 ` 
+                  }else{
+                   finalsql = sql  + '  group by p.codigo ';
+                  }
+               //   console.log("SQL: ",finalsql,"value: ", values)
+            const result = await db.getAllAsync(finalsql, values ) 
+                
+            return result;
+
+             }
+
              async function selectProductAndImgsByDescription( query:any, limit:number ) {
               const result = await db.getAllAsync(
                 `SELECT p.codigo, p.descricao, p.preco, p.estoque   FROM produtos as p
@@ -154,6 +205,7 @@ export const useProducts = ()=>{
                        class_fiscal,
                        cst,
                        num_fabricante,
+                       num_original,
                        data_cadastro,
                        data_recadastro,
                        observacoes1,
@@ -174,6 +226,7 @@ export const useProducts = ()=>{
                         '${produto.class_fiscal}',
                         '${produto.cst}', 
                         '${produto.num_fabricante}',
+                        '${produto.num_original}',
                         '${data_cadastro}',
                         '${data_recadastro}',
                         '${observacoes1}',
@@ -215,6 +268,7 @@ export const useProducts = ()=>{
                       class_fiscal    = '${produto.class_fiscal}',   
                       cst             = '${produto.cst}', 
                       num_fabricante  = '${produto.num_fabricante}',
+                      num_original  = '${produto.num_original}',
                       data_cadastro   = '${data_cadastro}',
                       data_recadastro = '${data_recadastro}',
                       observacoes1    = '${observacoes2}', 
@@ -268,6 +322,7 @@ export const useProducts = ()=>{
                       class_fiscal,
                       cst,
                       num_fabricante,
+                      num_original,
                       data_cadastro,
                       data_recadastro,
                       observacoes1,
@@ -288,6 +343,7 @@ export const useProducts = ()=>{
                       '${produto.class_fiscal}' ,
                       '${produto.cst}',
                       '${produto.num_fabricante}',
+                      '${produto.num_original}',
                       '${data_cadastro}',
                       '${data_recadastro}',
                       '${observacoes1}',
@@ -320,7 +376,7 @@ export const useProducts = ()=>{
 
 
 
-        return { update ,selectAllLimit,  selectByCode, create, deleteByCode, selectAll, createByCode,deleteAll,selectByDescription ,selectProductAndImgsByDescription }
+        return { update ,selectAllLimit, findByParam, selectByCode, create, deleteByCode, selectAll, createByCode,deleteAll,selectByDescription ,selectProductAndImgsByDescription }
     }
 
         
