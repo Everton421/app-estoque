@@ -7,7 +7,9 @@
     tipo:string
     historico:string
     data_recadastro:string,
+    ent_sai:string,
     codigo:number
+    
  }
 
 
@@ -83,16 +85,42 @@
      } 
  }
  
- async function selectQuery ( query:any ):Promise<movimentos[] | undefined>{
+
+ type resultQueryMov = {
+  data_recadastro :string
+  codigo_produto :number
+  descricao_produto:string
+  quantidade_movimento:number
+  codigo_setor:number
+  historico_movimento:string
+  codigo_movimento:number
+  descricao_setor:string,
+  entrada_saida: 'E' | 'S' 
+}
+
+ async function selectQuery ( query:any ):Promise<resultQueryMov[] | undefined>{
      try{
 
-         let result:movimentos[] = await db.getAllAsync(`SELECT *,
-                   strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro  FROM movimentos_produtos 
-                   where 
-                       produto like '%${query}%' or 
-                       historico like '%${query}%' or 
-                       quantidade like '%${query}%'
-                   `);
+         let result:movimentos[] = await db.getAllAsync(`SELECT 
+                                                             p.descricao as descricao_produto, 
+                                                             p.codigo as codigo_produto,
+                                                             strftime('%Y-%m-%d %H:%M:%S',  mvp.data_recadastro) AS data_recadastro,
+                                                             mvp.quantidade as quantidade_movimento,
+                                                             mvp.setor as codigo_setor,
+                                                             mvp.historico as historico_movimento,
+                                                             mvp.codigo as codigo_movimento,
+                                                             mvp.ent_sai as entrada_saida,
+                                                             s.descricao as descricao_setor
+                                                    FROM movimentos_produtos mvp
+                                                    left join produtos p on p.codigo = mvp.produto
+                                                    left join setores s on s.codigo = mvp.setor
+                                                where 
+                                                    mvp.produto like '%${query}%' or 
+                                                    mvp.historico like '%${query}%' or 
+                                                    mvp.quantidade like '%${query}%' or 
+                                                        p.descricao like '%${query}%'
+                                        
+                                    `);
          return result;
      }catch( e){
          console.log(`erro ao buscar os movimentos dos produtos, busca por parametros de pesquisa `, e);
@@ -158,6 +186,7 @@
              INSERT INTO movimentos_produtos 
             (
             setor,
+            ent_sai,
             produto,
             quantidade,
             tipo,
@@ -166,6 +195,7 @@
 
             ) VALUES (
                  ${obj.setor},
+                 '${obj.ent_sai}',
                  ${obj.produto},
                  ${obj.quantidade},
                 '${obj.tipo}',
@@ -186,8 +216,9 @@
              `
              INSERT INTO movimentos_produtos 
             (
-             codigo,
+            codigo,
             setor,
+            ent_sai,
             produto,
             quantidade,
             tipo,
@@ -197,6 +228,7 @@
             ) VALUES (
                  ${obj.codigo},
                  ${obj.setor},
+                 '${obj.ent_sai}',
                  ${obj.produto},
                  ${obj.quantidade},
                 '${obj.tipo}',

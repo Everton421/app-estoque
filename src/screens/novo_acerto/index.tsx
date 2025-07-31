@@ -38,6 +38,8 @@ export const NovoAcerto = ()=>{
         const [ dataSetores , setDataSetores ] = useState< any>();
         const [setorSelecionado, setSetorSelecionado] = useState<any>();
         const [loadingDataProd , setLoadingDataProd ] = useState(false);
+         const [ent_sai , setEnt_sai] = useState('E')
+         const [ novoSaldo, setNovoSaldo ] = useState(0);
 
         const [defaultConfigFilter , setDefaultConfigFilter ]= useState< 'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
 
@@ -111,11 +113,14 @@ export const NovoAcerto = ()=>{
 
         function selectSetor(item:any){
             setSetorSelecionado(item)
+            setNovoSaldo(0)
             setVisibleModalSetores(false) 
         }
 
         function handleSelectProduct(item:any){
             setProdSeletor(item)
+            setNovoSaldo(0)
+             setSetorSelecionado(null)
         }
 
         async function findProdSectorByCode( codigo:number, setor:number ){
@@ -156,26 +161,43 @@ export const NovoAcerto = ()=>{
            }
 
             async function gravar(data:dataProdMov[]){
-                 
-                   try{ 
+
+                
+                            if(ent_sai === 'E'){
+                                let aux = Number(data[0].estoque) + novoSaldo 
+                                data[0].estoque =  aux 
+                            }
+                            if( ent_sai === 'S'){
+                                let aux = Number(data[0].estoque) - novoSaldo 
+                                data[0].estoque =  aux 
+                            }
+                            data[0].data_recadastro = moment.dataHoraAtual();
+
+                           // console.log(data[0])
+                             
+                  try{ 
+                   
                                 setLoadingInsertItem(true)
                     let verifi = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(Number(data[0].produto), Number(data[0].setor))
                             data[0].data_recadastro = moment.dataHoraAtual();
                         
                        if( verifi && verifi.length > 0   ){
                             let resultUpdate = await useQueryProdutoSetores.update(data[0])
+                             
                         }else{
 
                              let resultInsert = await useQueryProdutoSetores.create(data[0])
                         }
+
                          await useQueryMovimento.create(
                              {
                               tipo:'A',
                               data_recadastro:moment.dataHoraAtual(),
                               historico: data[0].historico ? data[0].historico : '',
                               produto: Number(data[0].produto),
-                              quantidade: Number(data[0].estoque),
-                              setor: Number(data[0].setor) 
+                              quantidade:   novoSaldo,
+                              setor: Number(data[0].setor), 
+                              ent_sai: ent_sai
                              }
                          )
                          
@@ -184,14 +206,17 @@ export const NovoAcerto = ()=>{
                                 setProdSeletor(undefined)
                                 setSetorSelecionado(undefined)
                            return  Alert.alert('OK!', `  Acerto registrado com sucesso  ! `)
-
+ 
                    }catch(e){
                     console.log("Erro ao registrar produto no setor" , e )
                     Alert.alert('Atenção!', 'Ocorreu um erro ao tentar registrar o item no setor!')
                                 setLoadingInsertItem(false)
                        } finally{
                                 setLoadingInsertItem(false)
+                                setNovoSaldo(0)
+                                setEnt_sai('E')
                    }
+                    
             }
 
 
@@ -330,72 +355,81 @@ export const NovoAcerto = ()=>{
                                          </Text>
                                   } 
                                  
-                                        !setorSelecionado   ?
-                                    <TouchableOpacity style={{ backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"center",elevation:5, borderRadius:5}} 
+                                       
+                                    <TouchableOpacity style={{ padding:3, backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"space-between",elevation:5, borderRadius:5}} 
                                      onPress={()=>{ handleSetores()}} >
-                                     <AntDesign name="caretdown" size={30} color="#FFF" />
-                                      <Text style={{ fontWeight:"bold" , color:"#FFF" }}> setores </Text>
+                                      <Text style={{ fontWeight:"bold" , color:"#FFF", fontSize:16 }}> setores </Text>
+                                     <AntDesign name="caretright" size={30} color="#FFF" />
                                    </TouchableOpacity>
 
-                                    {
-                                        !setorSelecionado   ?  
-                                    <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >    selecione um setor! </Text> 
-                                    :
-                                     null
-                                  }
-                                    
+                                  <View style={{flexDirection:"row", width:'70%',justifyContent:'space-between',alignItems:"center",padding:5 }}>
+                              
+                                       <TouchableOpacity style={ [{ borderRadius: 10, elevation:5, alignItems: 'center', justifyContent: "center", width: 50, height: 50  },{  backgroundColor: ent_sai === 'E' ? "#185FED" : "#FFF"} ]}
+                                                onPress={() => { setEnt_sai('E') }}   >
+                                                 <AntDesign name="enter" size={24} color={ ent_sai === 'E' ? "#FFF" : "#185FED" } />
+                                                <Text style={[ { fontWeight: "bold", fontSize: 12  },{ color: ent_sai && ent_sai === 'E' ? "#FFF" : "#185FED"}   ]} >  Entrada </Text>
+                                            </TouchableOpacity>
+
+ 
+                                         <TouchableOpacity style={ [ { borderRadius: 10, alignItems: 'center', justifyContent: "center", width: 50, height: 50 },{  backgroundColor: ent_sai === 'S' ? "#185FED" : "#FFF"} ]} 
+                                                onPress={() => { setEnt_sai('S') }} >
+                                             <AntDesign name="back" size={24} color={ ent_sai === 'S' ? "#FFF" : "#185FED" }/>
+                                                <Text style={ [ { fontWeight: "bold", fontSize: 12,  } ,{  color: ent_sai === 'S' ? "#FFF" : '#185FED'   }]} >  saida </Text>
+                                          </TouchableOpacity>
+                                  </View>
+
+ 
 
                                     { loadingDataProd ?
                                         <ActivityIndicator  size={50}/>
                                         :
-                                           dataProd   ? dataProd.map((i, index)=>(
+                                           dataProd && setorSelecionado  ? dataProd.map((i, index)=>(
                                                    <View  key={index}
                                                 style={{  width:"100%",  marginTop:9, marginBottom:10 }}  
                                                 >
-                                                    <Text numberOfLines={3} style={{ marginLeft:10, fontSize:17,fontWeight:"bold", color:"#89898fff"}} >setor (Cód:  {setorSelecionado && setorSelecionado.codigo}) /  { setorSelecionado &&  setorSelecionado.descricao}  </Text>
-                                                    <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  saldo: </Text>
+                                                      <View style={{ borderWidth:1, borderColor:'#CCC'  , width:'100%'}}>
+                                                        <Text numberOfLines={3} style={{ marginLeft:10, fontSize:17,fontWeight:"bold", color:"#89898fff"}} >
+                                                            setor (Cód:  {setorSelecionado && setorSelecionado.codigo}) /  { setorSelecionado &&  setorSelecionado.descricao}  
+                                                            </Text>
+                                                      </View>
+                                                    
+                                                        <View style={{ flexDirection:"row", alignItems:"center", justifyContent:"center"}}>
+                                                           <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  saldo atual: </Text>
+                                                           <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >  {i.estoque} </Text>
+                                                       </View>
+                                                       <View style={{ flexDirection:"row", alignItems:"center", justifyContent:"center"}}>
+                                                       </View>
+                                                    
                                                         
                                                     <View   style={{  width:"50%", alignSelf:"center", flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:5, alignItems:"center", }}    >
                                                     
-                                                    <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
-                                                            onPress={() => {
-                                                                const currentEstoque = parseInt(i.estoque || '0', 10);
-                                                                handleUpdateField('estoque', String(currentEstoque + 1));
-                                                            }}
-                                                        >
-                                                <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > + </Text>
-                                            </TouchableOpacity>
-                                                <TextInput
-                                                        style={{ fontSize: 17, alignSelf: 'center', textAlign: 'center', width: '30%', borderRadius: 3, color: "#89898fff", borderColor: '#89898fff', borderWidth: 1, padding: 5 }}
-                                                        value={String(i.estoque || '0')}
-                                                        onChangeText={(text) => {
-                                                            // Garante que apenas números sejam inseridos
-                                                            const numericValue = text.replace(/[^0-9]/g, '');
-                                                            handleUpdateField('estoque', numericValue);
-                                                        }}
-                                                        keyboardType="numeric"
-                                                    />
-                                                <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
-                                                onPress={() => {
-                                                        const currentEstoque = parseInt(i.estoque || '0', 10);
-                                                        // Impede que o estoque fique negativo
-                                                            if (currentEstoque > 0) {
-                                                            handleUpdateField('estoque', String(currentEstoque - 1));
-                                                        }
-                                                        }}
-                                                    >
-                                                <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > - </Text>
-                                            </TouchableOpacity>
+                                                            <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
+                                                                    onPress={() => { setNovoSaldo( novoSaldo + 1 )  }}  >
+                                                                   <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > + </Text>
+                                                               </TouchableOpacity>
+                                                                <TextInput
+                                                                        style={{ fontSize: 17, alignSelf: 'center', textAlign: 'center', width: '30%', borderRadius: 3, color: "#89898fff", borderColor: '#89898fff', borderWidth: 1, padding: 5 }}
+                                                                        value={String( novoSaldo)  }
+                                                                        onChangeText={(text) => {
+                                                                            const numericValue = text.replace(/[^0-9]/g, '');
+                                                                            setNovoSaldo(Number(numericValue))
+                                                                        }}
+                                                                        keyboardType="numeric"
+                                                                    />
+                                                            <TouchableOpacity style={{ borderRadius: 10, alignItems: 'center', justifyContent: "center", backgroundColor: "#185FED", width: 50, height: 50 }}
+                                                                onPress={() => { setNovoSaldo( novoSaldo - 1 ) }}  >
+                                                                <Text style={{ fontWeight: "bold", fontSize: 25, color: '#FFF' }} > - </Text>
+                                                             </TouchableOpacity>
                                                 </View>
                                                 {/******** 
                                                  * locais
                                                 */}
-                                                    <View style={{ marginTop:10}} >
-                                                <Locais
-                                                    item={i} setVisible={setVisibleLocais} 
-                                                    visible={visibleLocais}
-                                                    onUpdateField={handleUpdateField} 
-                                                    />
+                                                 <View style={{ marginTop:10}} >
+                                                    <Locais
+                                                        item={i} setVisible={setVisibleLocais} 
+                                                        visible={visibleLocais}
+                                                        onUpdateField={handleUpdateField} 
+                                                        />
                                                 </View>
 
                                                     <TouchableOpacity style={{ marginLeft:5, backgroundColor: "#185FED", marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"space-around",elevation:5, borderRadius:5}} 
@@ -451,8 +485,7 @@ export const NovoAcerto = ()=>{
                                     <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={{  width:'15%', padding:3, margin:5}}  >
                                                 <Ionicons name="close" size={28} color={"#6C757D"} />
                                 </TouchableOpacity>
-                          <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:17}} > Setores</Text>
-
+                                           <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:17}} > Setores</Text>
                                     <FlatList
                                     data={dataSetores}
                                     renderItem={( {item} )=> <Setores  setor={item} selectSetor={selectSetor} /> }

@@ -15,56 +15,36 @@ type movimentos = {
     codigo:number
  }
 
+type resultQueryMov = {
+  data_recadastro :string
+  codigo_produto :number
+  descricao_produto:string
+  quantidade_movimento:number
+  codigo_setor:number
+  historico_movimento:string
+codigo_movimento:number
+descricao_setor:string
+  entrada_saida: 'E' | 'S' 
+ 
+}
 
 export const Acertos = ({navigation}:any)=>{
     
     const useQueryMovimentos = useMovimentos(); 
 
     const [ loadingData,setLoadinData ] = useState(false);
-    const [ dataMovimet, setDataMoviment ] = useState<movimentos[]>([]);
-    const [ pesquisa, setPesquisa ] = useState<string>('');
+    const [ dataMovimet, setDataMoviment ] = useState<resultQueryMov[]>([]);
+    const [ pesquisa, setPesquisa ] = useState<string>('a');
 
 
-    async function busca(){
-        try{
-            setLoadinData(true)
-        let result = await useQueryMovimentos.findByTypeMoviment('A');
-            if( result && result.length > 0 ){
-              setDataMoviment(result)    
-            }
-    }catch(e){
-        }finally{
-            setLoadinData(false)
-        }
-    }
-
-
-
-      useFocusEffect(
-            React.useCallback(() => {
-           
-        busca( )
-
-            
-            return () => {
-              
-            };
-            }, []) // Empty dependency array means it runs on focus/unfocus
-        );
-
-
-    //useEffect(()=>{
-    //    busca( )
-    //},[])
-
-
-    ////////
+      
+ 
     async function buscaPorDescricao(value:any){
            try{
             setLoadinData(true)
         let result = await useQueryMovimentos.selectQuery(value);
             if( result && result.length > 0 ){
-              setDataMoviment(result)    
+                setDataMoviment(result)    
             }
     
     }catch(e){
@@ -73,6 +53,14 @@ export const Acertos = ({navigation}:any)=>{
         }
 
     }
+
+        useFocusEffect(
+            React.useCallback(() => {
+               buscaPorDescricao( pesquisa)
+            return () => {
+            };
+            }, [])  
+        );
 
     useEffect(()=>{
         if( pesquisa !== ''){
@@ -81,52 +69,56 @@ export const Acertos = ({navigation}:any)=>{
 
     },[pesquisa])
 
-   function renderItem({ item }: any  ){
+
+   function renderItem({ item}:{ item: resultQueryMov} ){
         return(
             <TouchableOpacity 
               //   onPress={ ()=> handleSelect(item) }
                 style={{ backgroundColor:'#FFF', elevation:5, padding:3, margin:5, borderRadius:5,  width:'95%' }}
              >
-                    <Text style={{ fontWeight:"bold" }}>
-                        Codigo Movimento: {item.codigo}
-                   </Text>
+                   <View style={{flexDirection:"row"}}>
+                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                        Cód({item.codigo_produto}) {item.descricao_produto}
+                        </Text>
+                    </View>
                
                 <View style={{ flexDirection:"row", justifyContent:'space-between' ,margin:5}}>
-            
-
-                     <View style={{flexDirection:"row"}}>
-                        <Text style={{ fontWeight:"bold"}}>
-                            Produto:
-                        </Text>
-                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                         {item.produto}
-                        </Text>
+                  
+                    <View style={{flexDirection:"row",  width:'100%'}}>
+                           <Text style={{ fontWeight:"bold"}}>
+                             quantidade:
+                           </Text>
+                           <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                             {item.quantidade_movimento}
+                          </Text>
                     </View>
-
-                    <View style={{flexDirection:"row"}}>
-                        <Text style={{ fontWeight:"bold"}}>
-                            quantidade:
-                        </Text>
-                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                         {item.quantidade}
-                        </Text>
-                    </View>
-                     <View style={{flexDirection:"row"}}>
-                        <Text style={{ fontWeight:"bold"}}>
+                    
+                </View>
+               <View style={{flexDirection:"row"}}>
+                        <Text style={{ left:3,fontWeight:"bold"}}>
                             Setor:
                         </Text>
-                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                         {item.setor}
+                        <Text style={{ left:5,fontWeight:"bold",  color:'#185FED'}}>
+                        Cód({item.codigo_setor}) 
+                        </Text>
+                         <Text style={{ left:6,fontWeight:"bold"}} >
+                            { item.descricao_setor}
                         </Text>
                     </View>
+                    <View style={{flexDirection:"row"}}>
+                    <Text style={{ fontWeight:"bold",left:5 }}>
+                        tipo: 
+                    </Text>
+                    <Text style={{ left:10,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                            { item.entrada_saida === 'E' ? 'entrada' : 'saida'}
+                        </Text>
                 </View>
-              
                <View style={{flexDirection:"row"}}>
-                  <Text style={{ fontWeight:"bold" }}>
+                  <Text style={{ fontWeight:"bold",left:5 }}>
                     historico: 
                   </Text>
-                   <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                        {item.historico}
+                   <Text style={{ left:10,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                        {item.historico_movimento}
                      </Text>
                 </View>
              
@@ -152,12 +144,14 @@ export const Acertos = ({navigation}:any)=>{
                         placeholder="pesquisar"
                     /> 
 
-                    <TouchableOpacity   onPress={()=> busca()}
+                    <TouchableOpacity  
                         >
                             <AntDesign name="filter" size={35} color="#FFF" />
                         </TouchableOpacity>
                     </View>
              </View>
+                    <Text style={{ fontWeight:"bold", color:'#FFF', fontSize:20, bottom:4 , left:5}}> Acertos</Text>
+           
            </View>
            <TouchableOpacity
                 style={{
@@ -175,7 +169,7 @@ export const Acertos = ({navigation}:any)=>{
                  <FlatList
                             data={ dataMovimet }
                             renderItem = {(i)=>  renderItem(i)  }
-                            keyExtractor={(i:any)=> i.codigo}
+                            keyExtractor={(i: resultQueryMov)=> i.codigo_movimento.toString()}
                             />
          </View>
 

@@ -285,7 +285,7 @@ setMsgApi('')
                     if(dataPost.length > 0 ){
                     console.log('enviando:', dataPost)
                      const resultApi = await api.post('/offline/produto_setor' ,dataPost );
-                        console.log(" resposta backend: ",resultApi.data)
+                        console.log(" resposta backend produto_setor :  ",resultApi.data)
                           if( resultApi.status === 200 ){
                               //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
                           }

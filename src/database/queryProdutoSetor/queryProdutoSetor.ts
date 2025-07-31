@@ -3,7 +3,7 @@ import { SQLiteRunResult, useSQLiteContext } from "expo-sqlite"
 export type  prod_setor = {
         setor :string  ,
         produto :string  ,
-        estoque :string  ,
+        estoque :number  ,
         local_produto :string  ,
         local1_produto :string ,
         local2_produto :string ,
@@ -115,7 +115,7 @@ async function selectCompleteProdSector( code:number ):Promise<selectCompletePro
 }
 
 
-async function update(obj:Partial<prod_setor> ): Promise<SQLiteRunResult | null | undefined > {
+async function update(obj: prod_setor  ): Promise<SQLiteRunResult | null | undefined > {
 
     try{
 
@@ -135,7 +135,7 @@ async function update(obj:Partial<prod_setor> ): Promise<SQLiteRunResult | null 
                 }
             if(obj.estoque){
                 conditions.push(' estoque = ? ');
-                values.push(`${obj.estoque}`);
+                values.push(obj.estoque);
             }
             if(obj.local_produto){
                 conditions.push(' local_produto = ? ');
@@ -163,6 +163,8 @@ async function update(obj:Partial<prod_setor> ): Promise<SQLiteRunResult | null 
             }
             let whereClause = ` WHERE setor = ${obj.setor} AND produto = ${obj.produto};`
             let finalsql = sql + conditions.join(' , ') + whereClause;
+           
+            // console.log("SQL: ",finalsql,"  values: ", obj)
 
             let result = await db.runAsync( finalsql,values);
         console.log(` atualizado  produto codigo: ${obj.produto} no setor: ${obj.setor} `  );

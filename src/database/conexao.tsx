@@ -64,6 +64,7 @@ export async function construtor(db: SQLiteDatabase) {
         CREATE TABLE IF NOT EXISTS movimentos_produtos (
          codigo    INTEGER PRIMARY KEY NOT NULL,
          setor INTEGER  NOT NULL DEFAULT 0,
+         ent_sai TEXT,
          produto INTEGER  NOT NULL DEFAULT 0,
          quantidade INTEGER  NOT NULL DEFAULT 0,
          tipo TEXT NOT NULL DEFAULT A, 
