@@ -1,4 +1,4 @@
-import { View , Text, TextInput, FlatList, Modal, Button, Image, TouchableOpacity} from "react-native";
+import { View , Text, TextInput, FlatList, Modal, Button, Image, TouchableOpacity, ActivityIndicator} from "react-native";
 import { produto, useProducts } from "../../database/queryProdutos/queryProdutos";
 import { useEffect, useState } from "react";
  
@@ -43,6 +43,9 @@ const [ visibleModalSetores, setVisibleModalSetores ] = useState(false);
 const [ dataProdSector, setDataProdSector ] = useState<selectCompleteProdSector[]> ([])
 
 const [ prodViewSector,setProdViewSector ] = useState(0);
+
+const [ loadingItemModalSetor, setLoadingItemModalSetor ] = useState(false);
+
 
 type fotoProduto =
  {
@@ -108,18 +111,7 @@ useEffect(()=>{
 },[  pesquisa])
 
    
-    useEffect(
-        ()=>{
-            async function buscaProdSector(){
-                let dados:any = await useQueryProdutoSetores.selectCompleteProdSector(prodViewSector);   
-                if(dados?.length > 0 ){
-                    setDataProdSector(dados);  
-                }
-            }
-         buscaProdSector()
-          
-        },[  visibleModalSetores]
-    )
+ 
     ////
 
         function handleSelect(item:any){
@@ -130,10 +122,26 @@ useEffect(()=>{
             })
         }
 
-          function viewItemSector(item:any){
+          async function viewItemSector(item:any){
             setVisibleModalSetores(true)
             setProdViewSector(item.codigo)
+              try {
+                    setLoadingItemModalSetor(true)
+                     let dados:any = await useQueryProdutoSetores.selectCompleteProdSector(item.codigo);   
+                    if(dados?.length > 0 ){
+                        setDataProdSector(dados); 
+                         
+                    }else{
+                        setDataProdSector([]); 
+                    }
+                } catch (error) {
+                    console.log(` Erro ao tentar consultar os dados do produto: ${item.codigo} nos setores`  )
+                }finally{
+                    setLoadingItemModalSetor(false)
+
+                }
         }
+
         function renderItem({item}:any){
             return(
                 <TouchableOpacity 
@@ -185,58 +193,53 @@ useEffect(()=>{
         function renderProdSectorItem ({item}: {item: selectCompleteProdSector}) {
         return(
             <View style={{ 
-                backgroundColor: "#FFF", // Fundo branco para o card
-                marginHorizontal: 16,   // Margens laterais para não colar na borda do modal
-                marginVertical: 8,      // Margem vertical para separar os itens
-                padding: 16,            // Espaçamento interno
-                borderRadius: 12,       // Bordas arredondadas
-                elevation: 4,           // Sombra para o efeito de card (Android)
-                shadowColor: '#000',    // Sombra (iOS)
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                flexDirection: 'row',   // Itens na horizontal
-                justifyContent: 'space-between', // Espaço entre os elementos
-                alignItems: 'center',   // Alinha verticalmente ao centro
+                backgroundColor: "#FFF",  
+                marginHorizontal: 16,   
+                marginVertical: 8, padding: 16, borderRadius: 12, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, flexDirection: 'row', justifyContent: 'space-between',  alignItems: 'center',    
             }}>
-                {/* Lado esquerdo com as informações */}
-                <View style={{ flex: 1, marginRight: 10 }}> 
-                    
-                     <View  style={{ flexDirection:"row"}} >
-                        <Text style={{fontWeight: 'bold'}}>Setor: </Text>
-                          <Text style={{ fontSize: 15, color: '#7F8C8D'   }}>
-                             {item.descricao_setor} (Cód: {item.setor})
-                          </Text>
-                      </View>
+                {
+                    loadingItemModalSetor  ? 
+                    <ActivityIndicator size={40} color='#185FED'/>
+                    :
+                    <>
+                   
+                        {/* Lado esquerdo com as informações */}
+                        <View style={{ flex: 1, marginRight: 10 }}> 
+                            
+                            <View  style={{ flexDirection:"row"}} >
+                                <Text style={{fontWeight: 'bold'}}>Setor: </Text>
+                                <Text style={{ fontSize: 15, color: '#7F8C8D'   }}>
+                                    {item.descricao_setor} (Cód: {item.setor})
+                                </Text>
+                            </View>
 
-                 <View     >
-                    
+                                <View  >
+                                        { item.local_produto && <Text style={{fontWeight: 'bold'  }}>  Local :  <Text style={{color: '#7F8C8D'}}> { item.local_produto  } </Text></Text> }
+                                        { item.local1_produto && <Text style={{fontWeight: 'bold'  }}>  Local (1):  <Text style={{color: '#7F8C8D'}}> { item.local1_produto  } </Text></Text> }
+                                        { item.local2_produto && <Text style={{fontWeight: 'bold'  }}>  Local (2):  <Text style={{color: '#7F8C8D'}}> { item.local2_produto  } </Text></Text> }
+                                        { item.local3_produto && <Text style={{fontWeight: 'bold'  }}>  Local (3):  <Text style={{color: '#7F8C8D'}}> { item.local3_produto  } </Text></Text> }
+                                        { item.local4_produto && <Text style={{fontWeight: 'bold'  }}>  Local (4):  <Text style={{color: '#7F8C8D'}}> { item.local4_produto  } </Text></Text> }
 
- 
-                        { item.local_produto && <Text style={{fontWeight: 'bold'  }}>  Local :  <Text style={{color: '#7F8C8D'}}> { item.local_produto  } </Text></Text> }
-                        { item.local1_produto && <Text style={{fontWeight: 'bold'  }}>  Local (1):  <Text style={{color: '#7F8C8D'}}> { item.local1_produto  } </Text></Text> }
-                        { item.local2_produto && <Text style={{fontWeight: 'bold'  }}>  Local (2):  <Text style={{color: '#7F8C8D'}}> { item.local2_produto  } </Text></Text> }
-                        { item.local3_produto && <Text style={{fontWeight: 'bold'  }}>  Local (3):  <Text style={{color: '#7F8C8D'}}> { item.local3_produto  } </Text></Text> }
-                        { item.local4_produto && <Text style={{fontWeight: 'bold'  }}>  Local (4):  <Text style={{color: '#7F8C8D'}}> { item.local4_produto  } </Text></Text> }
+                                </View>
+                        </View>
 
-                </View>
-                </View>
-
-                {/* Lado direito com o estoque em destaque */}
-                <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{
-                        fontSize: 22,
-                        fontWeight: 'bold',
-                        color: '#185FED' // Cor principal do seu app
-                    }}>
-                        {item.estoque}
-                    </Text>
-                    <Text style={{  fontSize: 12,  color: '#7F8C8D'  }}>
-                        Saldo
-                    </Text>
-                  
-                </View>
-               
+                        {/* Lado direito com o estoque em destaque */}
+                        <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{
+                                fontSize: 22,
+                                fontWeight: 'bold',
+                                color: '#185FED' // Cor principal do seu app
+                            }}>
+                                {item.estoque}
+                            </Text>
+                            <Text style={{  fontSize: 12,  color: '#7F8C8D'  }}>
+                                Saldo
+                            </Text>
+                        
+                        </View>
+                         
+               </>
+                }
 
             </View>
         )
@@ -272,9 +275,17 @@ useEffect(()=>{
                                           </TouchableOpacity>
 
                             <View style={{     height:'90%'}} >
-                                      <Text style={{   color: '#767d7eff', fontSize: 15, fontWeight:"bold", textAlign:"center" }}>
-                                        { dataProdSector && dataProdSector[0] && dataProdSector[0].descricao_produto}
+
+                                {
+                                    loadingItemModalSetor  ?
+                                            null :
+                                    <Text style={{   color: '#767d7eff', fontSize: 15, fontWeight:"bold", textAlign:"center" }}>
+                                        { dataProdSector && dataProdSector[0]  ?  dataProdSector[0].descricao_produto 
+                                        : 'O produto não esta incluso em nenhum setor!'
+                                        }
                                       </Text>
+                                }
+                                     
                                     <FlatList 
                                         data={dataProdSector}
                                         renderItem={(item)=> renderProdSectorItem (item)}

@@ -1,8 +1,9 @@
 import { ActivityIndicator, Alert, Button, FlatList, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 
 type movimentos = {
     setor:number
@@ -37,9 +38,24 @@ export const Acertos = ({navigation}:any)=>{
         }
     }
 
-    useEffect(()=>{
+
+
+      useFocusEffect(
+            React.useCallback(() => {
+           
         busca( )
-    },[])
+
+            
+            return () => {
+              
+            };
+            }, []) // Empty dependency array means it runs on focus/unfocus
+        );
+
+
+    //useEffect(()=>{
+    //    busca( )
+    //},[])
 
 
     ////////
@@ -76,13 +92,15 @@ export const Acertos = ({navigation}:any)=>{
                    </Text>
                
                 <View style={{ flexDirection:"row", justifyContent:'space-between' ,margin:5}}>
-                    <View style={{flexDirection:"row"}}>
-                    <Text style={{ fontWeight:"bold"}}>
-                        Produto (Cód):
-                    </Text>
-                    <Text style={{ left:3,fontWeight:"bold",fontSize:15,   color:'#89898fff' }}>
-                        {item.produto}
-                    </Text>
+            
+
+                     <View style={{flexDirection:"row"}}>
+                        <Text style={{ fontWeight:"bold"}}>
+                            Produto:
+                        </Text>
+                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                         {item.produto}
+                        </Text>
                     </View>
 
                     <View style={{flexDirection:"row"}}>
@@ -91,6 +109,14 @@ export const Acertos = ({navigation}:any)=>{
                         </Text>
                         <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
                          {item.quantidade}
+                        </Text>
+                    </View>
+                     <View style={{flexDirection:"row"}}>
+                        <Text style={{ fontWeight:"bold"}}>
+                            Setor:
+                        </Text>
+                        <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                         {item.setor}
                         </Text>
                     </View>
                 </View>

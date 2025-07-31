@@ -36,7 +36,7 @@ export const NovoAcerto = ()=>{
 
         const [ dataProd , setDataProd ] = useState< dataProdMov[]> ([]);
         const [ dataSetores , setDataSetores ] = useState< any>();
-        const [setorSelecionado, setSetorSelecionado] = useState();
+        const [setorSelecionado, setSetorSelecionado] = useState<any>();
         const [loadingDataProd , setLoadingDataProd ] = useState(false);
 
         const [defaultConfigFilter , setDefaultConfigFilter ]= useState< 'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
@@ -109,7 +109,7 @@ export const NovoAcerto = ()=>{
             }
         }
 
-        function selectSetor(item){
+        function selectSetor(item:any){
             setSetorSelecionado(item)
             setVisibleModalSetores(false) 
         }
@@ -121,12 +121,12 @@ export const NovoAcerto = ()=>{
         async function findProdSectorByCode( codigo:number, setor:number ){
                     try{
                 setLoadingDataProd(true)
-                let resultDataProd = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(codigo,   setor)
+                let resultDataProd:any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(codigo,   setor)
                      if( resultDataProd && resultDataProd?.length > 0 ){
                          setDataProd(resultDataProd);
                         setLoadingDataProd(false);
                      }else{
-                        let aux = { 
+                        let aux:any = { 
                                  data_recadastro: moment.dataHoraAtual(),
                                  estoque: '0',
                                  local1_produto: "",
@@ -244,25 +244,73 @@ export const NovoAcerto = ()=>{
             <ScrollView  style={{     width:'100%' ,backgroundColor:'#EAF4FE'}} 
             contentContainerStyle={{   alignItems: 'center', paddingVertical: 10, paddingBottom: 30  }}
             > 
-                  <Modal visible={modalVisible} >
-                    <CameraView style={{ flex:1 }}
-                     facing="back"
-                     onBarcodeScanned={ ({ data } ) => { 
-                        //if(data && !qrcodeLock.current){
-                            //qrcodeLock.current = true
-                            //setTimeout(()=> hadleCodeRead(data), 500)
-                        //}
-                    if(data){
-                            handleCodeRead(data)
+               <Modal visible={modalVisible} >
+                    <CameraView
+                        style={{ flex: 1 }}
+                        facing="back"
+                        onBarcodeScanned={({ data }) => {
+                            if (data) {
+                                handleCodeRead(data)
+                            }
+                        }}
+                    >
+                        {/* Sobreposição (Overlay) com estilos inline */}
+                        <View style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}>
+                            {/* Parte superior da sobreposição */}
+                            <View style={{
+                                flex: 1,
+                                width: '100%',
+                                backgroundColor: 'rgba(0,0,0,0.4)'
+                            }} />
 
-                    }
-                     }}
-                     />
+                            {/* Container do meio (inclui a área de foco e as laterais) */}
+                            <View style={{
+                                flexDirection: 'row',
+                                height: 250 // Mesma altura da área de foco
+                            }}>
+                                {/* Lateral da sobreposição */}
+                                <View style={{
+                                    flex: 1,
+                                    backgroundColor: 'rgba(0,0,0,0.4)'
+                                }} />
 
-                    <View style={{ position: 'absolute', bottom:32, left:32, right:32}}>
-                          <Button title="cancelar" onPress={()=>{setModalvisible(false)}} /> 
+                                {/* Área de Foco Central */}
+                                <View style={{
+                                    width: 300,
+                                    height: 250,
+                                    borderWidth: 2,
+                                    borderColor: '#FFF',
+                                    borderRadius: 10,
+                                }} />
+
+                                {/* Outra lateral da sobreposição */}
+                                <View style={{
+                                    flex: 1,
+                                    backgroundColor: 'rgba(0,0,0,0.4)'
+                                }} />
+                            </View>
+
+                            {/* Parte inferior da sobreposição */}
+                            <View style={{
+                                flex: 1,
+                                width: '100%',
+                                backgroundColor: 'rgba(0,0,0,0.4)'
+                            }} />
+                        </View>
+                    </CameraView>
+
+                    <View style={{ position: 'absolute', bottom: 32, left: 32, right: 32 }}>
+                        <Button title="cancelar" onPress={() => { setModalvisible(false) }} />
                     </View>
-                </Modal> 
+                </Modal>
                 
                 <View style={{ flexDirection:"row", width:'95%', top:10 , marginLeft:5,   justifyContent:"center"}}>
                              <ListaProdutos produto={prodSeletor} setProduto={handleSelectProduct} /> 
@@ -281,11 +329,21 @@ export const NovoAcerto = ()=>{
                                           Cód: ({ prodSeletor.codigo})  {prodSeletor.descricao}     
                                          </Text>
                                   } 
-                                   <TouchableOpacity style={{ backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"center",elevation:5, borderRadius:5}} 
+                                 
+                                        !setorSelecionado   ?
+                                    <TouchableOpacity style={{ backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"center",elevation:5, borderRadius:5}} 
                                      onPress={()=>{ handleSetores()}} >
                                      <AntDesign name="caretdown" size={30} color="#FFF" />
                                       <Text style={{ fontWeight:"bold" , color:"#FFF" }}> setores </Text>
                                    </TouchableOpacity>
+
+                                    {
+                                        !setorSelecionado   ?  
+                                    <Text  style={{  textAlign:"center",  fontSize:17,fontWeight:"bold", color:"#89898fff"}}  >    selecione um setor! </Text> 
+                                    :
+                                     null
+                                  }
+                                    
 
                                     { loadingDataProd ?
                                         <ActivityIndicator  size={50}/>
@@ -380,8 +438,10 @@ export const NovoAcerto = ()=>{
                                     }
                            </View>
                         ) :
-                        <View style={{width:'100%' ,margin:10 }}>
-                          <Text  style={{ fontWeight:"bold",margin:3, color:"#89898fff", fontSize:17}} > Selecione um produto para começar!</Text>
+                       
+                            <View style={{ flex:1 ,width:'95%',top:10 , borderWidth:1 ,borderColor:'#CCC', backgroundColor:'#FFF', borderRadius:5}}>
+
+                          <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:17}} > Selecione um produto para começar!</Text>
                         </View>
                     }
 
@@ -390,7 +450,9 @@ export const NovoAcerto = ()=>{
                              <View style={{ backgroundColor: "#FFF", flex: 1 , margin:15, borderRadius:15, height:'80%'}} >
                                     <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={{  width:'15%', padding:3, margin:5}}  >
                                                 <Ionicons name="close" size={28} color={"#6C757D"} />
-                              </TouchableOpacity>
+                                </TouchableOpacity>
+                          <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:17}} > Setores</Text>
+
                                     <FlatList
                                     data={dataSetores}
                                     renderItem={( {item} )=> <Setores  setor={item} selectSetor={selectSetor} /> }

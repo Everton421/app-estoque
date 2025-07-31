@@ -212,7 +212,7 @@ setMsgApi('')
       const aux = await api.get('/offline/categorias',
         { params :{ data_recadastro : data}}
       );
-      console.log("request categorias ", aux.data )
+      //console.log("request categorias ", aux.data )
       const dados = aux.data;
       let TotalCategorias = dados.length
       if( TotalCategorias > 0 ){
@@ -280,13 +280,20 @@ setMsgApi('')
                       }
                   }
                    try{
+                    
+                    
+                    if(dataPost.length > 0 ){
                     console.log('enviando:', dataPost)
-                  const resultApi = await api.post('/offline/produto_setor' ,dataPost );
-                      console.log(" reposta backend: ",resultApi.data)
-                     if( resultApi.status === 200 ){
-                        //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
-                     }
+                     const resultApi = await api.post('/offline/produto_setor' ,dataPost );
+                        console.log(" resposta backend: ",resultApi.data)
+                          if( resultApi.status === 200 ){
+                              //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
+                          }
+                      }else{
+                    console.log('nenhum produto nos setores pronto para envio' )
 
+                      }
+                  
                    }catch(e){
                     console.log("Erro ao tentar enviar os dados da prod_setor ", e )
                    }   
@@ -431,9 +438,12 @@ setMsgApi('')
                     if( dataPost.length > 0 ){
                     console.log('enviando movimentos: ' ,dataPost)
                      const resultApi = await api.post('/offline/movimentos_produtos' ,dataPost );
-                      console.log(" reposta backend movimentos_produtos: ",resultApi.data)
+                      console.log(" resposta backend movimentos_produtos: ",resultApi.data)
                      if( resultApi.status === 200 ){
                      }
+                    }else{
+                    console.log('nenhum movimento a ser enviado! ' )
+
                     }
                      
                 }
