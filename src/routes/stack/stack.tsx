@@ -22,7 +22,7 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="Home" component={Home}    options={{headerShown:false}} />
                     <StackConfig.Screen name="produtos" component={ Produtos }  options={{headerShown:false}} />
                     <StackConfig.Screen name="setores" component={Setores}  options={ { headerShown:false} } />
-                    <StackConfig.Screen name="usuarios" component={Usuarios}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
+                    <StackConfig.Screen name="usuarios" component={Usuarios}   options={ { headerShown:false} }  />
                     <StackConfig.Screen name="ajustes" component={Configurações}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
                     <StackConfig.Screen name="cadastro_produto" component={Cadastro_produto}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
                     <StackConfig.Screen name="cadastro_setores" component={Cadastro_Setores}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
