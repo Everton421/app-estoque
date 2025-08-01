@@ -101,7 +101,7 @@
  async function selectQuery ( query:any ):Promise<resultQueryMov[] | undefined>{
      try{
 
-         let result:movimentos[] = await db.getAllAsync(`SELECT 
+         let result:resultQueryMov[] = await db.getAllAsync(`SELECT 
                                                              p.descricao as descricao_produto, 
                                                              p.codigo as codigo_produto,
                                                              strftime('%Y-%m-%d %H:%M:%S',  mvp.data_recadastro) AS data_recadastro,
