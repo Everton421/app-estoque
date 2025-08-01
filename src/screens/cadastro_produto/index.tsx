@@ -17,7 +17,7 @@ import { configMoment } from "../../services/moment";
 
 // ... (seus types 'produtoBancoLocal' e 'typeFotoProduto' permanecem os mesmos)
 type produtoBancoLocal = { 
-    ativo : string, class_fiscal : string, codigo : number, cst: string, data_cadastro:  string, data_recadastro: string, descricao :string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original : string, observacoes1: string, observacoes2 : string, observacoes3 : string, origem : string, preco : number, sku : string, tipo : string
+    unidade_medida:string,ativo : string, class_fiscal : string, codigo : number, cst: string, data_cadastro:  string, data_recadastro: string, descricao :string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original : string, observacoes1: string, observacoes2 : string, observacoes3 : string, origem : string, preco : number, sku : string, tipo : string
 };
 
 export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
@@ -27,6 +27,8 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     const [ categoriaSelecionada, setCategoriaSelecionada ] = useState(0); 
     const [ estoque, setEstoque ] = useState<any>(0);
     const [ preco, setPreco ] = useState<any>(0);
+    const [ unidade, setUnidade ] = useState( 'UND')
+
     const [ sku, setSku ] = useState<string>('');
     const [ descricao, setDescricao] = useState<string>('');
     const [ gtim, setGtim ] = useState<string>('');
@@ -69,6 +71,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
             let prod:produtoBancoLocal = dataProd[0]  
             setProduto(prod)
             if(dataProd.length > 0 ){
+                    setUnidade(prod.unidade_medida)
                     setCategoriaSelecionada(prod.grupo);
                     setMarcaSelecionada(prod.marca);
                     setReferencia(prod.num_original)
@@ -108,7 +111,8 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
         setLoading(true);
         if( codigo_produto && codigo_produto > 0   ){
-            let data =   { "codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao, "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  {codigo: marcaSelecionada.codigo} , "grupo": {codigo:categoriaSelecionada } };
+            let data =   { "unidade_medida":unidade,"codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao,
+                 "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  {codigo: marcaSelecionada.codigo} , "grupo": {codigo:categoriaSelecionada } };
                 console.log(data)
             let obj = { produto: codigo_produto, fotos: imgs};
                     console.log(obj)
@@ -124,9 +128,11 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                  
                 let responseProdutoApi = await api.put('/produto', data);
                 if(responseProdutoApi.status === 200 && responseProdutoApi.data.codigo > 0 ){
+                let dataRecad = responseProdutoApi.data.data_recadastro
                     // ... seu código de sucesso de update
-                            let dadosUpdateLocal =  { "codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao, "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  marcaSelecionada.codigo, "grupo": categoriaSelecionada };
-                        await useQueryProdutos.updateByParam(dadosUpdateLocal, data.codigo)
+                        let dadosUpdateLocal =  { "unidade_medida":unidade ,"codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao, 
+                            "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  marcaSelecionada.codigo, "grupo": categoriaSelecionada , data_recadastro:dataRecad};
+                        await useQueryProdutos.update(dadosUpdateLocal, data.codigo)
                     navigation.goBack();
                     return Alert.alert('', `Produto ${responseProdutoApi.data.codigo} Alterado Com Sucesso! `)     
                 }
@@ -383,7 +389,6 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                 placeholderTextColor={colors.placeholder}
                             />
                         </View>
-                         
                     </View>
                 </View>
 
@@ -399,7 +404,16 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                             value={String(descricao)}
                         />
                     </View>
-
+                      <View style={styles.inputGroup}>
+                               <Text style={styles.inputLabel}>Unidade de medida</Text>
+                               <TextInput
+                                 onChangeText={(value) => setUnidade(value)}
+                                 style={styles.textInput}
+                                 placeholder="Unidade de medida do produto"
+                                 placeholderTextColor={colors.placeholder}
+                                 value={String(unidade)}
+                             />
+                         </View>
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>SKU</Text>
                         <TextInput

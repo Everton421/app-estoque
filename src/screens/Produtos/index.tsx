@@ -148,16 +148,13 @@ useEffect(()=>{
                     onPress={ ()=> handleSelect(item) }
                     style={{ backgroundColor:'#FFF', elevation:2, padding:3, margin:5, borderRadius:5,  width:'95%' }}
                  >
-                   <View style={{ flexDirection:"row", justifyContent:"space-between"}}>  
-                    <Text style={{ fontWeight:"bold"}}>
+                   <View style={{ flex:1, flexDirection:"row", justifyContent:"space-between"}}>  
+                    <Text style={{ flex:1, fontWeight:"bold"}}>
                         Codigo: {item.codigo}
                     </Text>
-                        <TouchableOpacity style={{ alignItems:"center"}}
-                            onPress={()=>{ viewItemSector(item) }}
-                        >
-                        <AntDesign name="database" size={24} color="black" />
-                                        <Text style={{ fontWeight:"bold"}}> Estoque</Text>
-                        </TouchableOpacity>
+                     <Text style={{ fontWeight:"bold"}}>
+                       estoque total: {item.estoque}
+                    </Text>
                    </View>
 
                    <Text style={{fontSize:15}}>
@@ -176,14 +173,20 @@ useEffect(()=>{
                     
                     }
 
-                <View style={{ flexDirection:"row", justifyContent:"space-between", margin:3}}>  
-                    <Text style={{ fontWeight:"bold"}}>
+                <View style={{ flexDirection:"row", justifyContent:"space-between" }}>  
+                    
+                    <Text style={{ fontWeight:"bold", textAlign:"center"}}>
                       R$ {item.preco.toFixed(2)}
                     </Text>
-                    <Text style={{ fontWeight:"bold"}}>
-                       estoque total: {item.estoque}
-                    </Text>
+
+                   <TouchableOpacity
+                    style={{ width:'20%' ,justifyContent:"center", alignItems:"center"}}
+                         onPress={()=>{ viewItemSector(item) }}  >
+                        <AntDesign name="database" size={24} color="black" />
+                               <Text style={{width:'100%',textAlign:"center", flex:1,fontWeight:"bold"}}>Estoque</Text>
+                        </TouchableOpacity>
                 </View>
+                 
                 </TouchableOpacity>
             )
         }
@@ -208,7 +211,7 @@ useEffect(()=>{
                             
                             <View  style={{ flexDirection:"row"}} >
                                 <Text style={{fontWeight: 'bold'}}>Setor: </Text>
-                                <Text style={{ fontSize: 15, color: '#7F8C8D'   }}>
+                                <Text style={{flex:1, fontSize: 15, color: '#7F8C8D'   }}>
                                     {item.descricao_setor} (Cód: {item.setor})
                                 </Text>
                             </View>
@@ -225,14 +228,10 @@ useEffect(()=>{
 
                         {/* Lado direito com o estoque em destaque */}
                         <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{
-                                fontSize: 22,
-                                fontWeight: 'bold',
-                                color: '#185FED' // Cor principal do seu app
-                            }}>
+                            <Text style={{ fontSize: 22,  fontWeight: 'bold',  color: '#185FED' ,textAlign:"center" }}>
                                 {item.estoque}
                             </Text>
-                            <Text style={{  fontSize: 12,  color: '#7F8C8D'  }}>
+                            <Text style={{  fontSize: 12,  color: '#7F8C8D'  ,textAlign:"center"}}>
                                 Saldo
                             </Text>
                         
@@ -279,7 +278,7 @@ useEffect(()=>{
                                 {
                                     loadingItemModalSetor  ?
                                             null :
-                                    <Text style={{   color: '#767d7eff', fontSize: 15, fontWeight:"bold", textAlign:"center" }}>
+                                    <Text style={{   marginHorizontal:2, color: '#767d7eff', fontSize: 15, fontWeight:"bold", textAlign:"center" }}>
                                         { dataProdSector && dataProdSector[0]  ?  dataProdSector[0].descricao_produto 
                                         : 'O produto não esta incluso em nenhum setor!'
                                         }

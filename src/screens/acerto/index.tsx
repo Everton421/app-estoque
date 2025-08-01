@@ -25,6 +25,7 @@ type resultQueryMov = {
 codigo_movimento:number
 descricao_setor:string
   entrada_saida: 'E' | 'S' 
+  unidade_medida:string
  
 }
 
@@ -76,9 +77,14 @@ export const Acertos = ({navigation}:any)=>{
               //   onPress={ ()=> handleSelect(item) }
                 style={{ backgroundColor:'#FFF', elevation:5, padding:3, margin:5, borderRadius:5,  width:'95%' }}
              >
+                    <View style={{flexDirection:"row"}}>
+                        <Text style={{ left:3 ,fontWeight:'bold', color:'#474b4dff'}}>
+                         movimento gerado: {new Date(item.data_recadastro).toLocaleString('pt-br', { day:'numeric',month:'short',year:'2-digit' })} 
+                        </Text>
+                    </View>
                    <View style={{flexDirection:"row"}}>
                         <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                        Cód({item.codigo_produto}) {item.descricao_produto}
+                        Cód ({item.codigo_produto})  {item.descricao_produto}
                         </Text>
                     </View>
                
@@ -89,35 +95,31 @@ export const Acertos = ({navigation}:any)=>{
                              quantidade:
                            </Text>
                            <Text style={{ left:3,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                             {item.quantidade_movimento}
+                             {item.quantidade_movimento} / ({item.unidade_medida})
                           </Text>
                     </View>
                     
                 </View>
-               <View style={{flexDirection:"row"}}>
-                        <Text style={{ left:3,fontWeight:"bold"}}>
-                            Setor:
+               <View style={{flexDirection:"row" , marginHorizontal: 5 }}>
+                        <Text style={{  fontWeight:"bold"}}>Setor:</Text>
+                        <Text numberOfLines={5}  style={{flex:1, marginLeft:5, fontWeight:"bold",  color:'#185FED'}}>
+                             Cód({item.codigo_setor}) / { item.descricao_setor}
                         </Text>
-                        <Text style={{ left:5,fontWeight:"bold",  color:'#185FED'}}>
-                        Cód({item.codigo_setor}) 
-                        </Text>
-                         <Text style={{ left:6,fontWeight:"bold"}} >
-                            { item.descricao_setor}
-                        </Text>
-                    </View>
+                        
+               </View>
                     <View style={{flexDirection:"row"}}>
-                    <Text style={{ fontWeight:"bold",left:5 }}>
+                    <Text style={{ fontWeight:"bold" ,left:5 }}>
                         tipo: 
                     </Text>
-                    <Text style={{ left:10,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
-                            { item.entrada_saida === 'E' ? 'entrada' : 'saida'}
+                    <Text style={{ left:5, fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                            { item.entrada_saida === 'E' ? ' entrada ' : ' saida '}
                         </Text>
                 </View>
-               <View style={{flexDirection:"row"}}>
-                  <Text style={{ fontWeight:"bold",left:5 }}>
+               <View style={{flexDirection:"row", marginHorizontal:5}}>
+                  <Text style={{ fontWeight:"bold"  }}>
                     historico: 
                   </Text>
-                   <Text style={{ left:10,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
+                   <Text numberOfLines={10} style={{ flex:1, left:10,fontWeight:"bold",fontSize:15, color:'#185FED'}}>
                         {item.historico_movimento}
                      </Text>
                 </View>

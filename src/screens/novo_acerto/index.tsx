@@ -21,8 +21,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  type filterBarcodeOption = {
         chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
  }
+ type unidade_medida= {
+    unidade_medida:string
+} 
+ type dataProdMov =  prod_setor & historico & unidade_medida   
+
+
  
- type dataProdMov =  prod_setor & historico    
 
 
 export const NovoAcerto = ()=>{
@@ -64,6 +69,20 @@ export const NovoAcerto = ()=>{
                         }
                     }
 
+         /**
+          *  função usada no compoente camera, ao ler o codigo sera passado para esta função
+          * @param data 
+          */
+       function handleCodeRead(data:string){
+                    setModalvisible(false)
+                    fyndBarcode(data)
+            }
+
+       /**
+        *  pesquisa o codigo de barras lido na tabela do produtos 
+        * @param codeScanned 
+        * @returns 
+        */     
        async function fyndBarcode(codeScanned:string){
                 try{
                     setLoadingDataProd(true)
@@ -89,11 +108,12 @@ export const NovoAcerto = ()=>{
             }
 
 
-          function handleCodeRead(data:string){
-                setModalvisible(false)
-                fyndBarcode(data)
-        }
-
+      /**
+       *  atualiza os campos da variavel dataProd que contem os dados que seram usados para gravar
+       * @param fieldName 
+       * @param value 
+       * @returns 
+       */      
      const handleUpdateField = (fieldName: keyof dataProdMov, value: string) => {
             if (!dataProd || dataProd.length === 0) return;
             const updatedData = dataProd.map((item) => {
@@ -102,7 +122,9 @@ export const NovoAcerto = ()=>{
             setDataProd(updatedData);
         };
 
-   
+        /**
+         *  abre o modal onde seleciona os setores
+         */
         function handleSetores(){
             if(!prodSeletor || prodSeletor === undefined){
                 Alert.alert('',"É necessario selecionar um produto");
@@ -111,25 +133,40 @@ export const NovoAcerto = ()=>{
             }
         }
 
+            /**
+             *  seleciona o setor 
+             * @param item 
+             */
         function selectSetor(item:any){
             setSetorSelecionado(item)
             setNovoSaldo(0)
             setVisibleModalSetores(false) 
         }
 
+        
+        /**
+         *  seleciona o produto 
+         * @param item 
+         */
         function handleSelectProduct(item:any){
             setProdSeletor(item)
             setNovoSaldo(0)
              setSetorSelecionado(null)
         }
 
+            /**
+             *  busca os dados do produto nos setores 
+             * @param codigo 
+             * @param setor 
+             */
         async function findProdSectorByCode( codigo:number, setor:number ){
                     try{
                 setLoadingDataProd(true)
                 let resultDataProd:any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(codigo,   setor)
+
                      if( resultDataProd && resultDataProd?.length > 0 ){
                          setDataProd(resultDataProd);
-                        setLoadingDataProd(false);
+                        
                      }else{
                         let aux:any = { 
                                  data_recadastro: moment.dataHoraAtual(),
@@ -152,7 +189,9 @@ export const NovoAcerto = ()=>{
                     }
        }
 
-
+            /**
+             * busca os dados dos setores 
+             */
           async function findSetores( ){
                 let resultDataSetores = await useQuerySetores.selectAll()
                     if( resultDataSetores && resultDataSetores?.length > 0 ){
@@ -160,6 +199,12 @@ export const NovoAcerto = ()=>{
                     }
            }
 
+
+           /**
+            *  grava os dados na tabela produto_setor / movimentos 
+            * @param data 
+            * @returns 
+            */
             async function gravar(data:dataProdMov[]){
 
                 
@@ -191,6 +236,7 @@ export const NovoAcerto = ()=>{
 
                          await useQueryMovimento.create(
                              {
+                                unidade_medida: data[0].unidade_medida,
                               tipo:'A',
                               data_recadastro:moment.dataHoraAtual(),
                               historico: data[0].historico ? data[0].historico : '',
@@ -220,7 +266,7 @@ export const NovoAcerto = ()=>{
             }
 
 
-        //////////////
+         //////////////
             useEffect(()=>{
                     if( prodSeletor && prodSeletor.codigo   ){
                         findSetores()
@@ -233,17 +279,16 @@ export const NovoAcerto = ()=>{
                     findProdSectorByCode(prodSeletor.codigo,  setorSelecionado.codigo)
                 }
             },[ setorSelecionado   ])
-        //////////////
+         //////////////
             
             useEffect(()=>{
            getDefaultConfig()
-
             },[])
             //////////////
 
-        if (!permission) {
-         return null;
-        }
+            if (!permission) {
+            return null;
+            }
 
             if ( modalVisible && !permission.granted) {
                 return (
@@ -364,14 +409,14 @@ export const NovoAcerto = ()=>{
 
                                   <View style={{flexDirection:"row", width:'70%',justifyContent:'space-between',alignItems:"center",padding:5 }}>
                               
-                                       <TouchableOpacity style={ [{ borderRadius: 10, elevation:5, alignItems: 'center', justifyContent: "center", width: 50, height: 50  },{  backgroundColor: ent_sai === 'E' ? "#185FED" : "#FFF"} ]}
+                                       <TouchableOpacity style={ [{ borderRadius: 10, elevation:5, alignItems: 'center', justifyContent: "center", width: 70, height: 70  },{  backgroundColor: ent_sai === 'E' ? "#185FED" : "#FFF"} ]}
                                                 onPress={() => { setEnt_sai('E') }}   >
                                                  <AntDesign name="enter" size={24} color={ ent_sai === 'E' ? "#FFF" : "#185FED" } />
                                                 <Text style={[ { fontWeight: "bold", fontSize: 12  },{ color: ent_sai && ent_sai === 'E' ? "#FFF" : "#185FED"}   ]} >  Entrada </Text>
                                             </TouchableOpacity>
 
  
-                                         <TouchableOpacity style={ [ { borderRadius: 10, alignItems: 'center', justifyContent: "center", width: 50, height: 50 },{  backgroundColor: ent_sai === 'S' ? "#185FED" : "#FFF"} ]} 
+                                         <TouchableOpacity style={ [ { borderRadius: 10, alignItems: 'center', justifyContent: "center", width: 70, height: 70 },{  backgroundColor: ent_sai === 'S' ? "#185FED" : "#FFF"} ]} 
                                                 onPress={() => { setEnt_sai('S') }} >
                                              <AntDesign name="back" size={24} color={ ent_sai === 'S' ? "#FFF" : "#185FED" }/>
                                                 <Text style={ [ { fontWeight: "bold", fontSize: 12,  } ,{  color: ent_sai === 'S' ? "#FFF" : '#185FED'   }]} >  saida </Text>

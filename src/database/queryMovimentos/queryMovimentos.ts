@@ -9,7 +9,7 @@
     data_recadastro:string,
     ent_sai:string,
     codigo:number
-    
+    unidade_medida:string
  }
 
 
@@ -95,7 +95,8 @@
   historico_movimento:string
   codigo_movimento:number
   descricao_setor:string,
-  entrada_saida: 'E' | 'S' 
+  entrada_saida: 'E' | 'S'
+  unidade_medida:string
 }
 
  async function selectQuery ( query:any ):Promise<resultQueryMov[] | undefined>{
@@ -105,6 +106,7 @@
                                                              p.descricao as descricao_produto, 
                                                              p.codigo as codigo_produto,
                                                              strftime('%Y-%m-%d %H:%M:%S',  mvp.data_recadastro) AS data_recadastro,
+                                                             mvp.unidade_medida as unidade_medida,
                                                              mvp.quantidade as quantidade_movimento,
                                                              mvp.setor as codigo_setor,
                                                              mvp.historico as historico_movimento,
@@ -154,6 +156,10 @@
                 conditions.push(' quantidade = ? ');
                 values.push( obj.quantidade  )
               }
+               if(obj.unidade_medida){
+                conditions.push(' unidade_medida = ? ');
+                values.push(`${obj.unidade_medida}`)
+              }
               if(obj.tipo){
                 conditions.push(' tipo = ? ');
                 values.push(`${obj.tipo}`)
@@ -189,6 +195,7 @@
             ent_sai,
             produto,
             quantidade,
+            unidade_medida,
             tipo,
             historico,
             data_recadastro 
@@ -198,6 +205,7 @@
                  '${obj.ent_sai}',
                  ${obj.produto},
                  ${obj.quantidade},
+                 '${obj.unidade_medida}',
                 '${obj.tipo}',
                 '${obj.historico}',
                 '${obj.data_recadastro}'           
@@ -221,6 +229,7 @@
             ent_sai,
             produto,
             quantidade,
+            unidade_medida ,
             tipo,
             historico,
             data_recadastro 
@@ -231,6 +240,7 @@
                  '${obj.ent_sai}',
                  ${obj.produto},
                  ${obj.quantidade},
+                '${obj.unidade_medida}',
                 '${obj.tipo}',
                 '${obj.historico}',
                 '${obj.data_recadastro}'           

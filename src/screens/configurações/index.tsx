@@ -185,7 +185,7 @@ setMsgApi('')
           if (verifyProduct.length > 0) {
             let data_recadastro = useMoment.formatarDataHora( dados[v].data_recadastro ); // Ajuste se necessário
     
-            console.log(`${data_recadastro } > ${verifyProduct[0].data_recadastro}` )
+            console.log(`produtos : ${data_recadastro } > ${verifyProduct[0].data_recadastro}` )
 
             if (data_recadastro > verifyProduct[0].data_recadastro ) {
 

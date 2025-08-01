@@ -12,6 +12,12 @@ export type  prod_setor = {
         data_recadastro:string 
 }
 
+ type unidade_medida= {
+    unidade_medida:string
+} 
+
+ type dataProdMov =  prod_setor & unidade_medida   
+
 
 export const useProdutoSetores = ()=>{
  
@@ -31,12 +37,14 @@ async function selectAll(){
 }
  
 
-async function selectByCodeProductAndCodeSector( code:number, sector:number ):Promise<prod_setor[] | undefined>{
+async function selectByCodeProductAndCodeSector( code:number, sector:number ):Promise<dataProdMov[] | undefined>{
     try{
-        let result:prod_setor[] = await db.getAllAsync(`SELECT *,
-                                    strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro 
-                   FROM produto_setor 
-                  where produto = ${ code } and setor = ${sector} `);
+        let result:dataProdMov[] = await db.getAllAsync(`SELECT ps.*,
+                                    strftime('%Y-%m-%d %H:%M:%S',  ps.data_recadastro) AS data_recadastro,
+                                    p.unidade_medida 
+                            FROM produto_setor ps 
+                                join produtos as p on p.codigo = ps.produto
+                              where ps.produto = ${ code } and ps.setor = ${sector} `);
         return result;
     }catch( e){
         console.log(`erro ao buscar o produto: ${code}  no  setor : ${ sector }`, e);

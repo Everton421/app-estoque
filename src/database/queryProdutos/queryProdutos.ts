@@ -4,9 +4,10 @@ import { useFotosProdutos } from "../queryFotosProdutos/queryFotosProdutos";
 
 type foto= { link:string}
  export type produto = {
-        codigo:number,
-        estoque?:number,
-        preco?:number,
+          codigo:number,
+          estoque?:number,
+          preco?:number,
+         unidade_medida:string
         grupo?:number,
         origem?:string,
         descricao:string,
@@ -196,6 +197,7 @@ export const useProducts = ()=>{
                       ( 
                        estoque,
                        preco,
+                       unidade_medida,
                        grupo,
                        origem,
                        descricao,
@@ -217,6 +219,7 @@ export const useProducts = ()=>{
                         (
                          ${produto.estoque},
                          ${produto.preco},
+                       '${produto.unidade_medida}',
                          ${produto.grupo} ,
                         '${produto.origem}', 
                         '${descricao}',
@@ -259,6 +262,7 @@ export const useProducts = ()=>{
                       `UPDATE produtos SET  
                       estoque         = ${produto.estoque},  
                       preco           = ${produto.preco},
+                      unidade_medida  ='${produto.unidade_medida}',
                       grupo           = ${produto.grupo},  
                       origem          = '${produto.origem}',
                       descricao       = '${descricao}',
@@ -313,6 +317,7 @@ export const useProducts = ()=>{
                       codigo, 
                       estoque,
                       preco,
+                      unidade_medida,
                       grupo,
                       origem,
                       descricao,
@@ -334,6 +339,7 @@ export const useProducts = ()=>{
                        ${code} ,
                        ${produto.estoque},
                        ${produto.preco},
+                      '${produto.unidade_medida}',
                        ${produto.grupo},
                       '${produto.origem}',
                       '${descricao}',
