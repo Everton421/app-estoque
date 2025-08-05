@@ -2,12 +2,20 @@ import React from "react"
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 import { AntDesign, FontAwesome6, Ionicons,     } from '@expo/vector-icons';
+import { prod_setor } from "../../../../database/queryProdutoSetor/queryProdutoSetor";
+ type historico = { historico :string }
 
+ type unidade_medida= {
+    unidade_medida:string
+} 
+ type dataProdMov =  prod_setor & historico & unidade_medida   
+
+ 
 type props={
     item: { local_produto:string, local1_produto:string, local2_produto:string, local3_produto:string, local4_produto:string,}
     visible:boolean,
     setVisible: React.Dispatch<React.SetStateAction<boolean>>,
-    onUpdateField: (fieldName: keyof any, value: string) => void;
+    onUpdateField: (fieldName: keyof dataProdMov, value: string) => void
 }
 export const Locais = ({item, visible, setVisible, onUpdateField}:props)=>{
 

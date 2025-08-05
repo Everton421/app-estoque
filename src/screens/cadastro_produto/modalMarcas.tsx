@@ -3,7 +3,7 @@ import { useMarcas } from "../../database/queryMarcas/queryMarcas"
 import { FlatList, Modal, Text, TouchableOpacity, View } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
-export  const RenderModalMarcas = ({setMarca, codigoMarca}) => {
+export  const RenderModalMarcas = ({setMarca, codigoMarca}:any) => {
     
         const useQueryMarcas = useMarcas();
 
@@ -40,7 +40,7 @@ export  const RenderModalMarcas = ({setMarca, codigoMarca}) => {
     )
 /*-----*/
     
-function selecionaMarca(item){
+function selecionaMarca(item:any){
     setMarcaSelecionada(item);
     setMarca(item)
     setActive(false)
@@ -65,7 +65,7 @@ function selecionaMarca(item){
                           style={{ backgroundColor:'#185FED',   padding:5, borderRadius:5, flexDirection:"row",justifyContent:"space-between" , margin:7, elevation:3}}
                           onPress={()=>{ !active ? setActive(true) : setActive(false)  }}
                         >
-                     <Text style={{color:'#FFF', fontWeight:"bold", fontSize:15}}> {marcaSelecionada ? marcaSelecionada.descricao : 'Marcas'} </Text>
+                     <Text style={{color:'#FFF', fontWeight:"bold", fontSize:15}}> {marcaSelecionada ?  marcaSelecionada.descricao : 'Marcas'} </Text>
                     <AntDesign name="caretdown" size={24} color="white"    />  
                   </TouchableOpacity>
               </View>

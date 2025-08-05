@@ -99,34 +99,55 @@
   unidade_medida:string
 }
 
- async function selectQuery ( query:any ):Promise<resultQueryMov[] | undefined>{
+ async function selectQuery ( input:string, query: { tipo:'E'| 'S'|'*', data:string } ):Promise<resultQueryMov[] | undefined>{
      try{
 
-         let result:resultQueryMov[] = await db.getAllAsync(`SELECT 
-                                                             p.descricao as descricao_produto, 
-                                                             p.codigo as codigo_produto,
-                                                             strftime('%Y-%m-%d %H:%M:%S',  mvp.data_recadastro) AS data_recadastro,
-                                                             mvp.unidade_medida as unidade_medida,
-                                                             mvp.quantidade as quantidade_movimento,
-                                                             mvp.setor as codigo_setor,
-                                                             mvp.historico as historico_movimento,
-                                                             mvp.codigo as codigo_movimento,
-                                                             mvp.ent_sai as entrada_saida,
-                                                             s.descricao as descricao_setor
-                                                    FROM movimentos_produtos mvp
-                                                    left join produtos p on p.codigo = mvp.produto
-                                                    left join setores s on s.codigo = mvp.setor
-                                                where 
-                                                    mvp.produto like '%${query}%' or 
-                                                    mvp.historico like '%${query}%' or 
-                                                    mvp.quantidade like '%${query}%' or 
-                                                        p.descricao like '%${query}%'
-                                        
-                                    `);
-         return result;
-     }catch( e){
-         console.log(`erro ao buscar os movimentos dos produtos, busca por parametros de pesquisa `, e);
-     } 
+
+            let sql = `SELECT 
+                             p.descricao as descricao_produto, 
+                             p.codigo as codigo_produto,
+                             strftime('%Y-%m-%d %H:%M:%S',  mvp.data_recadastro) AS data_recadastro,
+                             mvp.unidade_medida as unidade_medida,
+                             mvp.quantidade as quantidade_movimento,
+                             mvp.setor as codigo_setor,
+                             mvp.historico as historico_movimento,
+                             mvp.codigo as codigo_movimento,
+                             mvp.ent_sai as entrada_saida,
+                             s.descricao as descricao_setor
+                        FROM movimentos_produtos mvp
+                           left join produtos p on p.codigo = mvp.produto
+                           left join setores s on s.codigo = mvp.setor
+                                    ` 
+                                        let conditions = [ ];
+                                        let values = []
+                                     if(query.tipo !== '*'  ){
+                                        conditions.push(` mvp.ent_sai = ? `)
+                                        values.push(`${query.tipo}`)
+                                    }
+                                 
+                                 conditions.push(` mvp.data_recadastro >=  '${query.data}' `)
+
+                                 let paramsLike = ``
+                                    if(input !== ''){
+                                        paramsLike = ` and ( 
+                                                    mvp.produto like '%${input}%' or 
+                                                    mvp.historico like '%${input}%' or 
+                                                    mvp.quantidade like '%${input}%' or 
+                                                    p.descricao like '%${input}%' or 
+                                                    s.descricao like '%${input}%'
+                                              )`
+                                    }
+
+                                    let whereClause = ' where '
+                                    let finalsql = sql + whereClause + conditions.join(' and ')  +paramsLike;
+                                     // console.log(finalsql)
+                                     // console.log(values)
+
+            let result:resultQueryMov[] = await db.getAllAsync( finalsql, values );
+            return result;
+        }catch( e){
+            console.log(`erro ao buscar os movimentos dos produtos, busca por parametros de pesquisa `, e);
+        } 
  }
  
  

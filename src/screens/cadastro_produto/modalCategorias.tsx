@@ -47,7 +47,7 @@ export  const RenderModalCategorias = ({setCategoria,codigoCategoria   }:any) =>
 
  
     
-function selecionaCategoria(item){
+function selecionaCategoria(item:any){
   setCategoriaSelecionada(item);
   setCategoria(item.codigo)
     setActive(false)

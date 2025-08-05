@@ -17,11 +17,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 type Props = {
   imgs: typeFotoProduto[];
   codigo_produto: number;
-  setImgs: (imgs: typeFotoProduto[]) => void;
+  setImgs: (imgs: typeFotoProduto[] | any) => void;
 };
 
 export const Modal_fotos = ({ imgs, codigo_produto, setImgs }: Props) => {
-  const [visible, setVisible] = useState<Boolean>(false);
+  const [visible, setVisible] = useState(false);
   const [link, setLink] = useState("");
   const [fotos, setFotos] = useState<typeFotoProduto[]>([]);
 

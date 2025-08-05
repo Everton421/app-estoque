@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Alert, Text, TextInput, View, TouchableOpacity} from "react-native"
 import useApi from "../../services/api"
 
-export const Enviar_codigo = ( {navigation} )=>{
+export const Enviar_codigo = ( {navigation} :any)=>{
 
     const api = useApi();
     const [ email, setEmail ] = useState('');

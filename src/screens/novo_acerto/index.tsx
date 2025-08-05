@@ -16,11 +16,12 @@ import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
 import { useProducts } from "../../database/queryProdutos/queryProdutos";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
- type historico = { historico :string }
 
  type filterBarcodeOption = {
         chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
  }
+ type historico = { historico :string }
+
  type unidade_medida= {
     unidade_medida:string
 } 
@@ -217,14 +218,11 @@ export const NovoAcerto = ()=>{
                                 data[0].estoque =  aux 
                             }
                             data[0].data_recadastro = moment.dataHoraAtual();
-
-                           // console.log(data[0])
                              
                   try{ 
                    
                                 setLoadingInsertItem(true)
                     let verifi = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(Number(data[0].produto), Number(data[0].setor))
-                            data[0].data_recadastro = moment.dataHoraAtual();
                         
                        if( verifi && verifi.length > 0   ){
                             let resultUpdate = await useQueryProdutoSetores.update(data[0])
@@ -518,9 +516,8 @@ export const NovoAcerto = ()=>{
                            </View>
                         ) :
                        
-                            <View style={{ flex:1 ,width:'95%',top:10 , borderWidth:1 ,borderColor:'#CCC', backgroundColor:'#FFF', borderRadius:5}}>
-
-                          <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:17}} > Selecione um produto para começar!</Text>
+                       <View style={{ flex:1 ,width:'95%',top:20 ,  elevation:5 , backgroundColor:'#FFF', borderRadius:5}}>
+                          <Text  style={{ fontWeight:"bold",margin:3, textAlign:"center",color:"#89898fff", fontSize:20}} > Selecione um produto para começar!</Text>
                         </View>
                     }
 
