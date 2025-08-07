@@ -10,6 +10,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { queryEmpresas } from "../../database/queryEmpresas/queryEmpresas";
 import useApi from "../../services/api";
+import { LoadingDataComponent } from "../../components/loadingData";
+import { fetchProdutos } from "../../services/sync-service";
 
 type cadEmpre =
   {
@@ -22,12 +24,17 @@ type cadEmpre =
   }
 
 export const Home = ({ navigation }: any) => {
+
   const { setLogado, setUsuario, usuario }: any = useContext(AuthContext);
   const api = useApi();
 
   const [sair, setSair] = useState<boolean>(false)
   const [cadEmpresa, setCadEmpresa] = useState<cadEmpre>()
   const [loaidngEmpr, setLoadingEmpr] = useState(false);
+  const [ carregarDados, setCarregarDados ] = useState(false);  
+  
+  const [ nameitemSync, setNameItemSync ] = useState('teste');
+  const [ progressItem, setProgressItem ] = useState(95);
 
   let useQueryEmpresa = queryEmpresas();
   let restartDB = restartDatabaseService();
@@ -70,9 +77,8 @@ async function buscaEmpresa (){
 
   useEffect(
     () => {
-
       buscaEmpresa()
-
+       
     }, [usuario.token]
   )
 
@@ -133,8 +139,13 @@ async function buscaEmpresa (){
     );
   };
 
+  
   return (
+
     <View style={{ flex: 1, backgroundColor: "#EAF4FE" , height:'auto'}}>
+
+    
+
       <View style={{ alignItems: "center", justifyContent: "space-between", flexDirection: "row", backgroundColor: '#185FED', elevation: 7, padding: 5, }}>
         <View style={{ backgroundColor: '#FFF', borderRadius: 55, padding: 3, margin: 3 }}>
           <Image

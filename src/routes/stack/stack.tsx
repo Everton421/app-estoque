@@ -9,6 +9,7 @@ import { Cadastro_Setores } from "../../screens/cadastrarSetores";
 import { Acertos } from "../../screens/acerto";
 import Teste from "../../screens/teste";
 import { NovoAcerto } from "../../screens/novo_acerto";
+import { CarregarDados } from "../../screens/carregar-dados";
 
 
 const StackConfig = createStackNavigator();

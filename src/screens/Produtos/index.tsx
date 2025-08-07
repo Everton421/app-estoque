@@ -161,17 +161,23 @@ useEffect(()=>{
                      {item.descricao}
                    </Text>
 
-                   {  item.fotos && item.fotos.length > 0 && item.fotos[0].link ?
-                     (<Image
-                        source={{ uri: `${item.fotos[0].link}` }}
-                        // style={styles.galleryImage}
-                        style={{ width: 100, height: 100,  borderRadius: 5,}}
-                         resizeMode="contain"
-                       />) :(
-                         <MaterialIcons name="no-photography" size={40} color="black"  />
-                       )
-                    
-                    }
+            <View style={{ flexDirection:"row", justifyContent:"space-between"}}>
+
+            {  item.fotos && item.fotos.length > 0 && item.fotos[0].link ?
+                                (<Image
+                                    source={{ uri: `${item.fotos[0].link}` }}
+                                    // style={styles.galleryImage}
+                                    style={{ width: 100, height: 100,  borderRadius: 5,}}
+                                    resizeMode="contain"
+                                />) :(
+                                    <MaterialIcons name="no-photography" size={40} color="black"  />
+                                )
+                                
+                                }
+                      
+
+            </View>
+                
 
                 <View style={{ flexDirection:"row", justifyContent:"space-between" }}>  
                     
@@ -179,11 +185,11 @@ useEffect(()=>{
                       R$ {item.preco.toFixed(2)}
                     </Text>
 
-                   <TouchableOpacity
-                    style={{ width:'20%' ,justifyContent:"center", alignItems:"center"}}
-                         onPress={()=>{ viewItemSector(item) }}  >
-                        <AntDesign name="database" size={24} color="black" />
-                               <Text style={{width:'100%',textAlign:"center", flex:1,fontWeight:"bold"}}>Estoque</Text>
+                    <TouchableOpacity
+                         style={{ width:'20%' ,justifyContent:"center", alignItems:"center"}}
+                          onPress={()=>{ viewItemSector(item) }}  >
+                         <AntDesign name="database" size={24} color="black" />
+                               <Text style={{width:'100%',textAlign:"center", flex:1,fontWeight:"bold"}}>Estoque P/ Setor</Text>
                         </TouchableOpacity>
                 </View>
                  

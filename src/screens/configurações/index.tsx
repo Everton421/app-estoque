@@ -1,61 +1,42 @@
 import { View, Text, Button, Alert, Modal, ActivityIndicator, StyleSheet,Animated, TouchableOpacity, Linking, ScrollView } from "react-native"
 import useApi from "../../services/api"
-import { useContext, useEffect, useState } from "react"
+import { useContext,   useEffect,   useState } from "react"
 import { ConnectedContext } from "../../contexts/conectedContext"
-import { useProducts } from "../../database/queryProdutos/queryProdutos"
-import { AuthContext } from "../../contexts/auth"
 import { restartDatabaseService } from "../../services/restartDatabase"
 import { configMoment } from "../../services/moment"
-import { useCategoria } from "../../database/queryCategorias/queryCategorias"
-import { useMarcas } from "../../database/queryMarcas/queryMarcas"
-import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosProdutos"
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api"
 import Feather from '@expo/vector-icons/Feather';
-import { useUsuario } from "../../database/queryUsuario/queryUsuario"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useSetores } from "../../database/querySetores/querySetores"
-import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor"
-import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos"
 import { ConfigProdSeletor } from "./components/configProdSeletor"
+import { LoadingData } from "../../components/loadingData"
+import { useSyncProdSector   } from "../../hooks/sync-produto-setor/useSyncProdutosSetor"
+import { useSyncMovimentos } from "../../hooks/sync-movimentos/useSyncMovimentos"
+import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos"
+import { useSyncFotos } from "../../hooks/sync-fotos/useSyncFotos"
+import { useSyncMarcas } from "../../hooks/sync-marcas/useSyncMarcas"
+import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias"
+import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores"
 
-const LoadingData = ({ isLoading, item , progress }:any) => (
-  <Modal animationType='slide' transparent={true} visible={isLoading}>
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#FFF" />
-      <Text style={styles.loadingText}>Carregando  {item} ... {progress}%</Text>
-      <Animated.View style={[styles.progressBar, { width: `${progress}%` }]} />
-    </View>
-  </Modal>
-);
-const LoadingOrders = ({ isLoadingOrder   }:any) => (
-  <Modal animationType='slide' transparent={true} visible={isLoadingOrder}>
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#FFF" />
-      <Text style={styles.loadingText}>Carregando  pedidos ...  </Text>
-    </View>
-  </Modal>
-);
 
 export const Configurações = () => {
 
   const api = useApi();
 
-  const { usuario }:any = useContext(AuthContext);
   const {connected, setConnected }:any = useContext(ConnectedContext);
+          
+  const syncprodSector = useSyncProdSector();
+  const syncMovimentos = useSyncMovimentos();
+  const syncProdutos = useSyncProdutos();
+  const syncCategorias = useSyncCategorias();
+  const syncFotos = useSyncFotos();
+  const syncMarcas = useSyncMarcas();
+  const syncSetores = useSyncSetores();
 
-  const useQueryProdutos = useProducts();
+
   const useRestartService = restartDatabaseService();
   const useMoment = configMoment();
-  const useQueryCategoria = useCategoria() 
-  const useQueryMarcas = useMarcas();
-  const useQueryFotos = useFotosProdutos();
-  const useQueryUsuario = useUsuario();
-  const useQuerySetores = useSetores();
-  const useQueryProdutoSetores = useProdutoSetores();
-  const useQueryMovimentos = useMovimentos();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [progress, setProgress] = useState(0);
   const [data, setData] = useState([]);
   const [date, setDate] = useState(new Date());
@@ -63,23 +44,10 @@ export const Configurações = () => {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>()
   const [conectado, setConectado] = useState<boolean>()
-  const [loadingOrders, setLoadingOrders] = useState<boolean>(true)
-  const [ dataSelecionada, setDataSelecionada ] = useState(  );
-  const [showPicker, setShowPicker] = useState(false);
   const [msgApi , setMsgApi ] = useState('');
 
-  const [ headerApi, setHeaderApi ] = useState<object | null>(null)
-
-
     const useQueryConfigApi = queryConfig_api();
-  
-  const formatDate = (date:any) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-     return `${year}-${month}-${day}`;
-
-  };
+ 
 
   async function connect() {
 
@@ -138,397 +106,42 @@ setMsgApi('')
       }
         return dataUltSinc;
   }
-  const fetchUsers = async (data:string ) => {
-    setItem('usuarios');
 
-    try {
-      const aux = await api.get('/usuarios',
-        { params :{ data_recadastro : data} }
-      );
-      const dados = aux.data;
-
-      const totalUsers = dados.length
-       if( totalUsers > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-        const verifyUser:any = await useQueryUsuario.selectByCode(dados[i].codigo);
-        if (verifyUser.length > 0) {
-         
-          await useQueryUsuario.create(dados[i]);
-        }
-
-        const progressPercentage = Math.floor(((i + 1) / totalUsers) * 100);
-        setProgress(progressPercentage); // Atualiza progresso
-      
-        } 
-      }else{
-        console.log("Usuários: ", dados)
-      }
-    } catch (e:any) {
-      console.log(e);
-      console.log(e.response.data.msg);
-
-    }
-  };
-
-  const fetchProdutos = async (data:string) => {
-    try {
-      setItem('produtos');
   
-      const aux = await api.get('/offline/produtos',  { 
-        params :{ data_recadastro : data}
-      } );
-      const dados = aux.data;
-      const totalProdutos = dados.length;
-      if(totalProdutos > 0 ){
-        for (let v = 0; v < totalProdutos; v++) {
-          const verifyProduct:any = await useQueryProdutos.selectByCode(dados[v].codigo);
-          if (verifyProduct.length > 0) {
-            let data_recadastro = useMoment.formatarDataHora( dados[v].data_recadastro ); // Ajuste se necessário
-    
-            console.log(`produtos : ${data_recadastro } > ${verifyProduct[0].data_recadastro}` )
+ 
 
-            if (data_recadastro > verifyProduct[0].data_recadastro ) {
-
-              await useQueryProdutos.update(dados[v], dados[v].codigo);
-            }
-          } else {
-            await useQueryProdutos.createByCode(dados[v], dados[v].codigo );
-          }
-          const progressPercentage = Math.floor(((v + 1) / totalProdutos) * 100);
-          setProgress(progressPercentage); // Atualiza progresso
-        }
-      }else{
-        console.log("Produtos: ", dados);        
-      }
-
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-    const fetchCategorias = async (data:string) => {
-    setItem('categorias');
-    try {
-      const aux = await api.get('/offline/categorias',
-        { params :{ data_recadastro : data}}
-      );
-      //console.log("request categorias ", aux.data )
-      const dados = aux.data;
-      let TotalCategorias = dados.length
-      if( TotalCategorias > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-          const verifiCategoria:any = await useQueryCategoria.selectByCode(dados[i].codigo);
-          if (verifiCategoria.length > 0) {
-            let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-            console.log(`categoria: ${data_recadastro } > ${verifiCategoria[0].data_recadastro}` )
-            if (data_recadastro > verifiCategoria[0].data_recadastro ) {
-              await useQueryCategoria.update( dados[i], dados[i].codigo);
-            }
-          } else {
-            await useQueryCategoria.create(dados[i]);
-          }
-          const progressPercentage = Math.floor(((i + 1) / TotalCategorias) * 100);
-          setProgress(progressPercentage); // Atualiza progresso
-        }        
-      }else{
-        console.log("Categorias: ", dados);
-      }
-    } catch (e) {
-      console.log(" ocorreu um erro ao processar as categorias", e);
-    }
-  };
-
-    const fetchProdutoSetor = async (data:string) => {
-    setItem('produtos nos setores');
-      try {
-        const aux = await api.get('/offline/produto_setor',
-          { params :{ data_recadastro : data}}
-        );
-        const dados = aux.data;
-        let totalProduto_setor = dados.length
-        if( totalProduto_setor > 0 ){
-          for (let i = 0; i < dados.length; i++ ) {
-            const verifi:any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(dados[i].produto,dados[i].setor );
-            if (verifi.length > 0) {
-              let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-              console.log(`categoria: ${data_recadastro } > ${verifi[0].data_recadastro}` )
-              if (data_recadastro > verifi[0].data_recadastro ) {
-                await useQueryProdutoSetores.update( dados[i] );
-              }
-            } else {
-              await useQueryProdutoSetores.create(dados[i]);
-            }
-            const progressPercentage = Math.floor(((i + 1) / totalProduto_setor) * 100);
-            setProgress(progressPercentage); // Atualiza progresso
-          }        
-        }else{
-          console.log("Produto setor: ", dados);
-        }
-      } catch (e) {
-        console.log(" ocorreu um erro ao processar   Produto_setor", e);
-      }
-
-         try{
-                const dataProdSector   = await useQueryProdutoSetores.selectAll();
-            //  console.log('Produtos_setor: ' ,dataProdSector)
-            const dataPost =[]
-              
-               if(dataProdSector && dataProdSector?.length > 0 ){
-                  for(let i of dataProdSector ){
-                      if( new Date(i.data_recadastro) > new Date(data) ){
-                        dataPost.push(i)
-                      }
-                  }
-                   try{
-                    
-                    
-                    if(dataPost.length > 0 ){
-                    console.log('enviando:', dataPost)
-                     const resultApi = await api.post('/offline/produto_setor' ,dataPost );
-                        console.log(" resposta backend produto_setor :  ",resultApi.data)
-                          if( resultApi.status === 200 ){
-                              //useQueryConfigApi.updateByParam( { codigo:1, data_env:useMoment.dataHoraAtual()})
-                          }
-                      }else{
-                    console.log('nenhum produto nos setores pronto para envio' )
-
-                      }
-                  
-                   }catch(e){
-                    console.log("Erro ao tentar enviar os dados da prod_setor ", e )
-                   }   
-
-                  }else{
-                    return 
-                  }
-                
-        }catch(e){
-          console.log("Ocorreu um erro ao tentar fazer o envio dos dados da tabela produto_setores",e )
-        }
+ 
+   const syncDataProcess = async () => {
+    let data =  await verifyDateSinc();
+        setIsLoading(true);
+        setProgress(0);
         
+        try {
+            await syncProdutos.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncCategorias.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncFotos.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncprodSector.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncMarcas.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncMovimentos.syncData( { data, setIsLoading, setProgress, setItem } );
+            await syncSetores.syncData( { data, setIsLoading, setProgress, setItem } );
 
-  };
-  const fetchMarcas = async (data:string) => {
-    setItem('marcas');
-    try {
-      const aux = await api.get('/offline/marcas',
-        { params :{ data_recadastro : data}}
 
-      );
-      const dados = aux.data;
-      let TotalMarcas = dados.length
-      if(TotalMarcas > 0 ){
-      for (let i = 0; i < dados.length; i++ ) {
-        const verifiMarca:any = await useQueryMarcas.selectByCode(dados[i].codigo);
-        
-        if (verifiMarca.length > 0) {
-           let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-       console.log(`marca: ${data_recadastro } > ${verifiMarca[0].data_recadastro}` )
-          
-          if (data_recadastro > verifiMarca[0].data_recadastro ) {
-            await useQueryMarcas.update( dados[i], dados[i].codigo);
-          
-          }
-        } else {
-          await useQueryMarcas.create(dados[i]);
+    console.log('Fim do processo')
+
+          setData([]); // Atualiza o estado para mostrar dados após a sincronização
+        } catch (e) {
+          console.log(e);
+        } finally {
+          setIsLoading(false);
+          setTimeout(() => setProgress(0), 1000); // Reseta o progresso após 1 segundo
         }
-        const progressPercentage = Math.floor(((i + 1) / TotalMarcas) * 100);
-        setProgress(progressPercentage); // Atualiza progresso
-
-      }     
-      }else{
-       console.log("Marcas: ", dados);
-    }   
-    } catch (e) {
-      console.log(" ocorreu um erro ao processar as marcas", e);
-    }
-  };
-
-  
-
-  const fetchSetores = async (data:string ) => {
-    setItem('setores');
-
-    try {
-      const aux = await api.get('/offline/setores',
-        { params :{ data_recadastro : data}}
-      );
-      const dados = aux.data;
-
-      const totalSetores = dados.length
-       if( totalSetores > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-        const verifiVeic:any = await useQuerySetores.selectByCode(dados[i].codigo);
-        if (verifiVeic.length > 0) {
-          let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-          console.log(`Setores: ${data_recadastro } > ${verifiVeic[i].data_recadastro}` )
-          if (data_recadastro > verifiVeic[0].data_recadastro ) {
-            await useQuerySetores.update( dados[i] );
-          }
-        } else {
-          await useQuerySetores.create(dados[i]);
-        }
-
-        const progressPercentage = Math.floor(((i + 1) / totalSetores) * 100);
-        setProgress(progressPercentage); // Atualiza progresso
-      
-        } 
-      }else{
-        console.log("Setores: ", dados)
-      }
-    } catch (e:any) {
-      console.log(e);
-      console.log(e.response.data.msg);
-
-    }
-  };
-
-  const fetchMoviments = async (data:string ) => {
-    setItem('movimentos produtos');
-
-    try {
-      const aux = await api.get('/offline/movimentos_produtos',
-        { params :{ 
-          //data_recadastro : data,
-          usuario:usuario.codigo
-        }}
-      );
-      const dados = aux.data;
-      const totalMovimentos = dados.length
-
-       if( totalMovimentos > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-           
-        const verifi = await useQueryMovimentos.findByCodeMoviment(dados[i].codigo);
-
-        if (verifi && verifi.length > 0) {
-          let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-           if (data_recadastro > verifi[0].data_recadastro ) {
-             await useQueryMovimentos.update( dados[i] );
-           }
-        } else {
-           await useQueryMovimentos.createByCode(dados[i]);
-        }
-
-        const progressPercentage = Math.floor(((i + 1) / totalMovimentos) * 100);
-        setProgress(progressPercentage); // Atualiza progresso
- 
-        } 
-      }else{
-        console.log("movimentos produtos: ", dados)
-      }
-    } catch (e:any) {
-      console.log(e);
-      console.log(e.response.data.msg);
-
-    }
-
-    
-        try{
-                const dataMoviments   = await useQueryMovimentos.selectAll();
-            const dataPost =[]
-              
-               if(dataMoviments && dataMoviments?.length > 0 ){
-                  for(let i of dataMoviments ){
-                      if( new Date(i.data_recadastro) > new Date(data) ){
-                        i.usuario = usuario.codigo
-                        dataPost.push(i);
-                      }
-                  }
-                    if( dataPost.length > 0 ){
-                    console.log('enviando movimentos: ' ,dataPost)
-                     const resultApi = await api.post('/offline/movimentos_produtos' ,dataPost );
-                      console.log(" resposta backend movimentos_produtos: ",resultApi.data)
-                     if( resultApi.status === 200 ){
-                     }
-                    }else{
-                    console.log('nenhum movimento a ser enviado! ' )
-
-                    }
-                     
-                }
-                
-        }catch(e){
-          console.log("Ocorreu um erro ao tentar fazer o envio dos movimentos dos produtos ",e )
-        }
-       
-  };
-
-
-
-
-/*
-  const fetchImgs = async (data:string) => {
-    setItem('fotos');
-
-    try {
-      const aux = await api.get('/offline/fotos',
-        { params :{ data_recadastro : data}}
-      );
-      const dados = aux.data;
-
-      const totalimgs = dados.length
-      if ( totalimgs > 0 ){
-        for (let i = 0; i < dados.length; i++ ) {
-          const verifiImg:any = await useQueryFotos.selectByCodeAndSequenci(dados[i].produto, dados[i].sequencia);
-          if (verifiImg.length > 0) {
-            let data_recadastro =  useMoment.formatarDataHora( dados[i].data_recadastro);
-            console.log(`foto: ${data_recadastro } > ${verifiImg[i].data_recadastro}` )
-            if (data_recadastro > verifiImg[0].data_recadastro ) {
-              await useQueryFotos.update( dados[i], dados[i].produto );
-            }
-          } else {
-            await useQueryFotos.create(dados[i]);
-          }
-          const progressPercentage = Math.floor(((i + 1) / totalimgs) * 100);
-          setProgress(progressPercentage); // Atualiza progresso
-        }
-      }else{
-        console.log("Imagens: ", dados)
-      }
-
-    } catch (e:any) {
-      console.log( "erro : ",e);
-      if(e.status === 400){
-      console.log( "erro : ",e.response.data.msg);
-      }
-    }
-  };
-
-  
-   
- 
-*/
-   const syncData = async () => {
- let dataSinc =  await verifyDateSinc();
-    setIsLoading(true);
-    setProgress(0);
-    try {
-        await fetchProdutos(dataSinc);
-//        await fetchUsers(dataSinc);
-         await fetchSetores(dataSinc)
-         await fetchProdutoSetor(dataSinc)
-        await fetchMoviments(dataSinc);
-
-         await fetchMarcas(dataSinc);
-         await fetchCategorias(dataSinc)
-
-      setData([]); // Atualiza o estado para mostrar dados após a sincronização
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setProgress(0), 1000); // Reseta o progresso após 1 segundo
-    }
   };
  
-
 
 
   const handleSync = () => {
-
     if(loading){
-      Alert.alert('Aguarde!','Estabelecendo conexão...');
+      return Alert.alert('Aguarde!','Estabelecendo conexão...');
     }
 
     if (!connected) {
@@ -539,24 +152,15 @@ setMsgApi('')
       Alert.alert(msgApi );
       return;
     }
- syncData();
+     syncDataProcess();
   };
 
-  
 
-      useEffect(  () => {
+   
+
+ useEffect(  () => {
         connect();
        }, []);
-
-
-       const handleEvent = (event:any, selectedDate:any) => {
-        const currentDate = selectedDate || date;
-        setShowPicker(false);
-        setDate(currentDate);
-        const dataaux:any = formatDate(currentDate);  
-        setDataSelecionada(dataaux )
-      };
-
 
       function restart(){
           Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`,[
@@ -611,20 +215,19 @@ setMsgApi('')
 
  
           {/** */}
+
           <LoadingData isLoading={isLoading} item={item} progress={progress} />
-          <LoadingOrders isLoadingOrder={isLoadingOrder}  />
-          {/** */}
-                
+ 
       
             {/***** enviar cadastros  */}
             <View style={{ marginTop:15, margin:5,borderRadius:5, padding:10, backgroundColor:'#FFF', elevation:3, width:' 98%', alignItems:"center", justifyContent:"center"  }} >
                   <View style={{ flexDirection:"row", gap:5}}>
-                     <Text style={{ color:'#185FED', fontWeight:"bold", fontSize:17}} > cadastrar/atualizar cadastros </Text>
+                     <Text style={{ color:'#185FED', fontWeight:"bold", fontSize:17, flex:1,  textAlign:"center"}} >Sincronizar Dados</Text>
                   </View>         
                   
                   <TouchableOpacity  style={ { flexDirection:"row",alignItems:"center", margin:15, elevation:5,padding:5,borderRadius: 5,backgroundColor:'#185FED' }} onPress={()=>{ handleSync()}}>
                      <MaterialCommunityIcons name="database-sync" size={35} color="#FFF"  />
-                    <Text style={{ color:'#FFF', fontWeight:"bold"}} > cadastrar/atualizar </Text>
+                    <Text style={{ color:'#FFF', fontWeight:"bold"}} > Sincronizar dados </Text>
                   </TouchableOpacity>
             </View >
 
@@ -633,7 +236,7 @@ setMsgApi('')
               </View >
 
           
-              <TouchableOpacity  style={ { marginTop:50, alignItems:"center", elevation:3,padding:5, flexDirection:"row", borderRadius: 5,backgroundColor:'#185FED' }}  onPress={() =>   restart() } >
+              <TouchableOpacity  style={ { marginTop:50, alignItems:"center", elevation:3,padding:5, flexDirection:"row", borderRadius: 5,backgroundColor:'red' }}  onPress={() =>   restart() } >
                 <MaterialCommunityIcons name="database-remove" size={35} color="#FFF" />
                   <Text style={{ color:'#FFF',fontWeight:"bold" }} > limpar base de dados</Text>
               </TouchableOpacity>

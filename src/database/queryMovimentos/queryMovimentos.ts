@@ -1,6 +1,6 @@
 
 
- type movimentos = {
+export  type movimentos = {
     setor:number
     produto:number
     quantidade:number

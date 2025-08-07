@@ -64,10 +64,7 @@ export const Login = ({ navigation }: any) => {
   }, []);
 
 
-  async function verUsuario() {
-    let aux = await useQueryUsuario.selectAll();
-    console.log(aux)
-  }
+ 
 
   async function logar() {
     if (!email) return Alert.alert("é necessario informar o email!");
@@ -257,7 +254,6 @@ export const Login = ({ navigation }: any) => {
             <TouchableOpacity style={{ margin: 6 }} onPress={() => navigation.navigate('enviar_codigo')}>
               <Text style={{ color: '#185FED', fontWeight: "bold" }} > esqueci minha senha</Text>
             </TouchableOpacity>
-        
 
           </View>
         </View>

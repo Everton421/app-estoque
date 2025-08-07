@@ -219,7 +219,9 @@ export const NovoAcerto = ()=>{
                             }
                             data[0].data_recadastro = moment.dataHoraAtual();
                              
-                  try{ 
+                            data[0].unidade_medida = prodSeletor.unidade_medida 
+
+                     try{ 
                    
                                 setLoadingInsertItem(true)
                     let verifi = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(Number(data[0].produto), Number(data[0].setor))

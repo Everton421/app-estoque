@@ -25,9 +25,9 @@ const db = useSQLiteContext();
 
 
 
-async function selectAll(){
+async function selectAll():Promise<prod_setor[] | undefined>{ 
     try{
-        let result = await db.getAllAsync(`SELECT * ,
+        let result:prod_setor[]  = await db.getAllAsync(`SELECT * ,
                  -- strftime('%Y-%m-%d',  data_cadastro) AS data_cadastro,
                   strftime('%Y-%m-%d %H:%M:%S',  data_recadastro) AS data_recadastro  FROM produto_setor `);
         return result;
