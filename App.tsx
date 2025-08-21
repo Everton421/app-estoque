@@ -1,20 +1,24 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import AuthProvider from './src/contexts/auth';
+import { Routes } from './src/routes';
+import { construtor } from './src/database/conexao';  
+import * as SQLite  from 'expo-sqlite';
+import ConnectedProvider from './src/contexts/conectedContext';
+import { StatusBar } from 'react-native';
 
 export default function App() {
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <ConnectedProvider>
+          <AuthProvider>
+              <SQLite.SQLiteProvider databaseName="test.db" onInit={construtor }>
+            <StatusBar backgroundColor={'#185FED'  }     />
+                <Routes/>
+            </SQLite.SQLiteProvider>
+          </AuthProvider>
+    </ConnectedProvider>
+ 
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+ 
