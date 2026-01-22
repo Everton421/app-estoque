@@ -469,7 +469,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                 {/* --- BOTÃO DE GRAVAR --- */}
                 <TouchableOpacity
                     style={styles.saveButton}
-                    onPress={() => gravar()}
+                 //   onPress={() => gravar()}
                 >
                     <Text style={styles.saveButtonText}>Gravar Produto</Text>
                 </TouchableOpacity>
@@ -513,7 +513,9 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                 onChangeText={(v) => setLink(v)}
                                 value={link}
                             />
-                            <TouchableOpacity style={styles.modalAddButton} onPress={gravarImgs}>
+                            <TouchableOpacity style={styles.modalAddButton} 
+                                    //onPress={gravarImgs}
+                            >
                                 <Entypo name="arrow-with-circle-up" size={40} color={colors.primary} />
                             </TouchableOpacity>
                         </View>

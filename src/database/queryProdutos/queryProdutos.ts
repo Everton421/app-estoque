@@ -62,6 +62,7 @@ export const useProducts = ()=>{
              `   SELECT p.*, sum(ps.estoque ) as estoque 
                   from produtos as p
                   join produto_setor   ps on p.codigo = ps.produto
+                  group by p.codigo
               limit ${limit}
              `);
      //  console.log(result);

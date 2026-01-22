@@ -114,13 +114,11 @@ export const CadastroUsuario = ({navigation}:any) => {
                         </View>
                         <TouchableOpacity
                             style={{ alignItems: "center", padding: 10, borderRadius: 20, backgroundColor: '#185FED', margin: 15, elevation: 2 }}
-                            onPress={() => gravar()}
+                        //    onPress={() => gravar()}
                         >
                             <Text style={{ color: '#FFF', fontSize: 20 }}>Registrar </Text>
                         </TouchableOpacity>
                     </View>
-
-
 
                 </ScrollView>
             </KeyboardAvoidingView>

@@ -5,7 +5,7 @@ import { CameraView, useCameraPermissions } from "expo-camera"
 import { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, Alert, Button, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { ListaProdutos } from "./components/produtos_";
-import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { prod_setor, useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
 import { FlatList } from "react-native-gesture-handler";
 import { useSetores } from "../../database/querySetores/querySetores";
@@ -404,22 +404,22 @@ export const NovoAcerto = ()=>{
                                     <TouchableOpacity style={{ padding:3, backgroundColor: "#185FED",marginBottom:10, marginTop:10 , width:'50%',flexDirection:"row",height:47,alignItems:"center",justifyContent:"space-between",elevation:5, borderRadius:5}} 
                                      onPress={()=>{ handleSetores()}} >
                                       <Text style={{ fontWeight:"bold" , color:"#FFF", fontSize:16 }}> setores </Text>
-                                     <AntDesign name="caretright" size={30} color="#FFF" />
+                                     <MaterialIcons name="inventory" size={30} color="#FFF" />
                                    </TouchableOpacity>
 
                                   <View style={{flexDirection:"row", width:'70%',justifyContent:'space-between',alignItems:"center",padding:5 }}>
                               
                                        <TouchableOpacity style={ [{ borderRadius: 10, elevation:5, alignItems: 'center', justifyContent: "center", width: 70, height: 70  },{  backgroundColor: ent_sai === 'E' ? "#185FED" : "#FFF"} ]}
                                                 onPress={() => { setEnt_sai('E') }}   >
-                                                 <AntDesign name="enter" size={24} color={ ent_sai === 'E' ? "#FFF" : "#185FED" } />
+                                                 <AntDesign name="arrow-down" size={24} color={ ent_sai === 'E' ? "#FFF" : "#185FED" } />
                                                 <Text style={[ { fontWeight: "bold", fontSize: 12  },{ color: ent_sai && ent_sai === 'E' ? "#FFF" : "#185FED"}   ]} >  Entrada </Text>
                                             </TouchableOpacity>
 
  
-                                         <TouchableOpacity style={ [ { borderRadius: 10, alignItems: 'center', justifyContent: "center", width: 70, height: 70 },{  backgroundColor: ent_sai === 'S' ? "#185FED" : "#FFF"} ]} 
+                                         <TouchableOpacity style={ [{ borderRadius: 10, elevation:5, alignItems: 'center', justifyContent: "center", width: 70, height: 70  },{  backgroundColor: ent_sai === 'S' ? "#185FED" : "#FFF"} ]} 
                                                 onPress={() => { setEnt_sai('S') }} >
-                                             <AntDesign name="back" size={24} color={ ent_sai === 'S' ? "#FFF" : "#185FED" }/>
-                                                <Text style={ [ { fontWeight: "bold", fontSize: 12,  } ,{  color: ent_sai === 'S' ? "#FFF" : '#185FED'   }]} >  saida </Text>
+                                             <AntDesign name="arrow-up" size={24} color={ ent_sai === 'S' ? "#FFF" : "#185FED" }/>
+                                                <Text style={ [ { fontWeight: "bold", fontSize: 12,  } ,{  color: ent_sai && ent_sai === 'S' ? "#FFF" : '#185FED'   }]} >  saida </Text>
                                           </TouchableOpacity>
                                   </View>
 

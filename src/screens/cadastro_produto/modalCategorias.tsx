@@ -84,7 +84,7 @@ function selecionaCategoria(item:any){
 
                             )
                           }
-                    <AntDesign name="caretdown" size={24} color="white"    />  
+                    <AntDesign name="caret-down" size={24} color="white"    />  
                   </TouchableOpacity>
               </View>
             

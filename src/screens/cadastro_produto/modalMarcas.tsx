@@ -66,7 +66,7 @@ function selecionaMarca(item:any){
                           onPress={()=>{ !active ? setActive(true) : setActive(false)  }}
                         >
                      <Text style={{color:'#FFF', fontWeight:"bold", fontSize:15}}> {marcaSelecionada ?  marcaSelecionada.descricao : 'Marcas'} </Text>
-                    <AntDesign name="caretdown" size={24} color="white"    />  
+                    <AntDesign name="caret-down" size={24} color="white"    />  
                   </TouchableOpacity>
               </View>
             

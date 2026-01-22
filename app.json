@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "new-app-estoque",
+    "name": "app-estoque",
     "slug": "new-app-estoque",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-intersig.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+       "foregroundImage": "./assets/splash-intersig.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -30,6 +30,11 @@
       "eas": {
         "projectId": "86cd2c3c-2da4-49fa-b44e-8c97445551a2"
       }
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-build-properties",
+      "expo-sqlite"
+    ]
   }
 }

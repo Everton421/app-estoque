@@ -305,7 +305,7 @@ async function buscaEmpresa (){
                    <FontAwesome name="cubes" size={24} color="#185FED" />
                </View>
               <Text style={{ fontWeight: "bold", fontSize: 17, color: '#5f666dff',  flex:1, textAlign: 'center' }} > Produtos </Text>
-              <AntDesign name="caretdown" size={24} color="#185FED" />
+              <AntDesign name="caret-down" size={24} color="#185FED" />
             </TouchableOpacity>
 
           <TouchableOpacity 
@@ -315,7 +315,7 @@ async function buscaEmpresa (){
                 <Entypo name="archive" size={24} color="#185FED" />
                 </View>
                 <Text style={{ fontWeight: "bold", fontSize: 17, color: '#5f666dff',  flex:1, textAlign: 'center' }} >Setores</Text>
-                <AntDesign name="caretdown" size={24} color="#185FED" />
+                <AntDesign name="caret-down" size={24} color="#185FED" />
              </TouchableOpacity>
     
         </View>

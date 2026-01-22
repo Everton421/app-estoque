@@ -102,7 +102,7 @@ export const Cadastro_Setores = ( {navigation}:any ) => {
                 <View style={{ flexDirection: "row", width: '100%', alignItems: "center", justifyContent: "center", marginTop: 10 }} >
                     <TouchableOpacity 
                     style={{ backgroundColor: '#185FED', width: '80%', alignItems: "center", justifyContent: "center", borderRadius: 10, padding: 5 }}
-                        onPress={ ()=> gravar()}
+                   //     onPress={ ()=> gravar()}
                     >
 
                         <Text style={{ fontWeight: "bold", color: "#FFF", fontSize: 20 }}>gravar</Text>

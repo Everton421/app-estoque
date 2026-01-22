@@ -228,9 +228,6 @@ setMsgApi('')
 
         <View style={{ marginTop:15, margin:5,borderRadius:5, padding:10, backgroundColor:'#FFF', elevation:3, width:' 98%', alignItems:"center", justifyContent:"center"  }} >
                 
-                       <Text style={{ color:'#89898fff', textAlign:"center",fontWeight:"bold", fontSize:15 }} > 
-                           Configurar busca por código de barras 
-                         </Text>
                   <ConfigProdSeletor/>
               </View >
 

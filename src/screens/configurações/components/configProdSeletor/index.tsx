@@ -19,7 +19,7 @@ export const ConfigProdSeletor = ()=>{
     ]);
     
     
-       async function getDefaultConfig(){
+              async function getDefaultConfig(){
                         try{
                            let value:any =  await AsyncStorage.getItem('configProduto');
                             if (value !== null) {
@@ -34,12 +34,12 @@ export const ConfigProdSeletor = ()=>{
 
                     async function setConfig(value: 'codigo' | 'num_fabricante' | 'num_original' | 'sku' ){
                          try {
-                         await AsyncStorage.setItem( 'configProduto',value );
-                                    setDefaultConfig(value)
-                      } catch (error) {
-                         // Error saving data
-                         console.log('erro ao tentar salvar a configuração no AsyncStorage')
-                     }
+                            await AsyncStorage.setItem( 'configProduto',value );
+                                        setDefaultConfig(value)
+                        } catch (error) {
+                            // Error saving data
+                            console.log('erro ao tentar salvar a configuração no AsyncStorage')
+                        }
                     }
 
         useEffect(()=>{
@@ -49,7 +49,6 @@ export const ConfigProdSeletor = ()=>{
 
     return(
        <View  >
-  
 
        <TouchableOpacity  style={ {gap:5, flexDirection:"row",alignItems:"center", margin:15, elevation:5,padding:5,borderRadius: 5,backgroundColor:'#185FED' }} 
         onPress={()=>{ setVisible(true)}}
@@ -62,14 +61,16 @@ export const ConfigProdSeletor = ()=>{
         
         
         <Modal visible={visible} transparent={true}>
+            
           <View style={{ backgroundColor: "rgba(0, 0, 0, 0.7)", flex: 1 }} >
                <View style={{ backgroundColor: "#FFF", flex: 1 , margin:15, borderRadius:15, height:'80%'}} >
  
                                           <TouchableOpacity onPress={()=>{   setVisible(false) }} style={{  width:'15%', padding:3, margin:5}}  >
                                                             <Ionicons name="close" size={28} color={"#6C757D"} />
                                           </TouchableOpacity>
-
-                                   
+                                        <Text style={{ textAlign:"center",color:'#666b75ff', fontWeight:"bold", fontSize:15 }} > 
+                                                Consultar produto por:     
+                                        </Text>
                                     <FlatList
                                     data={tipos}
                                     renderItem={({item})=> <RenderConfigSeletor tipo={item.tipo} value={item.value}  setDefaultConfig={setConfig} defaultConfig={defaultConfig}/>}
