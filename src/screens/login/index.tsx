@@ -19,6 +19,7 @@ import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api"
 import { configMoment } from "../../services/moment";
 import { ConnectedContext } from "../../contexts/conectedContext";
 import { DotIndicatorLoadingData } from "../../components/dotIndicator";
+import axios from "axios";
 
 type PrevUser = { 
   email:string
@@ -105,7 +106,8 @@ export const Login = ({ navigation }: any) => {
       try {
         setLoading(true)
 
-        let response: any = await api.post("/login", user);
+       let response: any = await api.post("/login", user);
+
         if (response.status == 200) {
           let lembrarUsuario = lembrar ? "S" : "N";
           let userMobile = {
@@ -126,9 +128,9 @@ export const Login = ({ navigation }: any) => {
           return Alert.alert(response.data.status.msg);
         } else {
         }
-
+ 
       } catch (e: any) {
-
+        console.log(e)
         if (e.response.status === 400) {
           console.log(e.response.data.msg)
           Alert.alert('Erro!', e.response.data.msg);

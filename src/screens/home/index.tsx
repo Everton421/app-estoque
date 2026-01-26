@@ -21,6 +21,7 @@ import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import { configMoment } from "../../services/moment";
 import { ConnectedContext } from "../../contexts/conectedContext";
+import { OfflineBanner } from "../../components/oflline-banner/oflline-banner";
 
 type cadEmpre =
   {
@@ -63,40 +64,7 @@ export const Home = ({ navigation }: any) => {
   let useQueryEmpresa = queryEmpresas();
   let restartDB = restartDatabaseService();
 
-
-
-   async function connect() {
-
-    try {
-      setLoading(true)
-      const response = await api.get('/', {
-      });
-        if (response.status === 200 && response.data.ok) {
-            setConectado(true)
-            setConnected(true)
-        console.log(response.data);
-setMsgApi('')
-        } else {
-            setConectado(false)
-            setConnected(false)
-            console.log({"err":"erro ao conectar"})
-        }
-        setError(undefined)
-    } catch (err:any) {
-      setConectado(false)
-        setMsgApi(err.response.data.msg);
-        if(err.status === 400 ) Alert.alert("Erro!", err.response.data.msg);
-          setError(err.response.data.msg)
-
-        if(err.status !== 400 )
-          Alert.alert("Erro!", "Erro desconhecido!");
-        setError("Erro desconhecido!")
-
-    } finally {
-      setLoading(false)
-
-    }
-}
+ 
 
    const verifyDateSinc = async ()=>{
     let validConfig = await useQueryConfigApi.select(1)

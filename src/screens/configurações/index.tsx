@@ -22,7 +22,7 @@ export const Configurações = () => {
 
   const api = useApi();
 
-  const {connected, setConnected }:any = useContext(ConnectedContext);
+  const {connected, setConnected , internetConnected }:any = useContext(ConnectedContext);
           
   const syncprodSector = useSyncProdSector();
   const syncMovimentos = useSyncMovimentos();
@@ -53,13 +53,12 @@ export const Configurações = () => {
 
     try {
       setLoading(true)
-      const response = await api.get('/', {
-      });
-        if (response.status === 200 && response.data.ok) {
+      const response = await api.get('/' );
+      console.log(response)
+        if (response.status === 200  ) {
             setConectado(true)
             setConnected(true)
-        console.log(response.data);
-setMsgApi('')
+      setMsgApi('')
         } else {
             setConectado(false)
             setConnected(false)
@@ -140,9 +139,11 @@ setMsgApi('')
     if(loading){
       return Alert.alert('Aguarde!','Estabelecendo conexão...');
     }
-
+    if(!internetConnected){
+      Alert.alert('Erro','Sem conexão com a internet!');
+    }
     if (!connected) {
-      Alert.alert('É necessário estabelecer conexão com a internet para efetuar o sincronismo dos dados!');
+      Alert.alert('','Falha ao se conectar com o servidor!');
       return;
     }
     if (!conectado) {

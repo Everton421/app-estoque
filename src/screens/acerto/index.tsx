@@ -116,9 +116,7 @@ function renderItem({ item }: { item: resultQueryMov }) {
 
                 {/* Quantidade em Destaque */}
                 <View style={styles.quantityContainer}>
-                    <Text style={[styles.quantityText, { color: colorStatus }]}>
-                        {isEntrada ? '+' : '-'}{item.quantidade_movimento}
-                    </Text>
+                    <Text style={[styles.quantityText, { color: colorStatus }]} > {isEntrada ? '+' : '-'}{item.quantidade_movimento} </Text>
                     <Text style={styles.unitText}>{item.unidade_medida}</Text>
                 </View>
             </View>

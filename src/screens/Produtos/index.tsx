@@ -47,6 +47,7 @@ export function Produtos({ navigation }: any) {
 
     async function filterByDescription() {
         // Agora usa o limitQuery do estado
+         //console.log(" [ F ] function filterByDescription() ")
         const response: any = await useQueryProdutos.selectByDescription(pesquisa, limitQuery);
         
         for (let p of response) {
@@ -63,9 +64,8 @@ export function Produtos({ navigation }: any) {
     }
 
     async function filterAll() {
-         // Agora usa o limitQuery do estado
+      //  console.log(" [ F ] function filterByDescription() ")
          const response: any = await useQueryProdutos.selectAllLimit(limitQuery);
-         
          for( let p of response ){
              let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
              if(dadosFoto?.length > 0 ) p.fotos = dadosFoto
@@ -74,27 +74,27 @@ export function Produtos({ navigation }: any) {
          setDados(response)
     }
     
-    // --- EFFECTS ATUALIZADOS ---
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-            if (pesquisa !== null && pesquisa !== '') {
+           // console.log(" [ X ] Valor pesquisa: ", pesquisa    )
+            if (pesquisa   ) {
                 filterByDescription()
             } else {
                 filterAll()
             }
         });
         return unsubscribe;
-    }, [navigation, limitQuery]); // Adicionado limitQuery para atualizar ao voltar pra tela se mudou o padrão
+    }, [navigation, limitQuery, pesquisa ]); // Adicionado limitQuery para atualizar ao voltar pra tela se mudou o padrão
 
     // Recarrega sempre que a pesquisa OU o limite mudar
-    useEffect(() => {
-        if (pesquisa !== '') {
-            filterByDescription()
-        } else {
-            filterAll()
-        }
-    }, [pesquisa, limitQuery])
+     useEffect(() => {
+         if (pesquisa != '' ) {
+             filterByDescription()
+         } else {
+             filterAll()
+         }
+     }, [pesquisa, limitQuery]) 
 
 
     async function viewItemSector(item: any) {
@@ -296,6 +296,8 @@ export function Produtos({ navigation }: any) {
                             <FilterOption value={25} label="25 Produtos" />
                             <FilterOption value={50} label="50 Produtos" />
                             <FilterOption value={100} label="100 Produtos" />
+                            <FilterOption value={250} label="250 Produtos" />
+
                         </View>
                     </View>
                 </View>

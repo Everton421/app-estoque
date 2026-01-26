@@ -26,7 +26,7 @@
     "expo-crypto": "~15.0.8",
     "expo-image": "~3.0.11",
     "expo-sqlite": "~16.0.10",
-    "expo-status-bar": "~3.0.9",
+    "expo-status-bar": "^3.0.9",
     "https": "^1.0.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.45",
