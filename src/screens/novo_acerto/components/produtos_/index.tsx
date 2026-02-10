@@ -1,247 +1,191 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  FlatList,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  ActivityIndicator,
-  Image,
+    View,
+    FlatList,
+    Text,
+    TouchableOpacity,
+    TextInput,
+    Modal,
+    ActivityIndicator,
+    Image,
 } from "react-native";
 
 import { useProducts } from "../../../../database/queryProdutos/queryProdutos";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFotosProdutos } from "../../../../database/queryFotosProdutos/queryFotosProdutos";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 
- 
-export const ListaProdutos = ({produto , setProduto}:{ produto:any, setProduto:React.Dispatch<React.SetStateAction<any>>} ) => {
+export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProduto: React.Dispatch<React.SetStateAction<any>> }) => {
 
-  const [pesquisa, setPesquisa] = useState<any>("a");
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [visibleProdutos, setVisibleProdutos] = useState(false);
+    const [pesquisa, setPesquisa] = useState<any>("a"); // Inicia vazio para não buscar tudo de cara se não quiser
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [visibleProdutos, setVisibleProdutos] = useState(false);
 
+    const useQueryProdutos = useProducts();
+    const useQueryFotos = useFotosProdutos();
 
-  const useQueryProdutos = useProducts();
-  const useQueryFotos = useFotosProdutos();
- 
-  const adiciona = (dado:any) => {
-    setPesquisa(dado);
-  };
-  //////////////////
-  useEffect(() => {
-    const busca = async () => {
-      try {
-       let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
-        //   let aux: any = await useQueryProdutos.selectAll();
+    useEffect(() => {
+        const busca = async () => {
+            setLoading(true); // Ativar loading
+            try {
+                let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
+                for (let p of aux) {
+                    let dadosFoto: any = await useQueryFotos.selectByCode(p.codigo)
+                    if (dadosFoto?.length > 0) {
+                        p.fotos = dadosFoto
+                    } else {
+                        p.fotos = []
+                    }
+                }
+                setData(aux);
+            } catch (e) {
+                console.log(e);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        for( let p of aux ){
-          let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
-          if(dadosFoto?.length > 0 ){
-              p.fotos = dadosFoto
-          }else{
-              p.fotos = []
-           }
-      }
-        setData(aux);
-      } catch (e) {
-        console.log(e);
-      } finally {
-        setLoading(false);
-      }
+        if (pesquisa.trim() !== "") {
+            busca();
+        } else {
+            // Se quiser carregar algo padrão ao limpar, chame busca() aqui também ou limpe
+             setData([]); 
+             // Se quiser buscar todos ao abrir o modal sem digitar nada, descomente a busca() no useEffect da abertura do modal ou aqui.
+        }
+    }, [pesquisa]);
+
+    function selecionarItem(item: any) {
+        setProduto(item);
+        setVisibleProdutos(false);
+    }
+
+    const renderItem = ({ item }: any) => {
+        const hasImage = item.fotos && item.fotos.length > 0 && item.fotos[0].link;
+
+        return (
+            <TouchableOpacity
+                style={{
+                    backgroundColor: "#FFF",
+                    borderRadius: 12,
+                    marginHorizontal: 15,
+                    marginVertical: 6,
+                    padding: 10,
+                    elevation: 3,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                }}
+                onPress={() => selecionarItem(item)}
+            >
+                {/* Imagem */}
+                <View style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginRight: 12, overflow: 'hidden' }}>
+                    {hasImage ? (
+                        <Image source={{ uri: `${item.fotos[0].link}` }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    ) : (
+                        <MaterialIcons name="image-not-supported" size={24} color="#BDBDBD" />
+                    )}
+                </View>
+
+                {/* Dados */}
+                <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4CAF50' }}>R$ {item.preco ? item.preco.toFixed(2) : '0.00'}</Text>
+                    </View>
+                    
+                    <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
+                        {item.descricao}
+                    </Text>
+                    
+                    <Text style={{ fontSize: 12, color: '#757575' }}>Estoque: {item.estoque}</Text>
+                </View>
+            </TouchableOpacity>
+        );
     };
 
-    if (pesquisa.trim() !== "") {
-      busca();
-    } else {
-      setData([]);
-    }
-  }, [pesquisa]);
-  //////////////////
-
-  function selecionarItem(item:any){
-    setProduto(item)
-    setVisibleProdutos(false)
-  }
-  const renderItem = ({ item }:any ) => {
-
     return (
-      <TouchableOpacity
-        style={[
-          styles.item,
-          { backgroundColor:  "#FFF"   },
-        ]}
-        onPress={() => selecionarItem(item)} 
-      >
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text
-                  style={[
-                    styles.txt,
-                    { fontWeight:   "bold" },
-                  ]}
-                >
-                  Código: {item.codigo}
+        <View style={{ flex: 1 }}>
+            {/* Botão de abrir modal estilizado como Input Search */}
+            <TouchableOpacity
+                onPress={() => setVisibleProdutos(true)}
+                style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#FFF",
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    paddingHorizontal: 15,
+                    height: 47,
+                    elevation: 2
+                }}
+            >
+                <FontAwesome name="search" size={18} color="#185FED" style={{ marginRight: 10 }} />
+                <Text style={{ color: "#757575", fontSize: 16 }}>
+                    {produto?.descricao ? "Alterar produto..." : "Pesquisar produto..."}
                 </Text>
-                <Text style={[styles.txt ]}>
-                  R$: {  item && item.preco && item?.preco.toFixed(2)}
-                </Text>
+            </TouchableOpacity>
 
-                <Text style={[styles.txt  ]}>
-                  estoque: {item?.estoque}
-                </Text>
-                
-          </View>
-           <View style={{ flexDirection:"row", justifyContent:"space-between"}}>
-            {  item.fotos.length > 0 && item.fotos[0].link ?
-                        (<Image
-                             source={{ uri: `${item.fotos[0].link}` }}
-                             // style={styles.galleryImage}
-                             style={{ width: 100, height: 100,  borderRadius: 5,}}
-                              resizeMode="contain"
-                            />) :(
-                              <MaterialIcons name="no-photography" size={40} color={  "#5f666dff"  } />
-     
+            <Modal visible={visibleProdutos} animationType="fade" transparent={true} onRequestClose={() => setVisibleProdutos(false)}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{
+                        width: "90%",
+                        height: "80%",
+                        backgroundColor: "#F5F7FA",
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        elevation: 10
+                    }}>
+                        {/* Header Modal */}
+                        <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#FFF',
+                                borderRadius: 8,
+                                paddingHorizontal: 10,
+                                height: 40,
+                                marginRight: 10
+                            }}>
+                                <Ionicons name="search" size={20} color="#999" style={{ marginRight: 5 }} />
+                                <TextInput
+                                    style={{ flex: 1, color: '#333' }}
+                                    placeholder="Digite para buscar..."
+                                    placeholderTextColor="#999"
+                                    onChangeText={(text) => setPesquisa(text)}
+                                    autoFocus={true}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={() => setVisibleProdutos(false)}>
+                                <Ionicons name="close" size={24} color="#FFF" />
+                            </TouchableOpacity>
+                        </View>
 
-                            )
-                 }
-             
-            </View>
-        <Text
-          style={[styles.txtDescricao ]}  >   {item.descricao}  </Text>
-     
-      </TouchableOpacity>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-
-      <TouchableOpacity
-        onPress={() => setVisibleProdutos(true)}
-          style={{        elevation:  5,    flexDirection: "row",  justifyContent: "space-between",  backgroundColor: "#185FED",  padding: 10,   borderRadius: 5,  width: "70%", }}   >
-           <Text
-            style={{ color: "white", fontWeight: "bold",  fontSize: 20, width: '90%',   }} >  produtos
-          </Text>
-                <FontAwesome name="search" size={22} color="#FFF" />
-      </TouchableOpacity>
-
-      <View>
-        <Modal
-          visible={visibleProdutos}
-          animationType="slide"
-          transparent={true}
-        >
-          <View style={{ backgroundColor: "rgba(0, 0, 0, 0.7)", flex: 1 }}>
-            <View
-            style={{  margin: 5,  backgroundColor: "white",   borderRadius: 20,  width: "96%",    height: "80%",  shadowColor: "#000",   shadowOffset: { width: 0, height: 2 },  shadowOpacity: 0.25,  shadowRadius: 4,  elevation: 5,   }}    >
-            <View style={styles.searchContainer}>
-                                         <TouchableOpacity onPress={() => {  setVisibleProdutos(false)   }} style={{  width:'15%', padding:3, margin:5}}  >
-                                                            <Ionicons name="close" size={28} color={"#6C757D"} />
-                                          </TouchableOpacity>
-
-                <View
-                  style={{   flexDirection: "row", justifyContent: "space-between",  marginBottom: 15,   margin: 5,   elevation: 5,  }}   >
-                  <TextInput
-                    style={{  backgroundColor: "#FFF",  borderRadius: 5, borderColor:'#c3c4c5ff',borderWidth:1, width: "90%",fontWeight:'bold',   marginTop: 3,   marginHorizontal: 5,
-                    }}
-                    placeholder="Pesquisar..."
-                    onChangeText={adiciona}
-                    placeholderTextColor="#5f666dff"
-                  />
-           
+                        {/* Lista */}
+                        <View style={{ flex: 1, paddingVertical: 10 }}>
+                            {loading ? (
+                                <ActivityIndicator size="large" color="#185FED" style={{ marginTop: 20 }} />
+                            ) : (
+                                <FlatList
+                                    data={data}
+                                    renderItem={renderItem}
+                                    keyExtractor={(item:any) => item.codigo.toString()}
+                                    contentContainerStyle={{ paddingBottom: 20 }}
+                                    ListEmptyComponent={() => (
+                                        <View style={{ alignItems: 'center', marginTop: 50 }}>
+                                            <Text style={{ color: '#999' }}>Nenhum produto encontrado.</Text>
+                                        </View>
+                                    )}
+                                />
+                            )}
+                        </View>
+                    </View>
                 </View>
-              </View>
-              <View style={{ backgroundColor: "#dcdcdd" }}>
-                {loading ? (
-                  <ActivityIndicator
-                    size="large"
-                    color="#009de2"
-                    style={styles.loader}
-                  />
-                ) : (
-                  <FlatList
-                    data={data}
-                    renderItem={renderItem}
-                  //  keyExtractor={(item) => item.codigo.toString()}
-                  />
-                )}
-              </View>
-            </View>
-          </View>
-        </Modal>
-        <View
-          style={{
-            flexDirection: "row",  justifyContent: "space-between",  margin: 5,  }} >
+            </Modal>
         </View>
-        </View>
-    </View>
-  );
+    );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  item: {
-    backgroundColor: "#f9c2ff",
-    padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 5,
-    elevation: 5,
-  },
-  searchContainer: {
-    justifyContent: "space-around",
-    backgroundColor: "#FFF",
-    borderRadius: 5,
-    elevation: 10,
-  },
-  limpar: {
-    borderRadius: 5,
-    backgroundColor: "red",
-    width: 50,
-    height: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    marginEnd: 1,
-  },
-  limparText: {
-    color: "#FFF",
-  },
-  buttonsContainer: {
-    flexDirection: "row",
-  },
-  button: {
-    margin: 3,
-    backgroundColor: "#FFF",
-    elevation: 4,
-    width: 60,
-    height: 35,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 5,
-  },
-  buttonText: {
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  txtDescricao: {
-    fontWeight: "bold",
-    fontSize: 15,
-    color:'#5f666dff'
-
-  },
-  txt: {
-    fontWeight: "bold",
-    color:'#5f666dff'
-  },
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

@@ -4,7 +4,7 @@ import { ActivityIndicator, Animated, Modal, StyleSheet, Text, View } from "reac
 type props = 
 {
     isLoading:boolean,
-    item:string,
+    item:string  ,
     progress:number
 }
 

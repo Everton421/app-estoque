@@ -1,36 +1,44 @@
-import { Text, TouchableOpacity, View } from "react-native"
+import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-   
-   type props ={
-   tipo:string,
-   value:string,
-   defaultConfig:string, 
-    setDefaultConfig:(value:any)=>void 
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+type props = {
+    tipo: string,
+    value: string,
+    defaultConfig: string,
+    setDefaultConfig: (value: any) => void
 }
 
-   export  function  RenderConfigSeletor   ( {tipo, value,defaultConfig, setDefaultConfig }: props)  {
-        return(
-            <TouchableOpacity style={ [ { 
-                  marginHorizontal: 16,  marginVertical: 8, padding: 16,elevation:5,borderRadius: 12,  shadowColor: '#000', 
-                shadowRadius: 4,flexDirection: 'row',   justifyContent: 'space-between',  alignItems: 'center',    
-             backgroundColor: '#FFF'}   ]}
-                onPress={()=>{ setDefaultConfig(value)}}
-            
-            >
-                
-                    <Text style={  { fontWeight:"bold",color: '#185FED', fontSize:20}  }>
-                         { tipo } 
-                    </Text> 
+export function RenderConfigSeletor({ tipo, value, defaultConfig, setDefaultConfig }: props) {
+    const isSelected = defaultConfig === value;
 
-                   {
-                            defaultConfig === value ? (
-                        <MaterialCommunityIcons name="toggle-switch" size={35} color="#185FED" />
-                            ):(
-                           <MaterialCommunityIcons  name="toggle-switch-off" size={35} color="#666b75ff" />
-                            )
-                        }
+    return (
+        <TouchableOpacity
+            style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingVertical: 14,
+                paddingHorizontal: 15,
+                backgroundColor: isSelected ? '#E3F2FD' : '#F5F7FA', // Azul claro se selecionado, cinza se não
+                borderRadius: 8,
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: isSelected ? '#185FED' : '#E0E0E0'
+            }}
+            onPress={() => setDefaultConfig(value)}
+        >
+            <Text style={{ flex:1,
+                fontWeight: isSelected ? "bold" : "500",
+                color: isSelected ? '#185FED' : '#555',
+                fontSize: 16
+            }}>  {tipo} </Text>
 
-            </TouchableOpacity>
-        )
-    }
-      
+            {isSelected ? (
+                <Ionicons name="radio-button-on" size={24} color="#185FED" />
+            ) : (
+                <Ionicons name="radio-button-off" size={24} color="#9E9E9E" />
+            )}
+        </TouchableOpacity>
+    );
+}

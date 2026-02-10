@@ -8,7 +8,7 @@ import { AuthContext } from "../../contexts/auth";
 {
 data:string,
 setIsLoading: React.Dispatch<React.SetStateAction<boolean>>
-setItem: React.Dispatch<React.SetStateAction<String | undefined>>
+setItem: React.Dispatch<React.SetStateAction<string | undefined>>
 setProgress: React.Dispatch<React.SetStateAction<number>>
 }
 

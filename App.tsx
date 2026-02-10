@@ -16,7 +16,7 @@ export default function App() {
     <ConnectedProvider>
           <AuthProvider>
               <SQLite.SQLiteProvider databaseName="test.db" onInit={construtor }>
-              <StatusBar backgroundColor={'#185FED'  } style={'light' }      />
+              <StatusBar  style='auto' backgroundColor='#185FED'         />
                 <Routes/>
             </SQLite.SQLiteProvider>
           </AuthProvider>
