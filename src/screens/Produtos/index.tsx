@@ -9,7 +9,6 @@ import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosPr
 import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
 import { Entypo } from "@expo/vector-icons";
 
-// ... (Suas interfaces mantidas)
 type selectCompleteProdSector = {
     data_recadastro: string,
     descricao_produto: string,
@@ -30,20 +29,17 @@ export function Produtos({ navigation }: any) {
     const useQueryFotos = useFotosProdutos();
     const useQueryProdutoSetores = useProdutoSetores();
 
-    const [pesquisa, setPesquisa] = useState<string>('');
+    const [pesquisa, setPesquisa] = useState< string >('');
     const [dados, setDados] = useState<any[]>([]);
     const [pSelecionado, setpSelecionado] = useState<produto>();
     
-    // --- NOVOS ESTADOS PARA O FILTRO DE LIMITE ---
     const [visibleModalFilter, setVisibleModalFilter] = useState(false);
     const [limitQuery, setLimitQuery] = useState(25); // Valor padrão inicial
     
-    // Estados do Modal de Setores
     const [visibleModalSetores, setVisibleModalSetores] = useState(false);
     const [dataProdSector, setDataProdSector] = useState<selectCompleteProdSector[]>([])
     const [loadingItemModalSetor, setLoadingItemModalSetor] = useState(false);
 
-    // --- FUNÇÕES DE BUSCA ATUALIZADAS COM O LIMITE ---
 
     async function filterByDescription() {
         // Agora usa o limitQuery do estado
@@ -76,11 +72,14 @@ export function Produtos({ navigation }: any) {
     
 
     useEffect(() => {
+        console.log("UseEffect  1 ... ")
         const unsubscribe = navigation.addListener('focus', () => {
            // console.log(" [ X ] Valor pesquisa: ", pesquisa    )
-            if (pesquisa   ) {
+            if (pesquisa != '' ) {
+                console.log(" UseEffect filterByDescription ...")
                 filterByDescription()
             } else {
+                console.log(" UseEffect filterAll ...")
                 filterAll()
             }
         });
@@ -89,9 +88,13 @@ export function Produtos({ navigation }: any) {
 
     // Recarrega sempre que a pesquisa OU o limite mudar
      useEffect(() => {
-         if (pesquisa != '' ) {
+        console.log("UseEffect 2 ... ") 
+
+         if (pesquisa != '') {
+                console.log(" UseEffect 2 filterByDescription ...")
              filterByDescription()
          } else {
+                console.log(" UseEffect2 filterAll ...")
              filterAll()
          }
      }, [pesquisa, limitQuery]) 

@@ -1,21 +1,20 @@
-import { View, Text, Alert, ActivityIndicator, TouchableOpacity, Linking, ScrollView } from "react-native";
-import useApi from "../../services/api";
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"; // Adicionei MaterialIcons
 import { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { DotIndicatorLoadingData } from "../../components/dotIndicator";
 import { ConnectedContext } from "../../contexts/conectedContext";
-import { restartDatabaseService } from "../../services/restartDatabase";
-import { configMoment } from "../../services/moment";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
-import Feather from '@expo/vector-icons/Feather';
-import { MaterialCommunityIcons, Ionicons, MaterialIcons } from "@expo/vector-icons"; // Adicionei MaterialIcons
-import { ConfigProdSeletor } from "./components/configProdSeletor";
-import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProdutosSetor";
-import { useSyncMovimentos } from "../../hooks/sync-movimentos/useSyncMovimentos";
-import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
+import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias";
 import { useSyncFotos } from "../../hooks/sync-fotos/useSyncFotos";
 import { useSyncMarcas } from "../../hooks/sync-marcas/useSyncMarcas";
-import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias";
+import { useSyncMovimentos } from "../../hooks/sync-movimentos/useSyncMovimentos";
+import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProdutosSetor";
+import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
 import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
-import { DotIndicatorLoadingData } from "../../components/dotIndicator";
+import useApi from "../../services/api";
+import { configMoment } from "../../services/moment";
+import { restartDatabaseService } from "../../services/restartDatabase";
+import { ConfigProdSeletor } from "./components/configProdSeletor";
 
 export const Configurações = ({ navigation }: any) => { // Adicionei navigation props caso precise voltar
 
@@ -86,6 +85,7 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
             let aux = await useQueryConfigApi.create(data);
             dataUltSinc = '';
         }
+       // console.log("dataUltSinc : ", dataUltSinc)
         return dataUltSinc;
     }
 
@@ -131,7 +131,9 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
     function restart() {
         Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`, [
             { text: 'Não', style: 'cancel' },
-            { text: 'Sim', onPress: async () => { await useRestartService.restart() } }
+            { text: 'Sim', onPress: async () => { 
+                await useRestartService.restart()
+            } }
         ]);
     }
 
@@ -174,7 +176,7 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
 
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
-            { item &&   <DotIndicatorLoadingData isLoading={isLoading} item={item} progress={progress} /> }  
+            {item && <DotIndicatorLoadingData isLoading={isLoading} item={item} progress={progress} />}
 
             {/* --- HEADER --- */}
             <View style={{
@@ -187,7 +189,7 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
                 elevation: 5,
                 marginBottom: 10
             }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
@@ -195,7 +197,7 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
                     <View style={{ width: 24 }} />
                 </View>
 
-                
+
             </View>
 
             <ScrollView contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 20 }}>
@@ -240,7 +242,7 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
                 />
 
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Preferências</Text>
-                
+
                 {/* Aqui renderizamos o componente de seleção, mas ele agora vai renderizar um card igual aos outros */}
                 <ConfigProdSeletor />
 

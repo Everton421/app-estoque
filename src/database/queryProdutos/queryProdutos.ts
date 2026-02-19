@@ -57,15 +57,16 @@ export const useProducts = ()=>{
                  return result;
           }
 
-          async function selectAllLimit(limit:number) {
-            const result = await db.getAllAsync(
-             `   SELECT p.*, sum(ps.estoque ) as estoque 
+          async function selectAllLimit(limit?:number) {
+              let sql =`   SELECT p.*, sum(ps.estoque ) as estoque 
                   from produtos as p
-                  join produto_setor   ps on p.codigo = ps.produto
+                  left join produto_setor   ps on p.codigo = ps.produto
                   group by p.codigo
-              limit ${limit}
-             `);
-     //  console.log(result);
+             `
+             if( limit ){ 
+              sql = sql + `limit ${limit}`
+             } 
+            const result = await db.getAllAsync (sql );
             return result;
      }
 
@@ -291,80 +292,63 @@ export const useProducts = ()=>{
                
             }
 
-
-            /// cria produto informando  o codigo 
-            async function createByCode( produto:produto, code:number ){
-              const descricao  = formataDados.normalizeString(produto.descricao)
-              const observacoes1 =   formataDados.normalizeString(produto.observacoes1);
-              const observacoes2 =   formataDados.normalizeString(produto.observacoes2);
-              const observacoes3 =   formataDados.normalizeString(produto.observacoes3);
-
-              const data_recadastro = formataDados.formatDateTime(produto.data_recadastro);
-              const data_cadastro = formataDados.formatDate(produto.data_cadastro);
-
-                let verifCode:any[]; 
-                try{
-                      verifCode = await selectByCode(code);
-                      if(verifCode.length > 0 ){
-                          console.log('ja existe produto cadastrado com o codigo ', code );
-                        //  console.log(verifCode);
-                         // return;
-                          }
-                }catch(e){ console.log(e) }
-
-                  const result = await db.runAsync( 
-                      `INSERT INTO produtos 
-                      ( 
-                      codigo, 
-                      estoque,
-                      preco,
-                      unidade_medida,
-                      grupo,
-                      origem,
-                      descricao,
-                      ativo,
-                      sku,
-                      marca,
-                      class_fiscal,
-                      cst,
-                      num_fabricante,
-                      num_original,
-                      data_cadastro,
-                      data_recadastro,
-                      observacoes1,
-                      observacoes2,
-                      observacoes3,
-                      tipo  )
-                       VALUES
-                        ( 
-                       ${code} ,
-                       ${produto.estoque},
-                       ${produto.preco},
-                      '${produto.unidade_medida}',
-                       ${produto.grupo},
-                      '${produto.origem}',
-                      '${descricao}',
-                      '${produto.ativo}',
-                      '${produto.sku}', 
-                       ${produto.marca},
-                      '${produto.class_fiscal}' ,
-                      '${produto.cst}',
-                      '${produto.num_fabricante}',
-                      '${produto.num_original}',
-                      '${data_cadastro}',
-                      '${data_recadastro}',
-                      '${observacoes1}',
-                      '${observacoes2}',
-                      '${observacoes3}',
-                      '${produto.tipo}'
-                       );`
-                  );
-                 // console.log(result);
-                  console.log( 'produto cadastrado codigo: ',result.lastInsertRowId)
-            }
-            
                 
+        async function createByCode(produto: produto, code: number) {
+          const descricao = formataDados.normalizeString(produto.descricao);
+          const observacoes1 = formataDados.normalizeString(produto.observacoes1);
+          const observacoes2 = formataDados.normalizeString(produto.observacoes2);
+          const observacoes3 = formataDados.normalizeString(produto.observacoes3);
 
+          const data_recadastro = formataDados.formatDateTime(produto.data_recadastro);
+          const data_cadastro = formataDados.formatDate(produto.data_cadastro);
+
+          let verifCode: any[];
+          try {
+            verifCode = await selectByCode(code);
+            if (verifCode.length > 0) {
+              console.log('ja existe produto cadastrado com o codigo ', code);
+            }
+          } catch (e) {
+            console.log(e);
+          }
+
+          try {
+            const result = await db.runAsync(
+              `INSERT INTO produtos ( 
+                codigo, estoque, preco, unidade_medida, grupo, origem, descricao, 
+                ativo, sku, marca, class_fiscal, cst, num_fabricante, num_original, 
+                data_cadastro, data_recadastro, observacoes1, observacoes2, observacoes3, tipo 
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                code,
+                produto.estoque,
+                produto.preco,
+                produto.unidade_medida,
+                produto.grupo,
+                produto.origem,
+                descricao,           // Variável normalizada
+                produto.ativo,
+                produto.sku,
+                produto.marca,
+                produto.class_fiscal,
+                produto.cst,
+                produto.num_fabricante,
+                produto.num_original,
+                data_cadastro,       // Variável formatada
+                data_recadastro,     // Variável formatada
+                observacoes1,        // Variável normalizada
+                observacoes2,        // Variável normalizada
+                observacoes3,        // Variável normalizada
+                produto.tipo
+              ]
+            );
+
+            console.log('produto cadastrado codigo: ', result.lastInsertRowId);
+            
+          } catch (error) {
+            console.error("Erro ao inserir produto:", error);
+          }
+        }
             async function deleteByCode( codigo:number ){
                     const statement = await db.prepareAsync(` DELETE FROM produtos WHERE codigo = $codigo`)
                     try{

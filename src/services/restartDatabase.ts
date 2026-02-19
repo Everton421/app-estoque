@@ -12,7 +12,7 @@ export const restartDatabaseService = ()=>{
       
       DROP TABLE IF EXISTS produtos;
       DROP TABLE IF EXISTS setores;
-      DROP TABLE IF EXISTS usuarios ;
+   -- DROP TABLE IF EXISTS usuarios ;
        
       DROP TABLE IF EXISTS produto_setor ;
       DROP TABLE IF EXISTS empresas;
