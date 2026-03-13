@@ -1,4 +1,5 @@
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"; // Adicionei MaterialIcons
+import { Fontisto, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons"; 
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { DotIndicatorLoadingData } from "../../components/dotIndicator";
@@ -12,16 +13,17 @@ import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProduto
 import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
 import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
 import useApi from "../../services/api";
+import { receberPedidos } from "../../services/getOrders";
 import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
+import { enviaPedidos } from "../../services/sendOrders";
 import { ConfigProdSeletor } from "./components/configProdSeletor";
 
-export const Configurações = ({ navigation }: any) => { // Adicionei navigation props caso precise voltar
+export const Configurações = ({ navigation }: any) => {
 
     const api = useApi();
     const { connected, setConnected, internetConnected }: any = useContext(ConnectedContext);
 
-    // Hooks de Sincronização (Mantidos)
     const syncprodSector = useSyncProdSector();
     const syncMovimentos = useSyncMovimentos();
     const syncProdutos = useSyncProdutos();
@@ -36,11 +38,36 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
 
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [item, setItem] = useState<string>();
+    const[item, setItem] = useState<string>();
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>();
     const [conectado, setConectado] = useState<boolean>();
     const [msgApi, setMsgApi] = useState('');
+    
+    // Estados do Picker de Data
+    const [showPicker, setShowPicker] = useState(false);
+    const[dataSelecionada, setDataSelecionada] = useState();
+    const [date, setDate] = useState(new Date());
+    const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+
+    const useGetOrders = receberPedidos();
+    const useSendOrders = enviaPedidos();
+
+    // Formato da API (YYYY-MM-DD)
+    const formatDate = (date: any) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Formato para exibição na tela (DD/MM/YYYY)
+    const formatDisplayDate = (dateToFormat: any) => {
+        const day = String(dateToFormat.getDate()).padStart(2, '0');
+        const month = String(dateToFormat.getMonth() + 1).padStart(2, '0');
+        const year = dateToFormat.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
 
     async function connect() {
         try {
@@ -66,6 +93,14 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
         }
     }
 
+    const handleEvent = (event: any, selectedDate: any) => {
+        const currentDate = selectedDate || date;
+        setShowPicker(false);
+        setDate(currentDate);
+        const dataaux: any = formatDate(currentDate);
+        setDataSelecionada(dataaux);
+    };
+
     const verifyDateSinc = async () => {
         let validConfig = await useQueryConfigApi.select(1);
         let dataUltSinc: string;
@@ -85,7 +120,6 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
             let aux = await useQueryConfigApi.create(data);
             dataUltSinc = '';
         }
-       // console.log("dataUltSinc : ", dataUltSinc)
         return dataUltSinc;
     }
 
@@ -126,15 +160,32 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
 
     useEffect(() => {
         connect();
-    }, []);
+    },[]);
 
     function restart() {
-        Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`, [
+        Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`,[
             { text: 'Não', style: 'cancel' },
-            { text: 'Sim', onPress: async () => { 
-                await useRestartService.restart()
-            } }
+            {
+                text: 'Sim', onPress: async () => {
+                    await useRestartService.restart()
+                }
+            }
         ]);
+    }
+
+    async function syncOrders() {
+        try {
+            setIsLoadingOrder(true);
+            let dataPedidos: any = formatDate(date); // Usa o formato correto da API
+
+            await useGetOrders.getPedidos(dataPedidos);
+            let responseSystem = await useSendOrders.postPedidos();
+            console.log(responseSystem);
+        } catch (e) {
+            console.log(e);
+        } finally {
+            setIsLoadingOrder(false);
+        }
     }
 
     const openUrl = async (url: string) => {
@@ -143,7 +194,6 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
         else Alert.alert(`Não foi possível abrir esta URL: ${url}`);
     };
 
-    // Componente interno para Renderizar um "Botão de Menu"
     const MenuCard = ({ icon, title, subtitle, onPress, color = "#185FED", danger = false }: any) => (
         <TouchableOpacity
             onPress={onPress}
@@ -189,22 +239,20 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
                 elevation: 5,
                 marginBottom: 10
             }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
                     <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>Configurações</Text>
                     <View style={{ width: 24 }} />
                 </View>
-
-
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 20 }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
 
                 {/* --- CARD DE STATUS --- */}
                 <View style={{
-                    backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 20, elevation: 3,
+                    backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 20, elevation: 2,
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
                 }}>
                     <View>
@@ -216,8 +264,8 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
                             </View>
                         ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: connected ? 'green' : 'red' }} />
-                                <Text style={{ fontWeight: 'bold', fontSize: 16, color: connected ? 'green' : 'red' }}>
+                                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: connected ? '#4CAF50' : '#F44336' }} />
+                                <Text style={{ fontWeight: 'bold', fontSize: 16, color: connected ? '#4CAF50' : '#F44336' }}>
                                     {connected ? "Conectado" : "Desconectado"}
                                 </Text>
                             </View>
@@ -236,14 +284,89 @@ export const Configurações = ({ navigation }: any) => { // Adicionei navigatio
 
                 <MenuCard
                     icon={<MaterialCommunityIcons name="database-sync" size={24} color="#185FED" />}
-                    title="Sincronizar Dados"
-                    subtitle="Atualizar produtos e cadastros"
+                    title="Sincronizar Cadastros"
+                    subtitle="Atualizar produtos, setores e categorias"
                     onPress={handleSync}
                 />
 
+                {/* --- NOVO CARD DE PEDIDOS ESTILIZADO --- */}
+                <View style={{
+                    backgroundColor: '#FFF',
+                    borderRadius: 12,
+                    padding: 15,
+                    marginBottom: 10,
+                    elevation: 2,
+                }}>
+                    {/* Header do Card */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                        <View style={{ width: 45, height: 45, borderRadius: 25, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
+                            <MaterialCommunityIcons name="clipboard-text-play" size={24} color="#185FED" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>Pedidos</Text>
+                            <Text style={{ fontSize: 12, color: '#666' }}>Enviar e receber pendências</Text>
+                        </View>
+                    </View>
+
+                    {/* Seletor de Data */}
+                    <Text style={{ fontSize: 14, color: '#555', marginBottom: 5, fontWeight: '600' }}>A partir da data:</Text>
+                    <TouchableOpacity
+                        onPress={() => setShowPicker(true)}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#F5F7FA',
+                            borderWidth: 1,
+                            borderColor: '#E0E0E0',
+                            borderRadius: 8,
+                            paddingHorizontal: 12,
+                            height: 45,
+                            marginBottom: 15
+                        }}
+                    >
+                        <Fontisto name="date" size={20} color="#185FED" style={{ marginRight: 10 }} />
+                        <Text style={{ flex: 1, fontSize: 16, color: '#333', fontWeight: '500' }}>
+                            {formatDisplayDate(date)}
+                        </Text>
+                        <MaterialIcons name="arrow-drop-down" size={24} color="#BDBDBD" />
+                    </TouchableOpacity>
+
+                    {showPicker && (
+                        <DateTimePicker
+                            value={date}
+                            display="calendar"
+                            mode="date"
+                            onChange={handleEvent}
+                        />
+                    )}
+
+                    {/* Botão de Ação */}
+                    <TouchableOpacity
+                        style={{
+                            backgroundColor: isLoadingOrder ? '#B0C4DE' : '#185FED',
+                            borderRadius: 10,
+                            paddingVertical: 12,
+                            flexDirection: "row",
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8
+                        }}
+                        onPress={syncOrders}
+                        disabled={isLoadingOrder}
+                    >
+                        {isLoadingOrder ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <MaterialCommunityIcons name="folder-sync" size={22} color='#FFF' />
+                        )}
+                        <Text style={{ color: '#FFF', fontWeight: "bold", fontSize: 16 }}>
+                            {isLoadingOrder ? 'Sincronizando...' : 'Sincronizar Pedidos'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Preferências</Text>
 
-                {/* Aqui renderizamos o componente de seleção, mas ele agora vai renderizar um card igual aos outros */}
                 <ConfigProdSeletor />
 
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Manutenção</Text>

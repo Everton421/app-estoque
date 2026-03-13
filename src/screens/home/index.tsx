@@ -1,4 +1,4 @@
-import { AntDesign, Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, Entypo, FontAwesome6, MaterialCommunityIcons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import React, { useContext, useEffect, useState } from "react";
@@ -18,6 +18,8 @@ import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
 import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
+import { useSyncClients } from '../../hooks/sync-clientes/useSyncClientes';
+import { defaultColors } from '../../styles/global';
 
 type cadEmpre =
   {
@@ -44,6 +46,7 @@ export const Home = ({ navigation }: any) => {
   const syncSetores = useSyncSetores();
   const useQueryConfigApi = queryConfig_api();
   const useMoment = configMoment();
+  const syncClientes = useSyncClients();
 
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -97,6 +100,7 @@ export const Home = ({ navigation }: any) => {
       await syncMarcas.syncData({ data, setIsLoading, setProgress, setItem });
       await syncMovimentos.syncData({ data, setIsLoading, setProgress, setItem });
       await syncSetores.syncData({ data, setIsLoading, setProgress, setItem });
+      await syncClientes.syncData({data, setIsLoading, setProgress, setItem})
       console.log('Fim do processo')
     } catch (e) {
       console.log(e);
@@ -184,6 +188,10 @@ export const Home = ({ navigation }: any) => {
 
 
   const data = [
+      {
+      "nome": "vendas",
+      "icon": <MaterialCommunityIcons name="cart-variant" size={30} color={defaultColors.darkBlue} />
+    },
     {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
@@ -278,6 +286,17 @@ export const Home = ({ navigation }: any) => {
             </View>
             <Text style={{ fontWeight: "bold", fontSize: 17, color: '#5f666dff', flex: 1, textAlign: 'center' }} >Setores</Text>
             <AntDesign name="caret-down" size={24} color="#185FED" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={{ backgroundColor: '#FFF', marginTop: 15, width: '80%', padding: 15, borderRadius: 10, elevation: 2, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+            onPress={() => { navigation.navigate('clientes') }}
+          >
+            <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
+              <FontAwesome6 name="users" size={25} color={defaultColors.darkBlue}/>
+            </View>
+            <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Clientes</Text>
+            <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
+
           </TouchableOpacity>
 
         </View>

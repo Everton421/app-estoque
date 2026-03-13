@@ -8,6 +8,9 @@ import { Cadastro_produto } from "../../screens/cadastro_produto";
 import { Cadastro_Setores } from "../../screens/cadastrarSetores";
 import { Acertos } from "../../screens/acerto";
 import { NovoAcerto } from "../../screens/novo_acerto";
+import { Clientes } from "../../screens/clientes";
+import { Lista_pedidos } from "../../screens/pedidos";
+import { Separacao } from "../../screens/separacao";
 
 const StackConfig = createStackNavigator();
 
@@ -24,6 +27,10 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="cadastro_setores" component={Cadastro_Setores}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
                     <StackConfig.Screen name="acertos" component={Acertos}  options={ { headerShown:false}} />
                     <StackConfig.Screen name="novo_acerto" component={NovoAcerto}  options={{ headerShown:false }} />
+                    <StackConfig.Screen name="clientes"   component={Clientes} options={{headerShown:false}} />
+                    <StackConfig.Screen name="vendas"                component={Lista_pedidos}  options={{headerShown:false}}  />
+                    <StackConfig.Screen name="separacao"                component={Separacao}  options={{headerShown:false}}  />
+
             </StackConfig.Navigator>
     )
 }

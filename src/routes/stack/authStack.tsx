@@ -1,9 +1,9 @@
-import { createStackNavigator } from "@react-navigation/stack"
+import { createStackNavigator } from "@react-navigation/stack";
+import { Alterar_senha } from "../../screens/alterar_senha";
+import { Enviar_codigo } from "../../screens/enviar_codigo";
 import { Inicio } from "../../screens/inicio";
 import { Login } from "../../screens/login";
-import { Enviar_codigo  } from "../../screens/enviar_codigo";
 import { Resgistrar_empresa } from "../../screens/registrar_empresa";
-import { Alterar_senha } from "../../screens/alterar_senha";
 
 
 const StackConfig = createStackNavigator();
