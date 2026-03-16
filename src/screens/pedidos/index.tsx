@@ -6,7 +6,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Button, FlatList, Modal, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Button, FlatList, Modal, Text, TouchableOpacity, View, RefreshControl } from "react-native";
 import { AuthContext } from "../../contexts/auth";
 import { ConnectedContext } from "../../contexts/conectedContext";
 import { OrcamentoContext } from "../../contexts/orcamentoContext";
@@ -15,8 +15,6 @@ import { receberPedidos } from "../../services/getOrders";
 import { configMoment } from "../../services/moment";
 import { enviaPedidos } from "../../services/sendOrders";
 import { CameraView, useCameraPermissions } from "expo-camera";
-
-// Importe o CustomHeader que acabamos de criar (Ajuste o caminho conforme a sua pasta)
 
 import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
@@ -27,7 +25,7 @@ export type pedido = {
     id: number,
     id_externo: number,
     situacao: string,
-    situacao_separacao: 'N' | 'P' | 'I',
+    situacao_separacao: 'N' | 'P' | 'I', // i= integralmente separado, p= parcialmente separado, n= não separado
     descontos: number,
     vendedor: number,
     forma_pagamento: number,
@@ -88,26 +86,27 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const [visible, setVisible] = useState(false);
 
     const[visiblePostPedido, setVisiblePostPedido] = useState(false);
-    const [loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
+    const[loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
     const [loadingEditOrder, setLoadingEditOrder] = useState(false);
     const [data_cadastro, setData_cadastro] = useState(useMoment.primeiroDiaMes())
-    const[orcamentoModal, setOrcamentoModal] = useState();
-    const [statusPedido, setStatusPedido] = useState<string>('*');
+    const [orcamentoModal, setOrcamentoModal] = useState();
+    const[statusPedido, setStatusPedido] = useState<string>('*');
+    
+    // --- NOVO ESTADO PARA O PULL-TO-REFRESH ---
+    const [refreshing, setRefreshing] = useState(false);
 
     async function fyndBarcode(codeScanned: string) {
-
-            const resultOrder = await useQuerypedidos.findByParam({ id_interno: codeScanned})
-            if( resultOrder && resultOrder?.length > 0 ){
-                      navigation.navigate('separacao',{
-                     codigo_pedido: resultOrder[0].codigo,
-                  });
-            }else{
-                 return Alert.alert("Erro", `Não foi possivel localizar o pedido ${codeScanned}.`)
-            }
-
+        const resultOrder = await useQuerypedidos.findByParam({ id_interno: codeScanned })
+        if (resultOrder && resultOrder?.length > 0) {
+            navigation.navigate('separacao', {
+                codigo_pedido: resultOrder[0].codigo,
+            });
+        } else {
+            return Alert.alert("Erro", `Não foi possivel localizar o pedido ${codeScanned}.`)
+        }
     }
 
-       const [modalVisible, setModalvisible] = useState(false);
+    const[modalVisible, setModalvisible] = useState(false);
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
@@ -154,9 +153,16 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setVisiblePostPedido(false);
     }
 
+    // --- NOVA FUNÇÃO PARA O PULL-TO-REFRESH ---
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await busca();
+        setRefreshing(false);
+    };
+
     useEffect(() => {
         busca()
-    }, [data_cadastro, statusPedido, pesquisa])
+    },[data_cadastro, statusPedido, pesquisa])
 
     useFocusEffect(
         useCallback(() => {
@@ -166,24 +172,21 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     useEffect(() => {
         async function busca() {
-            if (selecionado !== undefined) {
-                let aux = await useQuerypedidos.selectCompleteOrderByCode(selecionado?.codigo);
+            if (selecionado && selecionado !== undefined) {
+                let aux = await useQuerypedidos.selectCompleteOrderByCode(selecionado.codigo!);
                 setOrcamento(aux);
             } else { return }
         }
         busca()
     },[selecionado])
 
-   
-
-    async function selecionaOrcamentoModal( item:any ){
+    async function selecionaOrcamentoModal(item: any) {
         let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
-        console.log(aux  )
-        setOrcamentoModal( aux );
-        setVisibleModal( true )
+        setOrcamentoModal(aux);
+        setVisibleModal(true)
     }
 
-    // --- FUNÇÕES AUXILIARES DE STATUS PARA O NOVO DESIGN ---
+    // --- FUNÇÕES AUXILIARES DE STATUS ---
     const getStatusParams = (situacao: string) => {
         switch (situacao) {
             case 'EA': return { color: '#1E9C43', label: 'Orçamento' };
@@ -195,11 +198,20 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    // --- RENDER ITEM TOTALMENTE REFATORADO ---
-    const ItemOrcamento = ({ item }: { item: any }) => {
+    // --- STATUS DE SEPARAÇÃO ---
+    const getSeparacaoParams = (situacao_separacao: string) => {
+        switch (situacao_separacao) {
+            case 'I': return { color: '#4CAF50', label: 'Separado' };
+            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' };
+            case 'N': 
+            default: return { color: '#F44336', label: 'Não Separado' };
+        }
+    }
+
+    // --- RENDER ITEM ---
+    const ItemOrcamento = ({ item, pedido }: { item: any, pedido: any }) => {
         const status = getStatusParams(item.situacao);
-        const podeEditar = item.situacao !== 'RE' && item.situacao !== 'FI';
-        const podeExcluir = item.situacao !== 'RE' && item.situacao !== 'FI' && item.situacao !== 'AI' && item.situacao !== "FP";
+        const separacao = getSeparacaoParams(item.situacao_separacao);
 
         return (
             <View style={{
@@ -216,29 +228,40 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: status.color
             }}>
-                {/* --- HEADER DO CARD (IDs e Status) --- */}
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold' }}>
-                        ID: {item.id || item.codigo} {item.id_externo ? ` | Ext: ${item.id_externo}` : ''}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
+                        ID: {item.id || item.codigo} {item.id_externo ? `\nExt: ${item.id_externo}` : ''}
                     </Text>
-                    
-                    <View style={{ backgroundColor: status.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                        <Text style={{ color: status.color, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
-                            {status.label}
-                        </Text>
+
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                        <View style={{ backgroundColor: status.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                            <Text style={{ color: status.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                {status.label}
+                            </Text>
+                        </View>
+                        <View style={{ backgroundColor: separacao.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                            <Text style={{ color: separacao.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                {separacao.label}
+                            </Text>
+                        </View>
                     </View>
                 </View>
 
-                {/* --- CORPO DO CARD (Cliente e Valor) --- */}
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: '#333', marginBottom: 5 }} numberOfLines={1}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: '#333', marginBottom: 2 }} numberOfLines={1}>
                     {item?.nome}
                 </Text>
+
+                {item.contato ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{item.contato}</Text>
+                    </View>
+                ) : <View style={{ marginBottom: 8 }} />}
 
                 <Text style={{ fontSize: 18, fontWeight: "bold", color: '#185FED', marginBottom: 10 }}>
                     Total: R$ {item?.total_geral.toFixed(2)}
                 </Text>
 
-                {/* --- DATAS --- */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Criado: {new Date(item?.data_cadastro).toLocaleDateString("pt-br")}
@@ -248,37 +271,20 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     </Text>
                 </View>
 
-                {/* --- RODAPÉ DE AÇÕES (Botões) --- */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 12 }}>
-                    
+
                     <View style={{ flexDirection: 'row', gap: 10 }}>
-                        {/* Visualizar */}
                         <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 6, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                             <Feather name="eye" size={20} color="#185FED" />
                         </TouchableOpacity>
 
-                        {/* Editar
-                        {podeEditar && (
-                            <TouchableOpacity onPress={() => selecionaOrcamento(item)} style={{ padding: 6, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
-                                <Feather name="edit" size={20} color="#185FED" />
+                        {item.situacao === 'AI' && (
+                            <TouchableOpacity onPress={() => handleCodeRead(pedido.id_interno)} style={{ padding: 6, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                <Feather name="package" size={20} color="#185FED" />
                             </TouchableOpacity>
-                        )} */}
-
-               
-
-                        {/* Excluir 
-                        {podeExcluir ? (
-                            <TouchableOpacity onPress={() => deleteOrder(item)} style={{ padding: 6, backgroundColor: '#FFEBEE', borderRadius: 8 }}>
-                                <MaterialCommunityIcons name="delete" size={20} color="#D32F2F" />
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity onPress={() => Alert.alert('Aviso', 'Não é possível excluir um pedido processado/faturado.')} style={{ padding: 6, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
-                                <MaterialCommunityIcons name="delete-off" size={20} color="#BDBDBD" />
-                            </TouchableOpacity>
-                        )}*/}
+                        )}
                     </View>
 
-                    {/* Sincronização / API */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         {item.enviado === 'S' ? (
                             <Ionicons name="checkmark-done-circle" size={24} color="#4CAF50" />
@@ -295,7 +301,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                 <ActivityIndicator size="small" color="#185FED" />
                             </View>
                         ) : (
-                            <TouchableOpacity onPress={() => postPedido(item)} style={{ padding: 6, backgroundColor: '#E8F5E9', borderRadius: 8 }}>
+                            <TouchableOpacity
+                                style={{ padding: 6, backgroundColor: '#E8F5E9', borderRadius: 8 }}>
                                 <Ionicons name="sync-sharp" size={20} color="#4CAF50" />
                             </TouchableOpacity>
                         )}
@@ -306,25 +313,24 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         )
     }
 
-
     if (!permission) return null;
-    
-        if (modalVisible && !permission.granted) {
-            return (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
-                        Você precisa liberar o acesso a camera para continuar!
-                    </Text>
-                    <Button onPress={requestPermission} title="Liberar acesso" />
-                </View>
-            );
-        }
+
+    if (modalVisible && !permission.granted) {
+        return (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
+                    Você precisa liberar o acesso a camera para continuar!
+                </Text>
+                <Button onPress={requestPermission} title="Liberar acesso" />
+            </View>
+        );
+    }
 
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }} >
-            
-            {/* --- CUSTOM HEADER (Usando o novo componente) --- */}
-            <CustomHeader 
+
+            {/* --- CUSTOM HEADER --- */}
+            <CustomHeader
                 title={tipo === 1 ? "Pedidos" : "Orçamentos"}
                 onBack={() => navigation.goBack()}
                 showSearch={true}
@@ -349,13 +355,21 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             <ModalFilter visible={visible} setVisible={setVisible} setStatus={setStatusPedido} setDate={setData_cadastro} />
             <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
 
-            {/* --- LISTA --- */}
+            {/* --- LISTA COM REFRESH CONTROL --- */}
             <FlatList
                 data={orcamentosRegistrados}
-                renderItem={({ item }) => <ItemOrcamento item={item} />}
+                renderItem={({ item }) => <ItemOrcamento item={item} pedido={item} />}
                 keyExtractor={(item: any) => item.codigo.toString()}
-                contentContainerStyle={{ paddingBottom: 100 }} // Espaço para a legenda e o FAB
+                contentContainerStyle={{ paddingBottom: 100 }} 
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl 
+                        refreshing={refreshing} 
+                        onRefresh={onRefresh} 
+                        colors={['#185FED']} // Cor no Android
+                        tintColor="#185FED"  // Cor no iOS
+                    />
+                }
                 ListEmptyComponent={() => (
                     <View style={{ alignItems: 'center', marginTop: 50 }}>
                         <Text style={{ color: '#999', fontSize: 16 }}>Nenhum registro encontrado.</Text>
@@ -365,7 +379,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
             {/* --- FAB (Botão Ler codigo do pedido) --- */}
             <TouchableOpacity
-                        onPress={() => { setModalvisible(true) }}
+                onPress={() => { setModalvisible(true) }}
 
                 style={{
                     backgroundColor: '#185FED',
@@ -377,14 +391,13 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     shadowOffset: { width: 0, height: 3 },
                     shadowOpacity: 0.3,
                     right: 30,
-                    bottom: 80, // Fica acima da legenda
+                    bottom: 80, 
                     alignItems: "center",
                     justifyContent: "center",
                     zIndex: 99
                 }}
             >
-                        <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-
+                <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
             </TouchableOpacity>
 
             {/* --- LEGENDA INFERIOR (Status) --- */}
@@ -419,8 +432,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Reprovado</Text>
                 </View>
             </View>
-  {/* --- MODAL CÂMERA --- */}
- 
+
+            {/* --- MODAL CÂMERA --- */}
             <Modal visible={modalVisible} animationType="slide">
                 <CameraView
                     style={{ flex: 1 }}
@@ -432,8 +445,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
                         <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
                         <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             onPress={() => setModalvisible(false)}
                             style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
                         >

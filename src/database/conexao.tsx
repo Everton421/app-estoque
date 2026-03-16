@@ -143,6 +143,7 @@ export async function construtor(db: SQLiteDatabase) {
       situacao TEXT NOT NULL DEFAULT 'EA',
       situacao_separacao TEXT NOT NULL DEFAULT 'N', -- N = Não Separado; P = Separado Parcialmente; I = Separado Integralmente
       contato TEXT ,
+      frete REAL DEFAULT 0.00,
       descontos REAL DEFAULT 0.00,
       forma_pagamento INTEGER DEFAULT 0,
       observacoes BLOB,
@@ -165,6 +166,7 @@ export async function construtor(db: SQLiteDatabase) {
       desconto REAL DEFAULT 0.00,
       quantidade REAL DEFAULT 0.00,
       preco REAL DEFAULT 0.00,
+      frete REAL DEFAULT 0.00,
       total REAL DEFAULT 0.00,
       quantidade_separada REAL DEFAULT 0.00,
       quantidade_faturada REAL DEFAULT 0.00 

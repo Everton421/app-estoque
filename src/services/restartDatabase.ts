@@ -26,8 +26,8 @@ export const restartDatabaseService = ()=>{
       DROP TABLE IF EXISTS parcelas;
       DROP TABLE IF EXISTS produto_setor;
       DROP TABLE IF EXISTS movimentos_produtos;
-     
-       CREATE TABLE IF NOT EXISTS usuarios (
+      
+  CREATE TABLE IF NOT EXISTS usuarios (
       codigo INTEGER  NOT NULL, 
       nome TEXT NOT NULL,
       senha TEXT NOT NULL, 
@@ -111,6 +111,7 @@ export const restartDatabaseService = ()=>{
        responsavel  INTEGER  NOT NULL DEFAULT 0,
        nome TEXT NOT NULL 
       );
+
     CREATE TABLE IF NOT EXISTS categorias (
        codigo INTEGER PRIMARY KEY NOT NULL,
        id TEXT NOT NULL DEFAULT 0,
@@ -136,7 +137,6 @@ export const restartDatabaseService = ()=>{
        data_cadastro TEXT NOT NULL,
        data_recadastro TEXT NOT NULL
       );
-
       CREATE TABLE IF NOT EXISTS clientes (
       codigo INTEGER PRIMARY KEY NOT NULL,
       celular TEXT,
@@ -164,6 +164,7 @@ export const restartDatabaseService = ()=>{
       situacao TEXT NOT NULL DEFAULT 'EA',
       situacao_separacao TEXT NOT NULL DEFAULT 'N', -- N = Não Separado; P = Separado Parcialmente; I = Separado Integralmente
       contato TEXT ,
+      frete REAL DEFAULT 0.00,
       descontos REAL DEFAULT 0.00,
       forma_pagamento INTEGER DEFAULT 0,
       observacoes BLOB,
@@ -186,14 +187,13 @@ export const restartDatabaseService = ()=>{
       desconto REAL DEFAULT 0.00,
       quantidade REAL DEFAULT 0.00,
       preco REAL DEFAULT 0.00,
+      frete REAL DEFAULT 0.00,
       total REAL DEFAULT 0.00,
       quantidade_separada REAL DEFAULT 0.00,
       quantidade_faturada REAL DEFAULT 0.00 
 
      -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
     );
-
-
     CREATE TABLE IF NOT EXISTS servicos_pedido (
       pedido INTEGER NOT NULL,
       codigo INTEGER NOT NULL,
@@ -203,7 +203,6 @@ export const restartDatabaseService = ()=>{
       total REAL DEFAULT 0.00  
     -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
     );
-
         CREATE TABLE IF NOT EXISTS parcelas (
       pedido INTEGER NOT NULL,
       parcela INTEGER NOT NULL,
@@ -221,8 +220,9 @@ export const restartDatabaseService = ()=>{
       tipo_serv INTEGER DEFAULT 0 
        );
      
-
+       
      `); 
+ 
  
    console.log('restart database')
     }

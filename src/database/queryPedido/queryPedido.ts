@@ -41,6 +41,7 @@ const getCurrentDate = () => {
             situacao,
             situacao_separacao,
             contato,
+            frete,
             vendedor,
             descontos,
             forma_pagamento,
@@ -64,6 +65,7 @@ const getCurrentDate = () => {
             '${pedido.situacao}',
             '${pedido.situacao_separacao}',
             '${ pedido.contato}',
+             ${ pedido.frete} ,
              ${ pedido.vendedor},
              ${ pedido.descontos},
              ${ pedido.forma_pagamento},
@@ -106,8 +108,9 @@ const getCurrentDate = () => {
               id_externo,
               id_interno,
               situacao,
-            situacao_separacao,
+              situacao_separacao,
               contato,
+              frete,
               vendedor,
               descontos,
               forma_pagamento,
@@ -129,8 +132,9 @@ const getCurrentDate = () => {
               '${id_externo}',
               '${id_interno}',
               '${pedido.situacao}',
-            '${pedido.situacao_separacao}',
+             '${pedido.situacao_separacao}',
               '${ pedido.contato}',
+               ${pedido.frete},
                ${ pedido.vendedor},
                ${ pedido.descontos},
                ${ pedido.forma_pagamento},
@@ -175,6 +179,7 @@ const getCurrentDate = () => {
           p.observacoes,
           p.descontos,
           p.forma_pagamento,
+         p.frete,
           p.enviado,
           p.vendedor,
           p.total_geral,
@@ -206,6 +211,7 @@ const getCurrentDate = () => {
          situacao,
            situacao_separacao,
          descontos,
+         frete,
          forma_pagamento,
            enviado,
          observacoes,
@@ -237,6 +243,7 @@ const getCurrentDate = () => {
           p.contato,
           c.codigo as codigo_cliente,
           p.situacao,
+         p.frete,
           p.descontos,
           p.observacoes,
           p.forma_pagamento,
@@ -267,6 +274,9 @@ const getCurrentDate = () => {
           p.contato,
           c.codigo as codigo_cliente,
           p.situacao,
+        p.situacao_separacao,
+        p.frete,
+
           p.observacoes,
           p.descontos,
           p.forma_pagamento,
@@ -309,8 +319,10 @@ const getCurrentDate = () => {
         p.contato,
         c.codigo as codigo_cliente,
         p.situacao,
+        p.situacao_separacao,
         p.observacoes,
         p.descontos,
+        p.frete,
         p.forma_pagamento,
         p.enviado,
         p.total_geral,
@@ -408,7 +420,9 @@ vendedor : number
         p.contato,
         c.codigo as codigo_cliente,
         p.situacao,
+        p.situacao_separacao,
         p.observacoes,
+        p.frete,
         p.descontos,
         p.forma_pagamento,
         p.enviado,
@@ -462,8 +476,10 @@ vendedor : number
         p.contato,
         c.codigo as codigo_cliente,
         p.situacao,
+        p.situacao_separacao,
         p.observacoes,
         p.descontos,
+        p.frete,
         p.forma_pagamento,
         p.enviado,
         p.total_geral,
@@ -498,8 +514,10 @@ vendedor : number
         p.contato,
         c.codigo as codigo_cliente,
         p.situacao,
+        p.situacao_separacao,
         p.observacoes,
         p.descontos,
+        p.frete,
         p.forma_pagamento,
         p.enviado,
         p.total_geral,
@@ -819,9 +837,11 @@ vendedor : number
       let result = await db.runAsync(
           ` UPDATE   pedidos SET
           situacao  =  '${ pedido.situacao}',
+          situacao_separacao  =  '${pedido.situacao_separacao}',
           id_interno =  '${pedido.id_interno}',
           id_externo =  '${pedido.id_externo}',
           contato  =  '${ pedido.contato}', 
+            frete  =  '${pedido.frete}', 
           descontos =  ${ pedido.descontos},
           forma_pagamento = ${pedido.forma_pagamento},
           enviado     = '${pedido.enviado}',
@@ -877,6 +897,7 @@ vendedor : number
             id_externo = '${pedido.id_externo}',
             id_interno = '${pedido.id_interno}',
             contato  =  '${pedido.contato}', 
+            frete  =  '${pedido.frete}', 
             descontos =  ${pedido.descontos},
             forma_pagamento = ${pedido.forma_pagamento},
             enviado     = '${pedido.enviado}',
@@ -942,6 +963,7 @@ vendedor : number
         tipo_os:number
         situacao_separacao: 'N' | 'P' | 'I'
         }
+
         async function newUpdate( query:Partial<newUpdateQuery>, code:number ){
         try{
 
@@ -1024,11 +1046,10 @@ vendedor : number
 
                  let finalSql = sql + params.join(' , ') + whereclauase;
 
-                 console.log(finalSql)
-          //let result = await db.runAsync( finalSql, values);
+           let result = await db.runAsync( finalSql, values as any);
   
         //console.log(' Atualizado a situação orcamento codigo : ' ,code );
-        //return result ;
+         return result ;
           }catch( e ){ 
             console.log(` ocorreu um erro ao atualiza o orcamento `, e)
     

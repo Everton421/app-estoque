@@ -13,6 +13,7 @@ const db = useSQLiteContext();
         total:number,
         quantidade_separada:number
         quantidade_faturada:number
+        frete:number
     }
         async function create(produto:produto_pedido, codeOrder:number){
             try{
@@ -26,9 +27,11 @@ const db = useSQLiteContext();
                     preco,
                     total,
                     quantidade_separada,
-                    quantidade_faturada
+                    quantidade_faturada,
+                    frete
                     ) VALUES (
                      ?,
+                      ?,
                       ?,
                       ?,
                       ?,
@@ -45,7 +48,8 @@ const db = useSQLiteContext();
                         produto.preco,
                         produto.total,
                         produto.quantidade_separada,
-                        produto.quantidade_faturada
+                        produto.quantidade_faturada,
+                        produto.frete
                         ]
                 let result = await db.runAsync(slq,values
                    
@@ -60,8 +64,12 @@ const db = useSQLiteContext();
             try{
 
                 const result = await db.getAllAsync(` SELECT pp.codigo , pp.pedido, pp.desconto, pp.preco, pp.quantidade, pp.total,
-                                                        p.descricao
-
+                                                        p.descricao,
+                                                        p.num_fabricante,
+                                                        p.num_original,
+                                                        p.sku,
+                                                        pp.quantidade_separada,
+                                                        pp.frete
                                                         FROM produtos_pedido as pp
                                                         JOIN produtos as p on p.codigo = pp.codigo
                                                         WHERE pp.pedido = ${codeOrder}`)
@@ -139,8 +147,9 @@ const db = useSQLiteContext();
                           preco =      ?,
                           total =  ?,
                           quantidade_separada =  ?,
-                          quantidade_faturada=  ? 
-                         WHERE codigo ? 
+                          quantidade_faturada=  ?, 
+                          frete =  ? 
+                          WHERE codigo ? 
                           AND pedido = ?
                           `;
 
@@ -152,6 +161,7 @@ const db = useSQLiteContext();
                         produto.quantidade_separada,
                         produto.quantidade_faturada,
                         produto.codigo,
+                        produto.frete,
                         codeOrder
                       ]
                     let result = await db.runAsync(
@@ -166,55 +176,59 @@ const db = useSQLiteContext();
 
 
                async function updatByParam(produto:Partial< Omit<produto_pedido, 'codigo'>> ,codigo_produto:number, codeOrder:number){
-                try{
-     
-                    const baseSql =     `
-                        UPDATE produtos_pedido SET 
-                           
-                          `;
+             try {
+        const baseSql = `UPDATE produtos_pedido SET `;
+        const params = [];
+        const values =[];
 
-                  
-                      const params=[];
-                       const values=[];
-                        if(produto.desconto){
-                            params.push(" desconto = ? ");
-                            values.push(produto.desconto);
-                        }
-               
-                        if(produto.quantidade){
-                            params.push(" quantidade = ? ");
-                            values.push(produto.quantidade);
-                        }
-                        if(produto.preco){
-                            params.push(" preco = ? ");
-                            values.push(produto.preco);
-                        }
-                        if(produto.total){
-                            params.push(" total = ? ");
-                            values.push(produto.total);
-                        }
-                        if(produto.quantidade_separada){
-                            params.push(" quantidade_separada = ? ");
-                            values.push(produto.quantidade_separada);
-                        }
-                        if(produto.quantidade_faturada){
-                            params.push(" quantidade_faturada = ? ");
-                            values.push(produto.quantidade_faturada);
-                        }
-                        const whereClause = " WHERE codigo = ? AND pedido = ?  ";
-                            values.push(codigo_produto) 
-                            values.push(codeOrder) 
+        // Usamos !== undefined para garantir que o número 0 passe no teste
+        if (produto.desconto !== undefined) {
+            params.push(" desconto = ? ");
+            values.push(produto.desconto);
+        }
+        if (produto.quantidade !== undefined) {
+            params.push(" quantidade = ? ");
+            values.push(produto.quantidade);
+        }
+        if (produto.preco !== undefined) {
+            params.push(" preco = ? ");
+            values.push(produto.preco);
+        }
+        if (produto.frete !== undefined) { // Adicionei frete caso exista no seu type
+            params.push(" frete = ? ");
+            values.push(produto.frete);
+        }
+        if (produto.total !== undefined) {
+            params.push(" total = ? ");
+            values.push(produto.total);
+        }
+        if (produto.quantidade_separada !== undefined) {
+            params.push(" quantidade_separada = ? ");
+            values.push(produto.quantidade_separada);
+        }
+        if (produto.quantidade_faturada !== undefined) {
+            params.push(" quantidade_faturada = ? ");
+            values.push(produto.quantidade_faturada);
+        }
 
-                                const finalSql = baseSql + params.join(' , ') + whereClause;
+        // Se não tiver nada para atualizar, aborta para não dar erro no SQL
+        if (params.length === 0) return;
 
-                    let result = await db.runAsync(
-                    finalSql, values
-                    )
-    
-                    console.log('')
-                    console.log(`produto ${codigo_produto} atualizado para o orcamento numero:  ${codeOrder}  `  );
-                    console.log('')
-                }catch(e   ){ console.log( `erro ao atualizar produto ${ codigo_produto} do orcamento` , e )}
+        const whereClause = " WHERE codigo = ? AND pedido = ? ";
+        values.push(codigo_produto);
+        values.push(codeOrder);
+
+        const finalSql = baseSql + params.join(', ') + whereClause;
+        
+        // console.log('sql final: ', finalSql);
+        // console.log('values: ', values);
+        
+        let result = await db.runAsync(finalSql, values);
+        return result;
+        
+    } catch (e) {
+        console.log(`erro ao atualizar produto ${codigo_produto} do orcamento`, e);
+    }
             }
 
         return { selectByCodeOrder, updatByParam,selectProductByCodeOrder,  create ,deleteByCodeOrder,selectAll ,deleteProductByCodeOrder, update}

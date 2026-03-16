@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal } from "react-native";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
 import { AntDesign, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/custom-header/custom-header";
-
+import { CameraView } from "expo-camera";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useItemsPedido } from "../../database/queryPedido/queryItems";
+import { configMoment } from "../../services/moment";
 
 export interface Cliente {
   bairro: string;
@@ -37,7 +40,9 @@ export interface Produto {
   preco: number;
   quantidade: number;
   total: number;
-  // Propriedade extra opcional caso já venha do banco
+  num_fabricante: string;
+  num_original: string;
+  sku: string;
   quantidade_separada?: number; 
 }
 
@@ -76,12 +81,37 @@ export const Separacao = ({ navigation, route }: any) => {
     const useQuerypedidos = usePedidos();
     const { codigo_pedido } = route.params;
 
-    const [data, setData] = useState<Pedido>();
-    
-    // Estado apenas VISUAL para controlar as quantidades sendo separadas na tela
-    const [listaSeparacao, setListaSeparacao] = useState<Produto[]>([]);
+    const[data, setData] = useState<Pedido>();
+    const useQueryItems = useItemsPedido();
+
+    const[listaSeparacao, setListaSeparacao] = useState<Produto[]>([]);
+    const[modalVisible, setModalvisible] = useState(false);
+    const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
+    const useMoment = configMoment();
+
+    function handleCodeRead(data: string) {
+        setModalvisible(false);
+        fyndBarcode(data);
+    }
+
+    async function fyndBarcode(codigo: string) {
+        handleUpdateQuantityByCodeRead(Number(codigo), 1, 9999);
+    }
+
+    async function getDefaultConfig() {
+        try {
+            let value: any = await AsyncStorage.getItem('configProduto');
+            if (value !== null) {
+                setDefaultConfigFilter(value);
+            }
+        } catch (e) {
+            console.log('erro ao tentar obter a configuração no AsyncStorage');
+        }
+    }
 
     useEffect(() => {
+        getDefaultConfig();
+
         async function busca() {
             if (codigo_pedido !== undefined) {
                 let orderData = await useQuerypedidos.selectCompleteOrderByCode(codigo_pedido) as Pedido;
@@ -90,11 +120,9 @@ export const Separacao = ({ navigation, route }: any) => {
                 }
                 setData(orderData);
 
-                // Copiando os produtos para o estado visual
                 if (orderData.produtos) {
                     const produtosIniciais = orderData.produtos.map(p => ({
                         ...p,
-                        // Se já existir quantidade separada no banco ele usa, senão inicia zerado na tela
                         quantidade_separada: p.quantidade_separada || 0 
                     }));
                     setListaSeparacao(produtosIniciais);
@@ -104,9 +132,7 @@ export const Separacao = ({ navigation, route }: any) => {
         busca();
     }, [codigo_pedido, navigation]);
 
-    // Função que atualiza a quantidade na tela
     const handleUpdateQuantity = (codigo: number, newQuantity: number, maxQuantity: number) => {
-        // Regras de negócio visuais: não pode ser menor que 0 e (opcionalmente) não pode ser maior que o pedido
         if (newQuantity < 0) newQuantity = 0;
         if (newQuantity > maxQuantity) newQuantity = maxQuantity; 
 
@@ -114,11 +140,72 @@ export const Separacao = ({ navigation, route }: any) => {
             p.codigo === codigo ? { ...p, quantidade_separada: newQuantity } : p
         ));
     };
+    
+    const handleUpdateQuantityByCodeRead = (codigo: number, newQuantity: number, maxQuantity: number) => {
+        if (newQuantity < 0) newQuantity = 0;
+        
+        let targetProduct = listaSeparacao.find(p => {
+            if (defaultConfigFilter === 'codigo') return p.codigo === codigo;
+            if (defaultConfigFilter === 'num_fabricante') return p.num_fabricante === String(codigo);
+            if (defaultConfigFilter === 'sku') return p.sku === String(codigo);
+            if (defaultConfigFilter === 'num_original') return p.num_original === String(codigo);
+        });
 
-    // Componente interno para renderizar cada Produto
+        if (targetProduct) {
+            // Se já tiver algo separado, soma 1. Senão, inicia com 1.
+            let qtdAtual = targetProduct.quantidade_separada || 0;
+            let novaQtd = qtdAtual + 1;
+
+            if (novaQtd > targetProduct.quantidade) novaQtd = targetProduct.quantidade; // Limita à quantidade do pedido
+
+            setListaSeparacao(prev => prev.map(p => 
+                p.codigo === targetProduct!.codigo ? { ...p, quantidade_separada: novaQtd } : p
+            ));
+        }
+    };
+
+    // --- NOVA LÓGICA DE SALVAMENTO ---
+    async function saveOrder() {
+        let qtdTotalPedida = 0;
+        let qtdTotalSeparada = 0;
+
+        try {
+            // Primeiro salvamos cada item e acumulamos os totais
+            for (const p of listaSeparacao) {
+                const quantity = p.quantidade_separada !== undefined ? p.quantidade_separada : 0;
+                
+                qtdTotalPedida += p.quantidade;
+                qtdTotalSeparada += quantity;
+
+                await useQueryItems.updatByParam({ quantidade_separada: quantity }, p.codigo, codigo_pedido);
+            }
+
+            // Calculamos a situação com base nas somas de forma segura
+            let situacao_separacao: 'I' | 'N' | 'P' = 'N';
+            
+            if (qtdTotalSeparada === 0) {
+                situacao_separacao = 'N'; // Nada separado
+            } else if (qtdTotalSeparada === qtdTotalPedida) {
+                situacao_separacao = 'I'; // Tudo separado
+            } else {
+                situacao_separacao = 'P'; // Algo no meio (Parcial)
+            }
+
+            const resultUpdate = await useQuerypedidos.newUpdate({ situacao_separacao: situacao_separacao, data_recadastro: useMoment.dataHoraAtual() }, codigo_pedido);
+            
+            if (resultUpdate && resultUpdate.changes > 0) {
+                Alert.alert("Sucesso", "Separação salva com sucesso!");
+                navigation.goBack();
+            }
+        } catch (e) {
+            console.log("erro ao salvar a separação", e);
+            Alert.alert("Erro", "Ocorreu um problema ao salvar a separação.");
+        }
+    }
+
     const renderProduto = ({ item }: { item: Produto }) => {
         const quantidadeSeparada = item.quantidade_separada || 0;
-        const concluido = quantidadeSeparada === item.quantidade; // Checa se separou tudo
+        const concluido = quantidadeSeparada === item.quantidade; 
 
         return (
             <View style={{
@@ -129,7 +216,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 padding: 15,
                 elevation: 3,
                 borderLeftWidth: 5,
-                borderLeftColor: concluido ? '#4CAF50' : '#FFC107' // Verde se OK, Amarelo se pendente
+                borderLeftColor: concluido ? '#4CAF50' : '#FFC107' 
             }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                     <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
@@ -140,12 +227,11 @@ export const Separacao = ({ navigation, route }: any) => {
                     {item.descricao || "Produto sem descrição"}
                 </Text>
 
-                {/* --- CONTROLE DE QUANTIDADE --- */}
                 <View style={{ 
                     flexDirection: 'row', 
                     alignItems: 'center', 
                     justifyContent: 'space-between', 
-                    backgroundColor: concluido ? '#E8F5E9' : '#F5F7FA', // Muda levemente o fundo se concluído
+                    backgroundColor: concluido ? '#E8F5E9' : '#F5F7FA', 
                     padding: 10, 
                     borderRadius: 8 
                 }}>
@@ -191,7 +277,6 @@ export const Separacao = ({ navigation, route }: any) => {
                 onBack={() => navigation.goBack()} 
             />
 
-            {/* --- CARD RESUMO DO PEDIDO --- */}
             {data && (
                 <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15, marginBottom: 15, padding: 15, elevation: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
@@ -209,12 +294,11 @@ export const Separacao = ({ navigation, route }: any) => {
                 </View>
             )}
 
-            {/* --- LISTA DE PRODUTOS --- */}
             <FlatList
                 data={listaSeparacao}
                 renderItem={renderProduto}
                 keyExtractor={(item) => item.codigo.toString()}
-                contentContainerStyle={{ paddingBottom: 100 }} // Espaço para não esconder atrás do botão
+                contentContainerStyle={{ paddingBottom: 100 }} 
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={() => (
                     <View style={{ alignItems: 'center', marginTop: 50 }}>
@@ -224,7 +308,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 )}
             />
 
-            {/* --- BOTÃO FIXO NO RODAPÉ --- */}
+            {/* BOTÃO FIXO NO RODAPÉ */}
             <View style={{ 
                 position: 'absolute', 
                 bottom: 0, left: 0, right: 0, 
@@ -244,13 +328,58 @@ export const Separacao = ({ navigation, route }: any) => {
                         alignItems: 'center', 
                         gap: 10 
                     }}
-                    onPress={() => Alert.alert("Sucesso", "Separação visualizada! A lógica de salvar no banco será implementada depois.")}
+                    onPress={saveOrder}
                 >
                     <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
                     <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>
                 </TouchableOpacity>
             </View>
 
+            {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
+            <TouchableOpacity
+                onPress={() => { setModalvisible(true) }}
+                style={{
+                    backgroundColor: '#185FED',
+                    width: 56, height: 56,
+                    borderRadius: 28,
+                    position: "absolute",
+                    elevation: 6,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.3,
+                    right: 20,
+                    bottom: 90, 
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 99
+                }}
+            >
+                <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
+            </TouchableOpacity>
+
+            {/* MODAL CÂMERA */}
+            <Modal visible={modalVisible} animationType="slide">
+                <CameraView
+                    style={{ flex: 1 }}
+                    facing="back"
+                    onBarcodeScanned={({ data }) => {
+                        if (data) handleCodeRead(data);
+                    }}
+                >
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
+                        <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
+
+                        <TouchableOpacity
+                            onPress={() => setModalvisible(false)}
+                            style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
+                        >
+                            <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CameraView>
+            </Modal>
+ 
         </KeyboardAvoidingView>
     );
 }

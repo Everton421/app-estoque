@@ -25,6 +25,8 @@
     tipo_os:number,
     tipo:number,
     contato:string
+    frete:number
+
 }
 
  export type produto_pedido = {
@@ -36,6 +38,7 @@
         total:number,
         quantidade_separada:number
         quantidade_faturada:number
+        frete:number
     }
    export type parcela = {
       pedido:number,
@@ -63,6 +66,7 @@
     descontos:number,
     vendedor:number,
     forma_pagamento:number,
+    frete:number
     enviado:string,
     observacoes:string,
     quantidade_parcelas:number,

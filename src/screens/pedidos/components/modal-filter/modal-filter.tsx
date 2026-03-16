@@ -29,7 +29,7 @@ export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props
      
         const [showPicker, setShowPicker] = useState(false);
         const [ auxData, setAuxData ] = useState<  string >(   moment.dataAtual() );
-        const [ statusSelecionado, setStatusSelecionado ] = useState('*');
+        const [ statusSelecionado, setStatusSelecionado ] = useState('AI');
         
         async  function selectStatus( status:string ){
                     switch ( status ){
