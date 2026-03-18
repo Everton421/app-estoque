@@ -18,6 +18,7 @@ import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { enviaPedidos } from "../../services/sendOrders";
 import { ConfigLeitor    } from "./components/configLeitor";
+import { useSyncClients } from "../../hooks/sync-clientes/useSyncClientes";
 
 export const Configurações = ({ navigation }: any) => {
 
@@ -31,6 +32,8 @@ export const Configurações = ({ navigation }: any) => {
     const syncFotos = useSyncFotos();
     const syncMarcas = useSyncMarcas();
     const syncSetores = useSyncSetores();
+
+     const syncClients = useSyncClients();
 
     const useRestartService = restartDatabaseService();
     const useMoment = configMoment();
@@ -136,6 +139,7 @@ export const Configurações = ({ navigation }: any) => {
             await syncMarcas.syncData({ data, setIsLoading, setProgress, setItem });
             await syncMovimentos.syncData({ data, setIsLoading, setProgress, setItem });
             await syncSetores.syncData({ data, setIsLoading, setProgress, setItem });
+            await syncClients.syncData({ data, setIsLoading, setProgress, setItem });
         } catch (e) {
             console.log(e);
         } finally {

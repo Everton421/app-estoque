@@ -47,11 +47,15 @@ export const useSyncClients = ()=>{
                         const resultApiData = await api.get('/offline/clientes',  { 
                             params :{
                                  data_recadastro : data,
-                                    vendedor:0 
                                 }
                         } );
+
+                        console.log("Data consulta clientes: ", data)
+                        console.log(" clientes api : ", resultApiData.data)
                         const dados:cliente[] = resultApiData.data;
+
                         const totalClientes = dados.length;
+                        
                         if(totalClientes > 0 ){
                             for (let v = 0; v < totalClientes; v++) {
                             const verifyClient  = await useQueryClientes.selectByCode(dados[v].codigo);
