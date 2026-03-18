@@ -6,6 +6,7 @@ import { construtor } from "../conexao";
    export type cliente = {
         codigo: number,
         celular: string,   
+        id: string,   
         cep: string,
         cidade:string,
         cnpj:string,
@@ -103,6 +104,7 @@ export const  useClients = ()=>{
             const result = await db.runAsync( 
                 ` INSERT INTO clientes (
                    codigo,
+                   id,
                    celular,
                    cep,
                    cidade,
@@ -120,6 +122,7 @@ export const  useClients = ()=>{
                      VALUES 
                     (
                      '${client.codigo}',
+                     '${client.id}',
                      '${client.celular}',
                      '${client.cep}',
                      '${cidade}',
@@ -155,7 +158,9 @@ export const  useClients = ()=>{
         try{
             const result = await db.execAsync( 
                 ` UPDATE clientes
-                  SET celular = '${client.celular}',
+                  SET 
+                  id = '${client.id}',
+                  celular = '${client.celular}',
                   cep = '${client.cep}',
                   cidade = '${client.cidade}', 
                   cnpj = '${client.cnpj}',
@@ -208,6 +213,7 @@ export const  useClients = ()=>{
                         const result = await db.runAsync( 
                             ` INSERT INTO clientes (
                                 codigo,
+                                id,
                                 celular,
                                 cep,
                                 cidade,
@@ -225,6 +231,7 @@ export const  useClients = ()=>{
                                   VALUES 
                                  (
                                   '${client.codigo}',
+                                  '${client.id}',
                                   '${client.celular}',
                                   '${client.cep}',
                                   '${cidade}',

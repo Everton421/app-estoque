@@ -137,8 +137,11 @@ export const restartDatabaseService = ()=>{
        data_cadastro TEXT NOT NULL,
        data_recadastro TEXT NOT NULL
       );
-      CREATE TABLE IF NOT EXISTS clientes (
+  
+      
+       CREATE TABLE IF NOT EXISTS clientes (
       codigo INTEGER PRIMARY KEY NOT NULL,
+      id TEXT,
       celular TEXT,
       nome TEXT NOT NULL,
       cep TEXT NOT NULL DEFAULT '00000-000',
@@ -153,6 +156,7 @@ export const restartDatabaseService = ()=>{
       data_recadastro TEXT NOT NULL,
       vendedor INTEGER NOT NULL DEFAULT 0
      );
+
 
        -- 
      CREATE TABLE IF NOT EXISTS pedidos (

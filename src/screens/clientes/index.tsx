@@ -11,6 +11,7 @@ import { CustomHeader } from "../../components/custom-header/custom-header";
 
 export type client = {
     codigo: number,
+    id:string
     cnpj: string,
     nome: string,
     ie: string,
@@ -49,10 +50,9 @@ export function Clientes({ navigation }: any) {
     }, [pesquisa])
 
     function handleSelect(item: client) {
-        // Se quiser usar o Modal no futuro, descomente abaixo:
-        // setcSelecionado(item);
-        // setVisible(true);
-        navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
+          setcSelecionado(item);
+          setVisible(true);
+        //navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
     }
 
     return (
@@ -68,7 +68,7 @@ export function Clientes({ navigation }: any) {
                 searchPlaceholder="Pesquisar cliente..."
                 
                 showFilter={true}
-                onFilterPress={() => setVisible(true)} // Abre seu modal
+             //   onFilterPress={() => setVisible(true)} // Abre seu modal
             />
 
             {/* --- MODAL DE DETALHES (Estilizado para o novo padrão) --- */}
@@ -94,6 +94,7 @@ export function Clientes({ navigation }: any) {
                                 <View style={{ flex: 1 }}>
                                     <Text style={{ fontWeight: "bold", fontSize: 18, color: '#333' }}>{cSelecionado?.nome}</Text>
                                     <Text style={{ color: '#185FED', fontWeight: 'bold', fontSize: 14 }}>Cód: {cSelecionado?.codigo}</Text>
+                                    <Text style={{ color: '#185FED', fontWeight: 'bold', fontSize: 14 }}>id: {cSelecionado?.id}</Text>
                                 </View>
                             </View>
 
@@ -122,7 +123,7 @@ export function Clientes({ navigation }: any) {
             {/* --- LISTA DE CLIENTES --- */}
             <FlatList
                 data={dados}
-                renderItem={({ item }) => <RenderItensClients item={item}   />}
+                renderItem={({ item }) => <RenderItensClients item={item}   handleSelect={handleSelect}/>}
                 keyExtractor={(i) => i.codigo.toString()}
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 showsVerticalScrollIndicator={false}

@@ -119,6 +119,7 @@ export async function construtor(db: SQLiteDatabase) {
       );
       CREATE TABLE IF NOT EXISTS clientes (
       codigo INTEGER PRIMARY KEY NOT NULL,
+      id TEXT,
       celular TEXT,
       nome TEXT NOT NULL,
       cep TEXT NOT NULL DEFAULT '00000-000',

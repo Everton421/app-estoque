@@ -5,6 +5,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 type IClient = {
     codigo: number;
+    id:string
     cnpj: string;
     nome: string;
     ie: string;
@@ -56,13 +57,16 @@ export function RenderItensClients({ item, handleSelect }: Props) {
                 
                 {/* Linha Nome e Código */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <Text 
-                        testID='nameClient' 
-                        style={{ fontSize: 16, fontWeight: 'bold', color: '#333', flex: 1, marginRight: 10 }} 
-                        numberOfLines={1} 
-                        ellipsizeMode="tail"
-                    >
-                        {item.nome}
+                                <Text style={{ 
+                        fontSize: 12, 
+                        color: '#185FED', 
+                        fontWeight: 'bold', 
+                        backgroundColor: '#E3F2FD', 
+                        paddingHorizontal: 6, 
+                        paddingVertical: 2, 
+                        borderRadius: 4 
+                    }}>
+                        Id: {item.id}
                     </Text>
                     <Text style={{ 
                         fontSize: 12, 
@@ -75,8 +79,20 @@ export function RenderItensClients({ item, handleSelect }: Props) {
                     }}>
                         Cód: {item.codigo}
                     </Text>
-                </View>
+         
 
+                </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                     
+                      <Text 
+                        testID='nameClient' 
+                        style={{ fontSize: 16, fontWeight: 'bold', color: '#333', flex: 1, marginRight: 10 }} 
+                        numberOfLines={1} 
+                        ellipsizeMode="tail"
+                    >
+                        {item.nome}
+                    </Text>
+                    </View>
                 {/* Linha CNPJ */}
                 <Text style={{ fontSize: 14, color: '#666' }}>
                     CNPJ/CPF: {item.cnpj || 'Não informado'}
