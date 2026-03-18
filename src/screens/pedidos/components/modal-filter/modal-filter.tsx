@@ -1,4 +1,4 @@
-import { Modal, Text, TouchableOpacity, View } from "react-native"
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native"
 import {   useEffect, useState } from "react"
 import Fontisto from '@expo/vector-icons/Fontisto';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -91,14 +91,24 @@ export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props
     // Se o evento for 'dismissed', não fazemos nada, pois o seletor já foi fechado.
 };
         return(
-                 <Modal  visible={visible}  transparent={true} >
-                            <View style={{ backgroundColor: "rgba(0, 0, 0, 0.7)" , flex:1, alignItems:"center", justifyContent:"flex-start" }}>
-                                <View style={{ backgroundColor:'#FFF', width:'80%', height:'80%', marginTop:10, borderRadius:10 }}>    
-                                               
-                                                       <TouchableOpacity onPress={() => setVisible(false)}  style={ { width:'15%'  ,padding: 10, borderRadius: 12    }}>
-                                                                           <Ionicons name="close" size={28} color={ '#6C757D' } />
-                                                         </TouchableOpacity>
+                      <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={() => setVisible(false)}> 
+                       <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.6)", justifyContent: 'center', alignItems: 'center' }}>
+                                    <View style={{
+                                        width: "90%",
+                                        height: "80%",
+                                        backgroundColor: "#F5F7FA",
+                                        borderRadius: 16,
+                                        overflow: 'hidden',
+                                        elevation: 10
+                                    }}>     
                                         
+                    <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', alignItems: 'center' }}>
+                                           <TouchableOpacity onPress={() => setVisible(false) }   > 
+                                                <Ionicons name="close" size={24} color="#FFF" />
+                                            </TouchableOpacity>
+                                           
+                                        </View>
+
                                         <View style={{   width:'95%', height:"100%", marginLeft: 5 } } >
                                                         <View style={{  borderColor: '#DDD', borderWidth: 1,padding: 10,marginVertical: 5, borderRadius: 5, width: '95%'  }}>
                                                           <Text style={{ fontWeight:"bold"}}> Data Cadastro:</Text>   
@@ -315,3 +325,6 @@ export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props
 
         )
 }
+
+ 
+ 

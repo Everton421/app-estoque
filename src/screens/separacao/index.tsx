@@ -34,6 +34,7 @@ export interface Parcela {
 
 export interface Produto {
   codigo: number;
+  id:string
   desconto: number;
   descricao: string;
   pedido: number;
@@ -191,7 +192,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 situacao_separacao = 'P'; // Algo no meio (Parcial)
             }
 
-            const resultUpdate = await useQuerypedidos.newUpdate({ situacao_separacao: situacao_separacao, data_recadastro: useMoment.dataHoraAtual() }, codigo_pedido);
+            const resultUpdate = await useQuerypedidos.newUpdate({ enviado: 'N', situacao_separacao: situacao_separacao, data_recadastro: useMoment.dataHoraAtual() }, codigo_pedido);
             
             if (resultUpdate && resultUpdate.changes > 0) {
                 Alert.alert("Sucesso", "Separação salva com sucesso!");
@@ -220,6 +221,7 @@ export const Separacao = ({ navigation, route }: any) => {
             }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                     <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
+                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd. Pedida: {item.quantidade}</Text>
                 </View>
 
@@ -263,8 +265,12 @@ export const Separacao = ({ navigation, route }: any) => {
                         >
                             <AntDesign name="plus" size={20} color="#FFF" />
                         </TouchableOpacity>
+                        
                     </View>
+                    
                 </View>
+                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>ean: {item.num_fabricante}</Text>
+
             </View>
         );
     };

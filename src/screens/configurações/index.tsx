@@ -17,7 +17,7 @@ import { receberPedidos } from "../../services/getOrders";
 import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { enviaPedidos } from "../../services/sendOrders";
-import { ConfigProdSeletor } from "./components/configProdSeletor";
+import { ConfigLeitor    } from "./components/configLeitor";
 
 export const Configurações = ({ navigation }: any) => {
 
@@ -367,7 +367,7 @@ export const Configurações = ({ navigation }: any) => {
 
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Preferências</Text>
 
-                <ConfigProdSeletor />
+                <ConfigLeitor />
 
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Manutenção</Text>
 

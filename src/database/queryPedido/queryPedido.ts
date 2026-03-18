@@ -407,8 +407,12 @@ total_servicos : number
 veiculo : number
 vendedor : number
 }
+      type query ={
+      chave: 'codigo' | 'id_interno' | 'id_externo'  
+      value:any
+    }
 
-     async function findByParam ( query: Partial<pedidoApi> ) {
+     async function findByParam ( query:query  ) {
       try{ 
 
           let sql = `SELECT 
@@ -443,10 +447,19 @@ vendedor : number
           let conditions = []
           let values = []
 
-
-          if(query.id_interno){
+        
+          if(query.chave === 'id_interno'){
               conditions.push( ' p.id_interno = ? ' );
-            values.push(String(query.id_interno));
+            values.push(String(query.value));
+          }
+
+          if(query.chave === 'id_externo'){
+              conditions.push( ' p.id_externo = ? ' );
+            values.push(String(query.value));
+          }
+          if(query.chave === 'codigo'){
+              conditions.push( ' p.codigo = ? ' );
+            values.push(String(query.value));
           }
         
            let finalSql= sql;

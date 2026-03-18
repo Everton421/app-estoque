@@ -143,6 +143,7 @@ export function Produtos({ navigation }: any) {
                 <View style={styles.contentContainer}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.textCode}>Cód. {item.codigo}</Text>
+                        <Text style={styles.textCode}>Id. {item.id}</Text>
                         <Text style={styles.textPrice}>R$ {preco.toFixed(2)}</Text>
                     </View>
                     <Text numberOfLines={2} style={styles.textDescription}>{item.descricao}</Text>

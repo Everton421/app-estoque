@@ -68,6 +68,7 @@ const db = useSQLiteContext();
                                                         p.num_fabricante,
                                                         p.num_original,
                                                         p.sku,
+                                                        p.id,
                                                         pp.quantidade_separada,
                                                         pp.frete
                                                         FROM produtos_pedido as pp

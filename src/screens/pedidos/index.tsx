@@ -80,23 +80,39 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const { connected }: any = useContext(ConnectedContext);
 
     const[orcamentosRegistrados, setOrcamentosRegistrados] = useState([]);
-    const [visibleModal, setVisibleModal] = useState<boolean>(false);
+    const[visibleModal, setVisibleModal] = useState<boolean>(false);
     const [selecionado, setSelecionado] = useState<pedido>();
     const[pesquisa, setPesquisa] = useState('');
-    const [visible, setVisible] = useState(false);
+    const[visible, setVisible] = useState(false);
 
     const[visiblePostPedido, setVisiblePostPedido] = useState(false);
     const[loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
     const [loadingEditOrder, setLoadingEditOrder] = useState(false);
-    const [data_cadastro, setData_cadastro] = useState(useMoment.primeiroDiaMes())
-    const [orcamentoModal, setOrcamentoModal] = useState();
+    const[data_cadastro, setData_cadastro] = useState(useMoment.primeiroDiaMes())
+    const[orcamentoModal, setOrcamentoModal] = useState();
     const[statusPedido, setStatusPedido] = useState<string>('*');
-    
-    // --- NOVO ESTADO PARA O PULL-TO-REFRESH ---
+    const usePostPedidos = enviaPedidos();
+    const useGetPedidos =  receberPedidos();  
+    const[modalVisible, setModalvisible] = useState(false);
+    const [ configLeitorPedido , setConfigLeitorPedido  ] = useState();
+
     const [refreshing, setRefreshing] = useState(false);
 
+   async function getDefaultConfig() {
+        try {
+           const valuePedido:any = await  AsyncStorage.getItem('configPedido');
+             if (valuePedido !== null) {
+                setConfigLeitorPedido(valuePedido);
+            }
+        } catch (e) {
+            console.log('erro ao tentar obter a configuração no AsyncStorage');
+        }
+    }
+
+
     async function fyndBarcode(codeScanned: string) {
-        const resultOrder = await useQuerypedidos.findByParam({ id_interno: codeScanned })
+        if(!configLeitorPedido ) return Alert.alert("","É necessario configurar o leitor de busca dos pedidos.")
+        const resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido , value: String(codeScanned) })
         if (resultOrder && resultOrder?.length > 0) {
             navigation.navigate('separacao', {
                 codigo_pedido: resultOrder[0].codigo,
@@ -106,7 +122,18 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    const[modalVisible, setModalvisible] = useState(false);
+       async function fyndOrderBycode(code: number) {
+            //const consulta = { configLeitorPedido: }
+
+        const resultOrder = await useQuerypedidos.findByParam({  chave: 'codigo', value: code })
+        if (resultOrder && resultOrder?.length > 0) {
+            navigation.navigate('separacao', {
+                codigo_pedido: resultOrder[0].codigo,
+            });
+        } else {
+            return Alert.alert("Erro", `Não foi possivel localizar o pedido codigo: ${code}.`)
+        }
+    }
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
@@ -153,7 +180,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setVisiblePostPedido(false);
     }
 
-    // --- NOVA FUNÇÃO PARA O PULL-TO-REFRESH ---
     const onRefresh = async () => {
         setRefreshing(true);
         await busca();
@@ -180,13 +206,16 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         busca()
     },[selecionado])
 
+    useEffect(() => {
+            getDefaultConfig()
+    },[selecionado])
+
     async function selecionaOrcamentoModal(item: any) {
         let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
         setOrcamentoModal(aux);
         setVisibleModal(true)
     }
 
-    // --- FUNÇÕES AUXILIARES DE STATUS ---
     const getStatusParams = (situacao: string) => {
         switch (situacao) {
             case 'EA': return { color: '#1E9C43', label: 'Orçamento' };
@@ -198,7 +227,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    // --- STATUS DE SEPARAÇÃO ---
     const getSeparacaoParams = (situacao_separacao: string) => {
         switch (situacao_separacao) {
             case 'I': return { color: '#4CAF50', label: 'Separado' };
@@ -208,10 +236,39 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    // --- RENDER ITEM ---
+    async function postPedido(item: any) {
+        try {
+            setVisiblePostPedido(true);
+            setLoadingPedidoId(item.codigo);
+            let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
+            useGetPedidos.getPedido(item.codigo);
+            let resultPostApi = await usePostPedidos.postItem([aux]);
+
+            if (resultPostApi.status === 200 && resultPostApi.data.results && resultPostApi.data.results.length > 0) {
+                setLoadingPedidoId(0);
+                setVisiblePostPedido(false);
+                busca();
+            }
+        } catch (e) {
+            console.log(e);
+            Alert.alert('', `Algo de inesperado ocorreu ao processar o pedido: ${item.id}!`,[
+                {
+                    text: 'ok', onPress: () => {
+                        setLoadingPedidoId(0);
+                        setVisiblePostPedido(false);
+                        busca();
+                    }
+                }
+            ])
+        }
+    }
+
     const ItemOrcamento = ({ item, pedido }: { item: any, pedido: any }) => {
         const status = getStatusParams(item.situacao);
         const separacao = getSeparacaoParams(item.situacao_separacao);
+
+        // Variável auxiliar para verificar se este pedido específico está carregando
+        const isSyncing = visiblePostPedido && loadingPedidoId === item.codigo;
 
         return (
             <View style={{
@@ -271,39 +328,61 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     </Text>
                 </View>
 
+                {/* --- RODAPÉ DE AÇÕES --- */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 12 }}>
 
+                    {/* Ações da Esquerda (Visualizar / Separar) */}
                     <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 6, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                        <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                             <Feather name="eye" size={20} color="#185FED" />
                         </TouchableOpacity>
 
                         {item.situacao === 'AI' && (
-                            <TouchableOpacity onPress={() => handleCodeRead(pedido.id_interno)} style={{ padding: 6, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                            <TouchableOpacity onPress={() => fyndOrderBycode(Number(pedido.codigo))} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                                 <Feather name="package" size={20} color="#185FED" />
                             </TouchableOpacity>
                         )}
                     </View>
 
+                    {/* Status de Envio & Botão Sincronizar (Direita) */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        
+                        {/* Status Icon & Text */}
                         {item.enviado === 'S' ? (
-                            <Ionicons name="checkmark-done-circle" size={24} color="#4CAF50" />
-                        ) : (
-                            <Ionicons name="time" size={24} color="#FFC107" />
-                        )}
-
-                        {!connected ? (
-                            <TouchableOpacity style={{ padding: 6, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
-                                <MaterialIcons name="sync-disabled" size={20} color="#BDBDBD" />
-                            </TouchableOpacity>
-                        ) : visiblePostPedido && loadingPedidoId === item.codigo ? (
-                            <View style={{ padding: 6, width: 32, alignItems: 'center' }}>
-                                <ActivityIndicator size="small" color="#185FED" />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Text style={{ fontSize: 11, color: '#4CAF50', fontWeight: 'bold' }}>Enviado</Text>
+                                <Ionicons name="checkmark-done-circle" size={22} color="#4CAF50" />
                             </View>
                         ) : (
-                            <TouchableOpacity
-                                style={{ padding: 6, backgroundColor: '#E8F5E9', borderRadius: 8 }}>
-                                <Ionicons name="sync-sharp" size={20} color="#4CAF50" />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Text style={{ fontSize: 11, color: '#FF9800', fontWeight: 'bold' }}>Pendente</Text>
+                                <Ionicons name="time" size={22} color="#FF9800" />
+                            </View>
+                        )}
+
+                        {/* Botão de Sincronização */}
+                        {!connected ? (
+                            <View style={{ padding: 8, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
+                                <MaterialIcons name="sync-disabled" size={20} color="#BDBDBD" />
+                            </View>
+                        ) : (
+                            <TouchableOpacity 
+                                onPress={() => postPedido(item)}
+                                disabled={isSyncing}
+                                style={{ 
+                                    padding: 8, 
+                                    backgroundColor: isSyncing ? '#E3F2FD' : '#E8F5E9', 
+                                    borderRadius: 8,
+                                    minWidth: 36, // Garante que o tamanho não encolha quando mudar pro ActivityIndicator
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                {isSyncing ? (
+                                    <ActivityIndicator size="small" color="#185FED" />
+                                ) : (
+                                    <Ionicons name="sync-sharp" size={20} color="#4CAF50" />
+                                )}
                             </TouchableOpacity>
                         )}
                     </View>
@@ -329,9 +408,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }} >
 
-            {/* --- CUSTOM HEADER --- */}
             <CustomHeader
-                title={tipo === 1 ? "Pedidos" : "Orçamentos"}
+                title={"Pedidos"}
                 onBack={() => navigation.goBack()}
                 showSearch={true}
                 searchValue={pesquisa}
@@ -341,7 +419,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 onFilterPress={() => setVisible(true)}
             />
 
-            {/* --- MODAL LOADING --- */}
             <Modal visible={loadingEditOrder} transparent={true}>
                 <View style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", flex: 1, alignItems: "center", justifyContent: "center" }}>
                     <View style={{ backgroundColor: '#FFF', padding: 20, borderRadius: 10 }}>
@@ -351,11 +428,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 </View>
             </Modal>
 
-            {/* --- MODAIS EXTERNOS --- */}
             <ModalFilter visible={visible} setVisible={setVisible} setStatus={setStatusPedido} setDate={setData_cadastro} />
             <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
 
-            {/* --- LISTA COM REFRESH CONTROL --- */}
             <FlatList
                 data={orcamentosRegistrados}
                 renderItem={({ item }) => <ItemOrcamento item={item} pedido={item} />}
@@ -366,8 +441,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <RefreshControl 
                         refreshing={refreshing} 
                         onRefresh={onRefresh} 
-                        colors={['#185FED']} // Cor no Android
-                        tintColor="#185FED"  // Cor no iOS
+                        colors={['#185FED']} 
+                        tintColor="#185FED"  
                     />
                 }
                 ListEmptyComponent={() => (
@@ -377,10 +452,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 )}
             />
 
-            {/* --- FAB (Botão Ler codigo do pedido) --- */}
             <TouchableOpacity
                 onPress={() => { setModalvisible(true) }}
-
                 style={{
                     backgroundColor: '#185FED',
                     width: 56, height: 56,
@@ -400,7 +473,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
             </TouchableOpacity>
 
-            {/* --- LEGENDA INFERIOR (Status) --- */}
             <View style={{
                 backgroundColor: '#FFF',
                 padding: 10,
@@ -433,7 +505,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 </View>
             </View>
 
-            {/* --- MODAL CÂMERA --- */}
             <Modal visible={modalVisible} animationType="slide">
                 <CameraView
                     style={{ flex: 1 }}

@@ -18,6 +18,7 @@ export async function construtor(db: SQLiteDatabase) {
 
      CREATE TABLE IF NOT EXISTS produtos (
       codigo          INTEGER PRIMARY KEY NOT NULL,
+      id          TEXT,   
       estoque         REAL DEFAULT 0,
       preco           REAL DEFAULT 0,
       unidade_medida  TEXT DEFAULT 'UND',

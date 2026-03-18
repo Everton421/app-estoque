@@ -7,9 +7,10 @@ import { RenderConfigSeletor } from "../RenderConfigSeletor"; // Ajuste o caminh
 
 type propsSeletor = { tipo: string, value: string }
 
-export const ConfigProdSeletor = () => {
+export const ConfigLeitor = () => {
     const [visible, setVisible] = useState(false);
     const [defaultConfig, setDefaultConfig] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
+    const [defaultConfigPedido, setDefaultConfigPedido] = useState<'id_externo' | 'id_interno' | 'codigo' >('codigo');
 
     const [tipos] = useState<propsSeletor[]>([
         { tipo: "Código de barras", value: 'num_fabricante' },
@@ -17,16 +18,30 @@ export const ConfigProdSeletor = () => {
         { tipo: "SKU", value: 'sku' }
     ]);
 
-    async function getDefaultConfig() {
+        const [ tiposBuscaPedido ] = useState<propsSeletor[]>([
+            { tipo:'Código externo', value: "id_externo"},
+            { tipo:'Código interno', value: "id_interno"},
+            { tipo:'Código mobile', value: "codigo"},
+        ])
+
+
+    async function getDefaultConfigLeitor() {
         try {
             let value: any = await AsyncStorage.getItem('configProduto');
             if (value !== null) {
                 setDefaultConfig(value);
             }
+
+            const valuePedido:any = await  AsyncStorage.getItem('configPedido');
+             if (valuePedido !== null) {
+                setDefaultConfigPedido(valuePedido);
+            }
         } catch (e) {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
     }
+    
+ 
 
     async function setConfig(value: 'codigo' | 'num_fabricante' | 'num_original' | 'sku') {
         try {
@@ -37,9 +52,18 @@ export const ConfigProdSeletor = () => {
             console.log('erro ao tentar salvar a configuração no AsyncStorage');
         }
     }
+        async function setConfigPedido(value:'id_externo' | 'id_interno' | 'codigo') {
+        try {
+            await AsyncStorage.setItem('configPedido', value);
+            setDefaultConfigPedido(value);
+            // setVisible(false); // Opcional: fechar ao selecionar
+        } catch (error) {
+            console.log('erro ao tentar salvar a configuração no AsyncStorage');
+        }
+    }
 
     useEffect(() => {
-        getDefaultConfig();
+        getDefaultConfigLeitor();
     }, []);
 
     return (
@@ -112,6 +136,25 @@ export const ConfigProdSeletor = () => {
                                         value={item.value}
                                         setDefaultConfig={setConfig}
                                         defaultConfig={defaultConfig}
+                                    />
+                                )}
+                                keyExtractor={(item) => item.value}
+                            />
+                            <View style={{borderWidth: 0.5, borderColor:"#CCC"}}></View>
+
+                             <Text style={{ fontSize: 14, color: '#666', marginBottom: 15 }}>
+                                Selecione qual campo será priorizado na leitura para busca de pedidos:
+                            </Text>
+
+                            
+                            <FlatList
+                                data={tiposBuscaPedido}
+                                renderItem={({ item }) => (
+                                    <RenderConfigSeletor
+                                        tipo={item.tipo}
+                                        value={item.value}
+                                        setDefaultConfig={setConfigPedido}
+                                        defaultConfig={defaultConfigPedido}
                                     />
                                 )}
                                 keyExtractor={(item) => item.value}

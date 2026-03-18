@@ -5,6 +5,7 @@ import { useFotosProdutos } from "../queryFotosProdutos/queryFotosProdutos";
 type foto= { link:string}
  export type produto = {
           codigo:number,
+          id:string,
           estoque?:number,
           preco?:number,
          unidade_medida:string
@@ -197,6 +198,7 @@ export const useProducts = ()=>{
 
                       `INSERT INTO produtos 
                       ( 
+                      id,
                        estoque,
                        preco,
                        unidade_medida,
@@ -219,6 +221,7 @@ export const useProducts = ()=>{
                        )
                        VALUES
                         (
+                        ${produto.id},
                          ${produto.estoque},
                          ${produto.preco},
                        '${produto.unidade_medida}',
@@ -262,6 +265,7 @@ export const useProducts = ()=>{
                         //  console.log(verifCode);
                   let aux = await db.runAsync( 
                       `UPDATE produtos SET  
+                      id              = ${produto.id},
                       estoque         = ${produto.estoque},  
                       preco           = ${produto.preco},
                       unidade_medida  ='${produto.unidade_medida}',
@@ -315,12 +319,13 @@ export const useProducts = ()=>{
           try {
             const result = await db.runAsync(
               `INSERT INTO produtos ( 
-                codigo, estoque, preco, unidade_medida, grupo, origem, descricao, 
+                codigo, id,estoque, preco, unidade_medida, grupo, origem, descricao, 
                 ativo, sku, marca, class_fiscal, cst, num_fabricante, num_original, 
                 data_cadastro, data_recadastro, observacoes1, observacoes2, observacoes3, tipo 
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 code,
+                produto.id,
                 produto.estoque,
                 produto.preco,
                 produto.unidade_medida,

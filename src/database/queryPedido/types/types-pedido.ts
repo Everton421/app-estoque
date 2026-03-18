@@ -1,7 +1,7 @@
    export type pedidoApi ={ 
     codigo?:number,
      id: number,
-     id_externo: number,
+     id_externo: string,
      id_interno: string,
      codigo_site?:any
     situacao:string,
