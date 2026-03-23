@@ -4238,6 +4238,14 @@ expo-modules-core@3.0.29:
   dependencies:
     invariant "^2.2.4"
 
+expo-navigation-bar@^55.0.9:
+  version "55.0.9"
+  resolved "https://registry.yarnpkg.com/expo-navigation-bar/-/expo-navigation-bar-55.0.9.tgz#b680e2caa4446ce36b3989549f10c68fd07c869b"
+  integrity sha512-9GF+HpfUrhQWZ2YgOrcb2T5Apt93XHxUbPbLYfJ9gvNdekwyzWw+2aVMCEBzFyo4V7p+jRB4CD4ybn+jS+SubA==
+  dependencies:
+    debug "^4.3.2"
+    react-native-is-edge-to-edge "^1.2.1"
+
 expo-print@~55.0.8:
   version "55.0.8"
   resolved "https://registry.yarnpkg.com/expo-print/-/expo-print-55.0.8.tgz#ac1a757ad89940f8265b5ca0969ebbe27d2d6aec"

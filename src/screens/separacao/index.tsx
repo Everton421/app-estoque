@@ -63,7 +63,7 @@ export interface Pedido {
   nome: string;
   observacoes: string;
   parcelas: Parcela[];
-  produtos: Produto[];
+  produtos: resultOrderItens[];
   quantidade_parcelas: number;
   servicos: any[]; 
   situacao: string;
@@ -77,6 +77,27 @@ export interface Pedido {
   vendedor: number;
 }
 
+type resultOrderItens = {
+    descricao: string
+    num_fabricante: string
+    num_original: string
+    sku: string
+    id: number
+    quantidade_separada: number
+    frete: number
+    codigo: number
+    pedido: number
+    desconto: number
+    preco: number
+    quantidade: number
+    total: number
+    local_produto: string
+    local1_produto: string
+    local2_produto: string
+    local3_produto: string
+    local4_produto: string
+}
+
 export const Separacao = ({ navigation, route }: any) => {
     
     const useQuerypedidos = usePedidos();
@@ -85,7 +106,7 @@ export const Separacao = ({ navigation, route }: any) => {
     const[data, setData] = useState<Pedido>();
     const useQueryItems = useItemsPedido();
 
-    const[listaSeparacao, setListaSeparacao] = useState<Produto[]>([]);
+    const[listaSeparacao, setListaSeparacao] = useState<resultOrderItens[]>([]);
     const[modalVisible, setModalvisible] = useState(false);
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
     const useMoment = configMoment();
@@ -204,7 +225,7 @@ export const Separacao = ({ navigation, route }: any) => {
         }
     }
 
-    const renderProduto = ({ item }: { item: Produto }) => {
+    const renderProduto = ({ item }: { item: resultOrderItens }) => {
         const quantidadeSeparada = item.quantidade_separada || 0;
         const concluido = quantidadeSeparada === item.quantidade; 
 
@@ -224,6 +245,7 @@ export const Separacao = ({ navigation, route }: any) => {
                     <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd. Pedida: {item.quantidade}</Text>
                 </View>
+                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>ean: {item.num_fabricante}</Text>
 
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }}>
                     {item.descricao || "Produto sem descrição"}
@@ -269,7 +291,11 @@ export const Separacao = ({ navigation, route }: any) => {
                     </View>
                     
                 </View>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>ean: {item.num_fabricante}</Text>
+                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Locais: </Text>
+                     {item.local1_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local1_produto }</Text> }
+                     {item.local2_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local2_produto }</Text> }
+                     {item.local3_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local3_produto }</Text> }
+                     {item.local4_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local4_produto }</Text> }
 
             </View>
         );

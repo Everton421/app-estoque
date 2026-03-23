@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, StatusBar, Modal, StyleSheet, ScrollView, Button, Alert, Linking } from "react-native";
+import { View, Text, TouchableOpacity, Image, Animated,    Modal, StyleSheet, ScrollView, Button, Alert, Linking } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useUsuario } from '../../database/queryUsuario/queryUsuario';
 import Checkbox from 'expo-checkbox'; // Importa o Checkbox do Expo

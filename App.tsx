@@ -5,8 +5,7 @@ import { construtor } from './src/database/conexao';
 import * as SQLite  from 'expo-sqlite';
 import ConnectedProvider from './src/contexts/conectedContext';
 import { StatusBar } from 'expo-status-bar';
-import { OfflineBanner } from './src/components/oflline-banner/oflline-banner';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import {  SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
 

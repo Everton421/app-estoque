@@ -1,5 +1,27 @@
 import { useSQLiteContext } from "expo-sqlite"
 
+
+type resultOrderItens = {
+    descricao: string
+    num_fabricante: string
+    num_original: string
+    sku: string
+    id: number
+    quantidade_separada: number
+    frete: number
+    codigo: number
+    pedido: number
+    desconto: number
+    preco: number
+    quantidade: number
+    total: number
+
+    local_produto: string
+    local1_produto: string
+    local2_produto: string
+    local3_produto: string
+    local4_produto: string
+}
 export const useItemsPedido = () =>{
 
 const db = useSQLiteContext();
@@ -60,22 +82,29 @@ const db = useSQLiteContext();
         }
 
 
-        async function selectByCodeOrder( codeOrder:number ){
+        async function selectByCodeOrder( codeOrder:number ) {
             try{
 
-                const result = await db.getAllAsync(` SELECT pp.codigo , pp.pedido, pp.desconto, pp.preco, pp.quantidade, pp.total,
+                const result = await db.getAllAsync(` SELECT 
+                                                        pp.codigo , pp.pedido, pp.desconto, pp.preco, pp.quantidade, pp.total,
                                                         p.descricao,
                                                         p.num_fabricante,
                                                         p.num_original,
                                                         p.sku,
                                                         p.id,
                                                         pp.quantidade_separada,
-                                                        pp.frete
+                                                        pp.frete,
+                                                        ps.local_produto,
+                                                        ps.local1_produto,
+                                                        ps.local2_produto,
+                                                        ps.local3_produto,
+                                                        ps.local4_produto
                                                         FROM produtos_pedido as pp
                                                         JOIN produtos as p on p.codigo = pp.codigo
+                                                        LEFT JOIN produto_setor as ps on ps.produto = p.codigo
                                                         WHERE pp.pedido = ${codeOrder}`)
 
-                return result;
+                return result as resultOrderItens[];
             }catch(e){console.log( `Erro ao consultar os produtos do pedido codigo: ${codeOrder} `, e )}
         }
 

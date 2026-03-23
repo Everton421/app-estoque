@@ -34,7 +34,7 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       "expo-build-properties",
-      "expo-sqlite"
+      "expo-sqlite" 
     ]
   }
 }
