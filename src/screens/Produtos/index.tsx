@@ -76,10 +76,8 @@ export function Produtos({ navigation }: any) {
         const unsubscribe = navigation.addListener('focus', () => {
            // console.log(" [ X ] Valor pesquisa: ", pesquisa    )
             if (pesquisa != '' ) {
-                console.log(" UseEffect filterByDescription ...")
                 filterByDescription()
             } else {
-                console.log(" UseEffect filterAll ...")
                 filterAll()
             }
         });
@@ -91,10 +89,8 @@ export function Produtos({ navigation }: any) {
         console.log("UseEffect 2 ... ") 
 
          if (pesquisa != '') {
-                console.log(" UseEffect 2 filterByDescription ...")
              filterByDescription()
          } else {
-                console.log(" UseEffect2 filterAll ...")
              filterAll()
          }
      }, [pesquisa, limitQuery]) 
@@ -142,8 +138,7 @@ export function Produtos({ navigation }: any) {
                 </View>
                 <View style={styles.contentContainer}>
                     <View style={styles.cardHeader}>
-                        <Text style={styles.textCode}>Cód. {item.codigo}</Text>
-                        <Text style={styles.textCode}>Id. {item.id}</Text>
+                        <Text style={styles.textCode}> {item.id ? "Id. "+ item.id : "Cód. "+item.codigo }</Text>
                         <Text style={styles.textPrice}>R$ {preco.toFixed(2)}</Text>
                     </View>
                     <Text numberOfLines={2} style={styles.textDescription}>{item.descricao}</Text>

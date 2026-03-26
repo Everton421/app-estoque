@@ -28,7 +28,8 @@ export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props
         const moment = configMoment();
      
         const [showPicker, setShowPicker] = useState(false);
-        const [ auxData, setAuxData ] = useState<  string >(   moment.dataAtual() );
+        //const [ auxData, setAuxData ] = useState<  string >(   moment.dataAtual() );
+        const [ auxData, setAuxData ] = useState(new Date());
         const [ statusSelecionado, setStatusSelecionado ] = useState('AI');
         
         async  function selectStatus( status:string ){
@@ -116,12 +117,12 @@ export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props
                                                         <TouchableOpacity onPress={() => setShowPicker(true)} style={{ flexDirection: 'row', gap: 7 }}>
                                                                <Fontisto name="date" size={24} color="black" />
                                                             <Text style={{ fontSize: 20, fontWeight: 'bold' , width:'100%'}}>
-                                                                {   moment.formatarData(auxData)   }
+                                                                {   moment.formatarData(auxData as any)   }
                                                             </Text>
                                                           </TouchableOpacity>
                                                        { showPicker &&
                                                           <DateTimePicker
-                                                             value={new Date(auxData)}
+                                                             value={ auxData }
                                                             display="calendar"
                                                             mode="date"
                                                             onChange={handleEvent}

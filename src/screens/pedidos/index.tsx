@@ -88,7 +88,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const[visiblePostPedido, setVisiblePostPedido] = useState(false);
     const[loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
     const [loadingEditOrder, setLoadingEditOrder] = useState(false);
-    const[data_cadastro, setData_cadastro] = useState(useMoment.primeiroDiaMes())
+    const[data_cadastro, setData_cadastro] = useState(useMoment.dataAtual())
     const[orcamentoModal, setOrcamentoModal] = useState();
     const[statusPedido, setStatusPedido] = useState<string>('*');
     const usePostPedidos = enviaPedidos();
@@ -123,8 +123,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     }
 
        async function fyndOrderBycode(code: number) {
-            //const consulta = { configLeitorPedido: }
-
         const resultOrder = await useQuerypedidos.findByParam({  chave: 'codigo', value: code })
         if (resultOrder && resultOrder?.length > 0) {
             navigation.navigate('separacao', {
@@ -153,27 +151,26 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    const getDataFiltroPedido = async () => {
-        try {
-            const value = await AsyncStorage.getItem('dataPedidos');
-            if (value !== null) {
-                return value;
-            }
-        } catch (e) {
-            console.log("erro ao consultar data do filtro dos pedidos AsyncStorage")
-        }
-    }
+    //const getDataFiltroPedido = async () => {
+    //    try {
+    //        const value = await AsyncStorage.getItem('dataPedidos');
+    //        if (value !== null) {
+    //            return value;
+    //        }
+    //    } catch (e) {
+    //        console.log("erro ao consultar data do filtro dos pedidos AsyncStorage")
+    //    }
+    //}
 
     async function busca() {
         let filtroStatus = await getFitroPedidos();
-        let dataFiltroPedidos = await getDataFiltroPedido();
+       // let dataFiltroPedidos = await getDataFiltroPedido();
 
         if (!usuario.codigo || usuario.codigo === 0) {
             console.log("usuario invalido!")
             return
         }
-        let queryOrder = { tipo: tipo, vendedor: usuario.codigo, data: dataFiltroPedidos, situacao: filtroStatus, input: '' }
-
+        let queryOrder = { tipo: tipo,  data: data_cadastro, situacao: filtroStatus, input: '' }
         if (pesquisa !== null && pesquisa !== '') queryOrder.input = pesquisa
         let aux: any = await useQuerypedidos.newSelect(queryOrder);
         setOrcamentosRegistrados(aux);
@@ -227,7 +224,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    const getSeparacaoParams = (situacao_separacao: string) => {
+    const getSeparacaoParams = (situacao_separacao: string, situacao:string) => {
+        if(situacao === 'FI'){
+            return { color: '#FF9800', label: 'Fat. Integral' };
+        }
         switch (situacao_separacao) {
             case 'I': return { color: '#4CAF50', label: 'Separado' };
             case 'P': return { color: '#FF9800', label: 'Sep. Parcial' };
@@ -265,7 +265,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const ItemOrcamento = ({ item, pedido }: { item: any, pedido: any }) => {
         const status = getStatusParams(item.situacao);
-        const separacao = getSeparacaoParams(item.situacao_separacao);
+        const separacao = getSeparacaoParams(item.situacao_separacao, item.situacao);
 
         // Variável auxiliar para verificar se este pedido específico está carregando
         const isSyncing = visiblePostPedido && loadingPedidoId === item.codigo;
@@ -321,8 +321,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                     <Text style={{ fontSize: 11, color: '#999' }}>
-                        Criado: {new Date(item?.data_cadastro).toLocaleDateString("pt-br")}
+                        Criado: {new Date(item?.data_cadastro).toLocaleDateString("pt-br", { timeZone: 'UTC'})}
                     </Text>
+
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Modificado: {new Date(item?.data_recadastro).toLocaleTimeString("pt-br", { hour: '2-digit', minute: '2-digit' })}
                     </Text>
@@ -361,11 +362,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         )}
 
                         {/* Botão de Sincronização */}
-                        {!connected ? (
-                            <View style={{ padding: 8, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
-                                <MaterialIcons name="sync-disabled" size={20} color="#BDBDBD" />
-                            </View>
-                        ) : (
+                       {// !connected ? (
+                        //    <View style={{ padding: 8, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
+                        //        <MaterialIcons name="sync-disabled" size={20} color="#BDBDBD" />
+                        //    </View>
+                        //) : (
                             <TouchableOpacity 
                                 onPress={() => postPedido(item)}
                                 disabled={isSyncing}
@@ -384,7 +385,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                     <Ionicons name="sync-sharp" size={20} color="#4CAF50" />
                                 )}
                             </TouchableOpacity>
-                        )}
+                        //)
+                        }
                     </View>
 
                 </View>

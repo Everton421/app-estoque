@@ -349,7 +349,7 @@ const getCurrentDate = () => {
               conditions.push( ' p.tipo = ? ' );
             values.push( query.tipo );
           }
-          if( query.vendedor ){
+          if( query.vendedor && query.vendedor != 0 ){
              conditions.push( ' p.vendedor = ? ' );
              values.push( query.vendedor );
           }
@@ -358,14 +358,17 @@ const getCurrentDate = () => {
              values.push( query.data );
           }
 
-            if( query.input){
+            if( query.input && query.input != "" ){
               inputConditions.push(`  AND  c.nome like '%${query.input}%' `)
             }
-          if( query.input){
+          if( query.input && query.input != "" ){
               inputConditions.push( ` p.id like '%${query.input}%' ` )
             }
-          if( query.input){
+          if( query.input && query.input != ""  ){
                inputConditions.push(` p.id_externo like  '%${query.input}%' `)
+             }
+              if( query.input && query.input != ""  ){
+               inputConditions.push(` p.codigo like  '%${query.input}%' `)
              }
 
        if (query.situacao !== '*'){
@@ -376,9 +379,7 @@ const getCurrentDate = () => {
       let finalSql= sql;
 
               finalSql = sql + ' WHERE '+ conditions.join(' AND ') +   inputConditions.join(' OR ') +' ORDER BY p.data_cadastro' ;
-
         let result = await db.getAllAsync(finalSql,values );
-       
        return result;
         }catch(e){ console.log(` erro ao consultar os pedidos  do vendedor : ${query.vendedor}  `,e) }
   }

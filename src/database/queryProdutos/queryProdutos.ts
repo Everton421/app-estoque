@@ -94,6 +94,11 @@ export const useProducts = ()=>{
                      values.push(`%${query}%`)
                    }
           
+                   if(query != ''){
+                     conditions.push('  p.id like ? ')
+                     values.push(`%${query}%`)
+                   }
+
                   let whereClause = ' WHERE '
                   
                      let finalsql = sql

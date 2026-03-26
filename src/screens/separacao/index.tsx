@@ -228,7 +228,6 @@ export const Separacao = ({ navigation, route }: any) => {
     const renderProduto = ({ item }: { item: resultOrderItens }) => {
         const quantidadeSeparada = item.quantidade_separada || 0;
         const concluido = quantidadeSeparada === item.quantidade; 
-
         return (
             <View style={{
                 backgroundColor: '#FFF',
@@ -241,8 +240,14 @@ export const Separacao = ({ navigation, route }: any) => {
                 borderLeftColor: concluido ? '#4CAF50' : '#FFC107' 
             }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
+                       { item.id && 
+                            <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
+                       }
+                       {
+                           item.id === 0  && 
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
+                    } 
+
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd. Pedida: {item.quantidade}</Text>
                 </View>
                     <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>ean: {item.num_fabricante}</Text>
@@ -312,14 +317,23 @@ export const Separacao = ({ navigation, route }: any) => {
             {data && (
                 <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15, marginBottom: 15, padding: 15, elevation: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      
                         <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
-                            Pedido #{data.id || data.codigo}
-                        </Text>
+                             <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+                                 Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext:  {data.id_externo ? data.id_externo : '' } </Text> 
+                              </Text>
                     </View>
+                                
                     <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
                         <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {data.nome}
                     </Text>
+                        {data.contato ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
+                                <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{data.contato}</Text>
+                            </View>
+                        ) : <View style={{ marginBottom: 8 }} />}
+
                     <Text style={{ fontSize: 14, color: '#666' }}>
                         <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
                     </Text>

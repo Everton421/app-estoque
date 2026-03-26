@@ -155,8 +155,7 @@ export const Home = ({ navigation }: any) => {
       buscaEmpresa()
       syncDataProcess()
 
-    }, [usuario.token]
-  )
+    }, [usuario.token])
 
 
   function alertSair() {
@@ -313,7 +312,6 @@ export const Home = ({ navigation }: any) => {
         </TouchableOpacity>
 
       </View>
-
     </View>
   );
 };

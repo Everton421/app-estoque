@@ -1,8 +1,8 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Button, FlatList, Image, Modal, Text, TouchableOpacity, View, ScrollView, StyleSheet } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
-import { RenderModalCategorias } from "./modalCategorias";
-import { RenderModalMarcas } from "./modalMarcas";
+import { RenderModalCategorias } from "./modal-categorias";
+import { RenderModalMarcas } from "./modal-marcas";
 import useApi from "../../services/api";
 import NetInfo from '@react-native-community/netinfo';
 import Entypo from "@expo/vector-icons/Entypo";
@@ -16,7 +16,7 @@ import { LodingComponent } from "../../components/loading";
 import { configMoment } from "../../services/moment";
 
 type produtoBancoLocal = { 
-    unidade_medida:string,ativo : string, class_fiscal : string, codigo : number, cst: string, data_cadastro:  string, data_recadastro: string, descricao :string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original : string, observacoes1: string, observacoes2 : string, observacoes3 : string, origem : string, preco : number, sku : string, tipo : string
+   id:string, unidade_medida:string,ativo : string, class_fiscal : string, codigo : number, cst: string, data_cadastro:  string, data_recadastro: string, descricao :string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original : string, observacoes1: string, observacoes2 : string, observacoes3 : string, origem : string, preco : number, sku : string, tipo : string
 };
 
 export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
@@ -32,7 +32,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     const [ descricao, setDescricao] = useState<string>('');
     const [ gtim, setGtim ] = useState<string>('');
     const [ referencia, setReferencia ] = useState<string>('');
-
+    const [ id , setId ] = useState<string>(); 
 
     const [visible, setVisible] = useState<Boolean>(false);
     const [link, setLink] = useState("");
@@ -43,7 +43,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     const [ loading, setLoading ] = useState<boolean>(false);
     const [ dados , setDados ] = useState('');
     const api = useApi();
-    const {connected,  setConnected} = useContext(ConnectedContext)
+    const {connected,  setConnected} = useContext<any>(ConnectedContext)
     const useQueryFotos = useFotosProdutos();
     const useQueryProdutos = useProducts();
     const useMoment = configMoment();
@@ -71,13 +71,14 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
             if(dataProd.length > 0 ){
                     setUnidade(prod.unidade_medida)
                     setCategoriaSelecionada(prod.grupo);
-                    setMarcaSelecionada(prod.marca);
+                    setMarcaSelecionada(prod.marca as any);
                     setReferencia(prod.num_original)
                     setEstoque(prod.estoque);
                     setPreco( Number(prod.preco));
                     setSku(prod.sku);
                     setDescricao(prod.descricao)
                     setGtim(prod.num_fabricante)
+                    setId(prod.id);
                 }
             } 
         }catch(e) {
@@ -88,7 +89,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     useEffect(() => {
         function setConexao(){
             const unsubscribe = NetInfo.addEventListener((state) => {
-                setConnected(state.isConnected);
+                setConnected(state.isConnected as any);
             });
             return () => {
                 unsubscribe();
@@ -381,6 +382,10 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                          <View style={styles.infoBox}>
                             <Text style={styles.infoBoxLabel}>Código:</Text>
                             <Text style={styles.infoBoxValue}>{codigo_produto || 'Novo'}</Text>
+                        </View>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoBoxLabel}>id:</Text>
+                            <Text style={styles.infoBoxValue}>{id  && id }</Text>
                         </View>
                         <View style={styles.infoBox}>
                             <Text style={styles.infoBoxLabel}>R$</Text>

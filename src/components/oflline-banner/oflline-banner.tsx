@@ -67,7 +67,7 @@ export function OfflineBanner() {
             }).start();
         }
     }, [status.visible]);
-
+ 
     return (
         <Animated.View 
             style={[
