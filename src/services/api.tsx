@@ -10,7 +10,7 @@ const useApi = () => {
         // TENTE ESTAS OPÇÕES UMA DE CADA VEZ:
         
         // OPÇÃO 1: Se o servidor tem SSL válido na porta 3000
-        baseURL: "https://server.intersig.com.br:3000/v1/", 
+        baseURL: "https://api.intersig.com.br:3000/v1/", 
         
         // OPÇÃO 2: Se for HTTP comum (sem cadeado)
         // baseURL: "http://server.intersig.com.br:3000/v1/", 
