@@ -30,11 +30,15 @@ export const ConfigLeitor = () => {
             let value: any = await AsyncStorage.getItem('configProduto');
             if (value !== null) {
                 setDefaultConfig(value);
+            }else{
+                setDefaultConfig('num_fabricante');
             }
 
             const valuePedido:any = await  AsyncStorage.getItem('configPedido');
              if (valuePedido !== null) {
                 setDefaultConfigPedido(valuePedido);
+            }else{
+                setDefaultConfigPedido('codigo');
             }
         } catch (e) {
             console.log('erro ao tentar obter a configuração no AsyncStorage');

@@ -19,6 +19,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
 import { CustomHeader } from "../../components/custom-header/custom-header";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
 
 export type pedido = {
     codigo?: number,
@@ -94,7 +95,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const usePostPedidos = enviaPedidos();
     const useGetPedidos =  receberPedidos();  
     const[modalVisible, setModalvisible] = useState(false);
-    const [ configLeitorPedido , setConfigLeitorPedido  ] = useState();
+    const [ configLeitorPedido , setConfigLeitorPedido  ] = useState<'id_externo' | 'id_interno' | 'codigo'>('codigo');
+    const [ visibleAlert , setVisibleAlert ] = useState(false);
 
     const [refreshing, setRefreshing] = useState(false);
 
@@ -103,7 +105,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
            const valuePedido:any = await  AsyncStorage.getItem('configPedido');
              if (valuePedido !== null) {
                 setConfigLeitorPedido(valuePedido);
-            }
+            } 
         } catch (e) {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
@@ -111,12 +113,17 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
 
     async function fyndBarcode(codeScanned: string) {
+
         if(!configLeitorPedido ) return Alert.alert("","É necessario configurar o leitor de busca dos pedidos.")
         const resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido , value: String(codeScanned) })
         if (resultOrder && resultOrder?.length > 0) {
+            if(resultOrder[0].situacao === 'FI'){
+                return (  ) 
+            }
             navigation.navigate('separacao', {
                 codigo_pedido: resultOrder[0].codigo,
             });
+        
         } else {
             return Alert.alert("Erro", `Não foi possivel localizar o pedido ${codeScanned}.`)
         }
@@ -151,16 +158,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    //const getDataFiltroPedido = async () => {
-    //    try {
-    //        const value = await AsyncStorage.getItem('dataPedidos');
-    //        if (value !== null) {
-    //            return value;
-    //        }
-    //    } catch (e) {
-    //        console.log("erro ao consultar data do filtro dos pedidos AsyncStorage")
-    //    }
-    //}
+   
 
     async function busca() {
         let filtroStatus = await getFitroPedidos();
@@ -190,6 +188,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     useFocusEffect(
         useCallback(() => {
             busca();
+       getDefaultConfig();
+
         }, [navigation])
     );
 
@@ -203,9 +203,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         busca()
     },[selecionado])
 
-    useEffect(() => {
-            getDefaultConfig()
-    },[selecionado])
+ 
+
 
     async function selecionaOrcamentoModal(item: any) {
         let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
@@ -285,6 +284,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: status.color
             }}>
+                <CustomAlert visible={visibleAlert}  message="O já foi faturado." onConfirm={setVisibleAlert} />
+
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10 }}>
                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
                         ID: {item.id || item.codigo} {item.id_externo ? `\nExt: ${item.id_externo}` : ''}
