@@ -1,331 +1,171 @@
-import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native"
-import {   useEffect, useState } from "react"
-import Fontisto from '@expo/vector-icons/Fontisto';
+import React, { useState } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons, Fontisto } from "@expo/vector-icons";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { configMoment } from "../../../../services/moment"; 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
+import { configMoment } from "../../../../services/moment"; 
 
+type ModalFilterProps = {
+    visible: boolean;
+    setVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    statusAtual: string;
+    setStatus: React.Dispatch<React.SetStateAction<string>>;
+    dataAtual: string; 
+    setDate: React.Dispatch<React.SetStateAction<string>>;
+};
 
-  type statusPedido = {
-                todos:boolean
-                orcamentos:boolean
-                pedidos:boolean
-                faturado:boolean
-                reprovados:boolean
-                parcial:boolean
-              }
-type props = {
-     visible:boolean ,
-     setVisible: React.Dispatch<React.SetStateAction<boolean>>,
-     setStatus: React.Dispatch<React.SetStateAction< string >>
-    setDate:any
-    }
+export const ModalFilter = ({ visible, setVisible, statusAtual, setStatus, dataAtual, setDate }: ModalFilterProps) => {
+    
+    const moment = configMoment();
+    const [showPicker, setShowPicker] = useState(false);
 
+    const statusOptions =[
+        { id: '*', label: 'Todos', color: '#333' },
+        { id: 'EA', label: 'Orçamentos', color: '#1E9C43' },
+        { id: 'AI', label: 'Pedidos', color: '#307CEB' },
+        { id: 'FI', label: 'Faturados', color: '#FF7F27' },
+        { id: 'FP', label: 'Parcialmente Faturados', color: '#0023F5' },
+        { id: 'RE', label: 'Reprovados', color: '#F44336' },
+    ];
 
-     
-export const ModalFilter = ({ visible , setVisible, setStatus,   setDate }:props ) =>{
-        const moment = configMoment();
-     
-        const [showPicker, setShowPicker] = useState(false);
-        //const [ auxData, setAuxData ] = useState<  string >(   moment.dataAtual() );
-        const [ auxData, setAuxData ] = useState(new Date());
-        const [ statusSelecionado, setStatusSelecionado ] = useState('AI');
-        
-        async  function selectStatus( status:string ){
-                    switch ( status ){
-                        case '*':
-                                setStatusSelecionado('*')
-                                setStatus('*')
-                            break;
-                        case 'EA':
-                                setStatusSelecionado('EA')
-                                setStatus('EA')
-                            break;
-                        case 'FI':  
-                                setStatusSelecionado('FI')
-                                setStatus('FI')
-                                break;
-                        case 'FP':  
-                                setStatusSelecionado('FP')
-                                setStatus('FP')
-                             break;
-                          case 'AI':
-                             setStatusSelecionado('AI')
-                                setStatus('AI')
-                             break;
-                           case 'RE':
-                             setStatusSelecionado('RE')
-                                setStatus('RE')
-                           break;
-                            default:  
-                               setStatusSelecionado('*')
-                                setStatus('*')
-                        }
+    const handleSelectStatus = async (newStatus: string) => {
+        setStatus(newStatus); 
+        try {
+            await AsyncStorage.setItem('filtroPedidos', newStatus);
+        } catch (e) {
+            console.log("Erro ao salvar o status no AsyncStorage", e);
+        }
+    };
 
-                        try{
-                            await AsyncStorage.setItem('filtroPedidos',status );
-                          //  console.log(status)
-                        }catch( e ) {
-                            console.log("erro ao tentar salvar o filtro dos pedidos ", e )
-                        }
+    const handleDateChange = async (event: any, selectedDate?: Date) => {
+        setShowPicker(false);
+        if (event.type === 'set' && selectedDate) {
+            const dataFormatada = moment.formatarData(selectedDate as any);
+            setDate(dataFormatada); 
+            try {
+                await AsyncStorage.setItem('dataPedidos', dataFormatada);
+            } catch (e) {
+                console.log("Erro ao salvar a data no AsyncStorage", e);
             }
+        }
+    };
 
-   
-  const handleEvent = async (event: any, selectedDate?: any) => {
-    // 1. Feche o seletor de data imediatamente, independentemente do evento.
-    setShowPicker(false);
-
-    // 2. Verifique se o evento foi de confirmação ('set') e se uma data foi realmente selecionada.
-    if (event.type === 'set' && selectedDate) {
-        // O usuário clicou em "OK", agora podemos atualizar os estados.
-        setAuxData(selectedDate); // Atualiza o estado local com o objeto Date
-        const dataFormatada = moment.formatarData(selectedDate);
-        setDate(dataFormatada); // Atualiza o estado do componente pai
+    // --- CORREÇÃO DO FUSO HORÁRIO (TIMEZONE) ---
+    const parseDateString = (dateString: string) => {
+        if (!dateString) return new Date();
 
         try {
-            await AsyncStorage.setItem('dataPedidos', dataFormatada);
-        } catch (e) {
-            console.log("Erro ao tentar salvar a data do filtro dos pedidos ", e);
+            // Se a data estiver no formato DD/MM/YYYY
+            if (dateString.includes('/')) {
+                const [day, month, year] = dateString.split('/');
+                return new Date(Number(year), Number(month) - 1, Number(day)); 
+                // Obs: Mês em JS começa no 0 (Janeiro = 0, Fevereiro = 1...)
+            }
+            
+            // Se a data estiver no formato YYYY-MM-DD
+            if (dateString.includes('-')) {
+                const[year, month, day] = dateString.split('-');
+                // Pega apenas os dois primeiros caracteres do dia (caso venha com hora junto)
+                const cleanDay = day.substring(0, 2); 
+                return new Date(Number(year), Number(month) - 1, Number(cleanDay));
+            }
+            
+            return new Date(dateString);
+        } catch (error) {
+            return new Date(); // Em caso de erro, retorna data atual
         }
-    }
-    // Se o evento for 'dismissed', não fazemos nada, pois o seletor já foi fechado.
+    };
+
+    // Usando a função segura para passar a data para o DatePicker
+    const dataParaO_Picker = parseDateString(dataAtual);
+
+    return (
+        <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={() => setVisible(false)}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+                
+                <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={() => setVisible(false)} />
+
+                <View style={{
+                    width: "85%",
+                    backgroundColor: "#FFF",
+                    borderRadius: 16,
+                    overflow: 'hidden',
+                    elevation: 10
+                }}>
+                    <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Filtros</Text>
+                        <TouchableOpacity onPress={() => setVisible(false)}>
+                            <Ionicons name="close" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={{ padding: 20 }}>
+                        
+                        <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Filtrar a partir de:</Text>
+                        
+                        <TouchableOpacity
+                            onPress={() => setShowPicker(true)}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F5F7FA',
+                                padding: 12,
+                                borderRadius: 8,
+                                borderWidth: 1,
+                                borderColor: '#E0E0E0',
+                                marginBottom: 20
+                            }}
+                        >
+                            <Fontisto name="date" size={20} color="#185FED" style={{ marginRight: 10 }} />
+                            <Text style={{ fontSize: 16, color: '#333', fontWeight: '500' }}>
+                                {dataAtual ? dataAtual : moment.formatarData(new Date() as any)}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {showPicker && (
+                            <DateTimePicker
+                                value={dataParaO_Picker}
+                                display="default"
+                                mode="date"
+                                onChange={handleDateChange}
+                            />
+                        )}
+
+                        <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Situação do Pedido:</Text>
+
+                        {statusOptions.map((opt) => {
+                            const isSelected = statusAtual === opt.id;
+                            return (
+                                <TouchableOpacity
+                                    key={opt.id}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        paddingVertical: 12,
+                                        paddingHorizontal: 15,
+                                        backgroundColor: isSelected ? '#E3F2FD' : '#F5F7FA',
+                                        borderRadius: 8,
+                                        borderWidth: 1,
+                                        borderColor: isSelected ? '#185FED' : '#E0E0E0',
+                                        marginBottom: 8
+                                    }}
+                                    onPress={() => handleSelectStatus(opt.id)}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: opt.color }} />
+                                        <Text style={{ fontSize: 15, fontWeight: isSelected ? 'bold' : '500', color: isSelected ? '#185FED' : '#555' }}>
+                                            {opt.label}
+                                        </Text>
+                                    </View>
+                                    {isSelected && <Ionicons name="checkmark-circle" size={20} color="#185FED" />}
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
 };
-        return(
-                      <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={() => setVisible(false)}> 
-                       <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.6)", justifyContent: 'center', alignItems: 'center' }}>
-                                    <View style={{
-                                        width: "90%",
-                                        height: "80%",
-                                        backgroundColor: "#F5F7FA",
-                                        borderRadius: 16,
-                                        overflow: 'hidden',
-                                        elevation: 10
-                                    }}>     
-                                        
-                    <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', alignItems: 'center' }}>
-                                           <TouchableOpacity onPress={() => setVisible(false) }   > 
-                                                <Ionicons name="close" size={24} color="#FFF" />
-                                            </TouchableOpacity>
-                                           
-                                        </View>
-
-                                        <View style={{   width:'95%', height:"100%", marginLeft: 5 } } >
-                                                        <View style={{  borderColor: '#DDD', borderWidth: 1,padding: 10,marginVertical: 5, borderRadius: 5, width: '95%'  }}>
-                                                          <Text style={{ fontWeight:"bold"}}> Data Cadastro:</Text>   
-
-                                                        <TouchableOpacity onPress={() => setShowPicker(true)} style={{ flexDirection: 'row', gap: 7 }}>
-                                                               <Fontisto name="date" size={24} color="black" />
-                                                            <Text style={{ fontSize: 20, fontWeight: 'bold' , width:'100%'}}>
-                                                                {   moment.formatarData(auxData as any)   }
-                                                            </Text>
-                                                          </TouchableOpacity>
-                                                       { showPicker &&
-                                                          <DateTimePicker
-                                                             value={ auxData }
-                                                            display="calendar"
-                                                            mode="date"
-                                                            onChange={handleEvent}
-                                                            //locale="pt-BR"
-                                                         />
-                                                         }
-                                                       </View>
-                                                <View style={{    backgroundColor: '#FFF'   }}>
-
-                                                            <View style={{ marginBottom: 5,  width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                           {   selectStatus('EA')   }  
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor:    statusSelecionado === 'EA'  ?  "#1E9C43" : "#868686" 
-                                                                    }  
-                                                                        ]}>
-                                                                        {  statusSelecionado === 'EA'   ? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#1E9C43", borderRadius: 5 }} />
-                                                                          ) : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View>
-                                                                        {  statusSelecionado === 'EA' ? (
-                                                                             <Text style={ [ { color: "#1E9C43" , fontWeight: "bold", flexShrink: 1, width:'100%' , textAlign:"center" } ] }>
-                                                                                    Orçamentos
-                                                                              </Text>
-                                                                        ):(
-                                                                             <Text style={ [ { color: "#868686" , fontWeight: "bold", flexShrink: 1, width:'100%' , textAlign:"center" } ] }>
-                                                                                 Orçamentos
-                                                                              </Text>
-                                                                    )}
-                                                                </TouchableOpacity>
-                                                            </View>
-
-                                                            <View style={{ marginBottom: 5, width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                        {  selectStatus('AI')
-                                                                         }  
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor:     statusSelecionado === 'AI'     ? "#307CEB" : "#868686"
-                                                                        }]}>
-                                                                        { statusSelecionado === 'AI'    ? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#307CEB", borderRadius: 5 }} />
-                                                                       )  : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View> 
-                                                                          { statusSelecionado === 'AI'    ? (
-                                                                        <Text style={{ fontWeight: "bold", color: "#307CEB", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                 Pedidos
-                                                                             </Text>
-                                                                          ):(
-                                                                            <Text style={{ fontWeight: "bold", color: "#868686", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                 Pedidos
-                                                                             </Text>
-                                                                          )}
-                                                               
-                                                                </TouchableOpacity>
-                                                            </View>
-
-                                                            <View style={{ marginBottom: 5, width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                        selectStatus('FI')
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor:    statusSelecionado === 'FI'     ? "#FF7F27" : "#868686"
-                                                                        }]}>
-                                                                        { statusSelecionado === 'FI'  ? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#FF7F27", borderRadius: 5 }} />
-                                                                       )  : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View>
-                                                                        { statusSelecionado === 'FI'  ? (
-                                                                              <Text style={{ fontWeight: "bold", color: "#FF7F27", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                 Faturados
-                                                                           </Text>
-                                                                        ):(
-                                                                            <Text style={{ fontWeight: "bold", color: "#868686", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                              Faturados
-                                                                           </Text>
-                                                                        )}
-                                                                 
-
-                                                                </TouchableOpacity>
-                                                            </View>
-                                                            <View style={{ marginBottom: 5, width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                        selectStatus('FP')
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor:   statusSelecionado === 'FP'    ? "#0023F5" : "#868686"
-                                                                        }]}>
-                                                                        {  statusSelecionado === 'FP'   ? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#0023F5", borderRadius: 5 }} />
-                                                                       )  : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View>
-
-                                                                        {  statusSelecionado === 'FP'   ? (
-                                                                            <Text style={{ fontWeight: "bold", color: "#0023F5", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                   Parcialmente faturados
-                                                                               </Text>
-                                                                       )  : (
-                                                                              <Text style={{ fontWeight: "bold", color: "#868686", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                   Parcialmente faturados
-                                                                               </Text>
-                                                                          )
-                                                                        }
-                                                               
-                                                                </TouchableOpacity>
-                                                            </View>
-                                                         <View style={{ marginBottom: 5, width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                      selectStatus('RE')
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor:  statusSelecionado === 'RE'  ? "red" : "#868686"
-                                                                        }]}>
-                                                                        { statusSelecionado === 'RE'? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "red", borderRadius: 5 }} />
-                                                                       )  : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View>
-
-
-                                                                       { statusSelecionado === 'RE'? (
-                                                                             <Text style={{ fontWeight: "bold", color: "red", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                               Reprovados
-                                                                            </Text>
-                                                                       )  : (
-                                                                            <Text style={{ fontWeight: "bold", color: "#868686", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                               Reprovados
-                                                                            </Text>
-                                                                          )
-                                                                        }
-                                                                
-                                                                </TouchableOpacity>
-                                                            </View>
-                                                            <View style={{ marginBottom: 5, width: '100%', alignItems: 'center' }}>
-                                                                <TouchableOpacity
-                                                                    style={{ marginVertical: 5, alignItems: "center", flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 5, width: '90%', justifyContent: 'center' }}
-                                                                    onPress={() => {
-                                                                      selectStatus('*')
-                                                                    }}
-                                                                >
-                                                                    <View style={[{ width: 20, height: 20, borderWidth: 2, borderRadius: 10, marginRight: 10, alignItems: 'center', justifyContent: 'center', 
-                                                                        borderColor: statusSelecionado === '*'   ? "#000" : "#868686"
-                                                                        }]}>
-                                                                        {  statusSelecionado === '*' ? (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#000", borderRadius: 5 }} />
-                                                                       )  : (
-                                                                            <View style={{ width: 10, height: 10, backgroundColor: "#868686", borderRadius: 5 }} />
-                                                                          )
-                                                                        }
-                                                                    </View>
-                                                                    {  statusSelecionado === '*' ? (
-                                                                            <Text style={{ fontWeight: "bold", color: "#000", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                   Todos
-                                                                               </Text>
-                                                                       )  : (
-                                                                                <Text style={{ fontWeight: "bold", color: "#868686", flexShrink: 1, width:'100%' , textAlign:"center"}}>
-                                                                                   Todos
-                                                                               </Text>
-                                                                          )
-                                                                        }
-                                                               
-                                                                </TouchableOpacity>
-                                                            </View>
-                            
-                                              </View>
-                                        </View>
-
-                                </View>
-                            </View>
-                        </Modal>
-
-        )
-}
-
- 
- 

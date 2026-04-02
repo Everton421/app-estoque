@@ -76,29 +76,32 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const useQuerypedidos = usePedidos();
     const useMoment = configMoment();
-    const { setOrcamento } = useContext(OrcamentoContext);
     const { usuario }: any = useContext(AuthContext);
-    const { connected }: any = useContext(ConnectedContext);
 
     const[orcamentosRegistrados, setOrcamentosRegistrados] = useState([]);
     const[visibleModal, setVisibleModal] = useState<boolean>(false);
-    const [selecionado, setSelecionado] = useState<pedido>();
     const[pesquisa, setPesquisa] = useState('');
     const[visible, setVisible] = useState(false);
 
     const[visiblePostPedido, setVisiblePostPedido] = useState(false);
     const[loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
-    const [loadingEditOrder, setLoadingEditOrder] = useState(false);
+    
     const[data_cadastro, setData_cadastro] = useState(useMoment.dataAtual())
-    const[orcamentoModal, setOrcamentoModal] = useState();
     const[statusPedido, setStatusPedido] = useState<string>('*');
+
+    const[orcamentoModal, setOrcamentoModal] = useState();
     const usePostPedidos = enviaPedidos();
     const useGetPedidos =  receberPedidos();  
-    const[modalVisible, setModalvisible] = useState(false);
+    const[ modalVisible, setModalvisible] = useState(false);
     const [ configLeitorPedido , setConfigLeitorPedido  ] = useState<'id_externo' | 'id_interno' | 'codigo'>('codigo');
+    
     const [ visibleAlert , setVisibleAlert ] = useState(false);
+    const [ messageAlert , setMessageAlert ] = useState<string>('');
+    const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
 
     const [refreshing, setRefreshing] = useState(false);
+
+    const [ loading, setLoading ] = useState(false);
 
    async function getDefaultConfig() {
         try {
@@ -106,6 +109,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
              if (valuePedido !== null) {
                 setConfigLeitorPedido(valuePedido);
             } 
+          
         } catch (e) {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
@@ -114,30 +118,59 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     async function fyndBarcode(codeScanned: string) {
 
-        if(!configLeitorPedido ) return Alert.alert("","É necessario configurar o leitor de busca dos pedidos.")
-        const resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido , value: String(codeScanned) })
+        if(!configLeitorPedido ) {
+                 setMessageAlert(`É necessario configurar o leitor de busca dos pedidos.`)
+                setVisibleAlert(true)
+                setTypeAlert('warning')
+            return
+            }
+            let resultOrder;
+        try{  
+            setLoading(true)
+        resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido , value: String(codeScanned) })
+        }catch(e){ 
+        }finally{
+            setLoading(false)
+        }
         if (resultOrder && resultOrder?.length > 0) {
             if(resultOrder[0].situacao === 'FI'){
-                return (  ) 
-            }
+                setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
+                setVisibleAlert(true)
+                setTypeAlert('warning')
+            }else{
+
             navigation.navigate('separacao', {
                 codigo_pedido: resultOrder[0].codigo,
             });
+            }
         
         } else {
-            return Alert.alert("Erro", `Não foi possivel localizar o pedido ${codeScanned}.`)
-        }
+             setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
+                setVisibleAlert(true)
+                setTypeAlert('error')
+           return 
+            }
     }
 
        async function fyndOrderBycode(code: number) {
+        try{
+            setLoading(true)
         const resultOrder = await useQuerypedidos.findByParam({  chave: 'codigo', value: code })
         if (resultOrder && resultOrder?.length > 0) {
             navigation.navigate('separacao', {
                 codigo_pedido: resultOrder[0].codigo,
             });
+
         } else {
             return Alert.alert("Erro", `Não foi possivel localizar o pedido codigo: ${code}.`)
         }
+            setLoading(false)
+        }catch(e){
+
+        }finally{
+            setLoading(false)
+        }
+
     }
 
     function handleCodeRead(data: string) {
@@ -147,12 +180,21 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const getFitroPedidos = async () => {
         try {
+
             const value = await AsyncStorage.getItem('filtroPedidos');
             if (value !== null) {
-                return value;
+                setStatusPedido(value) ;
             } else {
                 await AsyncStorage.setItem('filtroPedidos', statusPedido)
             }
+
+            const valueDataCadastro = await AsyncStorage.getItem('dataPedidos');
+                if(valueDataCadastro !== null ){
+                    setData_cadastro(valueDataCadastro);
+                }else{
+                   await AsyncStorage.setItem('dataPedidos', data_cadastro);
+                }
+           return { data_cadastro:data_cadastro, filtoStatus: statusPedido } 
         } catch (e) {
             console.log("erro ao consultar AsyncStorage")
         }
@@ -162,17 +204,23 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     async function busca() {
         let filtroStatus = await getFitroPedidos();
-       // let dataFiltroPedidos = await getDataFiltroPedido();
-
-        if (!usuario.codigo || usuario.codigo === 0) {
-            console.log("usuario invalido!")
-            return
-        }
-        let queryOrder = { tipo: tipo,  data: data_cadastro, situacao: filtroStatus, input: '' }
-        if (pesquisa !== null && pesquisa !== '') queryOrder.input = pesquisa
-        let aux: any = await useQuerypedidos.newSelect(queryOrder);
-        setOrcamentosRegistrados(aux);
-        setVisiblePostPedido(false);
+     try{
+                setLoading(true)
+                let situacao =  statusPedido;
+                let data = data_cadastro;
+                if(filtroStatus ){
+                    situacao = filtroStatus.filtoStatus;
+                    data = filtroStatus.data_cadastro;
+                }
+            let queryOrder = { tipo: tipo,  data: data, situacao: situacao, input: '' }
+            if (pesquisa !== null && pesquisa !== '') queryOrder.input = pesquisa
+            let aux: any = await useQuerypedidos.newSelect(queryOrder);
+            setOrcamentosRegistrados(aux);
+            setVisiblePostPedido(false);
+            }catch(e){
+            }finally{
+                setLoading(false)
+            }
     }
 
     const onRefresh = async () => {
@@ -192,17 +240,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
         }, [navigation])
     );
-
-    useEffect(() => {
-        async function busca() {
-            if (selecionado && selecionado !== undefined) {
-                let aux = await useQuerypedidos.selectCompleteOrderByCode(selecionado.codigo!);
-                setOrcamento(aux);
-            } else { return }
-        }
-        busca()
-    },[selecionado])
-
  
 
 
@@ -284,7 +321,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: status.color
             }}>
-                <CustomAlert visible={visibleAlert}  message="O já foi faturado." onConfirm={setVisibleAlert} />
+            
 
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10 }}>
                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
@@ -410,7 +447,14 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }} >
-
+                     
+                <CustomAlert 
+                  visible={visibleAlert}
+                  message={messageAlert}
+                  onConfirm={()=>setVisibleAlert(false)}
+                  title=""
+                  type={typeAlert}
+                  />
             <CustomHeader
                 title={"Pedidos"}
                 onBack={() => navigation.goBack()}
@@ -422,39 +466,47 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 onFilterPress={() => setVisible(true)}
             />
 
-            <Modal visible={loadingEditOrder} transparent={true}>
-                <View style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <View style={{ backgroundColor: '#FFF', padding: 20, borderRadius: 10 }}>
-                        <ActivityIndicator size={40} color="#185FED" />
-                        <Text style={{ marginTop: 10, color: '#333', fontWeight: 'bold' }}>Carregando...</Text>
-                    </View>
-                </View>
-            </Modal>
+          
 
-            <ModalFilter visible={visible} setVisible={setVisible} setStatus={setStatusPedido} setDate={setData_cadastro} />
-            <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
-
-            <FlatList
-                data={orcamentosRegistrados}
-                renderItem={({ item }) => <ItemOrcamento item={item} pedido={item} />}
-                keyExtractor={(item: any) => item.codigo.toString()}
-                contentContainerStyle={{ paddingBottom: 100 }} 
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl 
-                        refreshing={refreshing} 
-                        onRefresh={onRefresh} 
-                        colors={['#185FED']} 
-                        tintColor="#185FED"  
-                    />
-                }
-                ListEmptyComponent={() => (
-                    <View style={{ alignItems: 'center', marginTop: 50 }}>
-                        <Text style={{ color: '#999', fontSize: 16 }}>Nenhum registro encontrado.</Text>
-                    </View>
-                )}
+           <ModalFilter 
+                visible={visible} 
+                setVisible={setVisible} 
+                statusAtual={statusPedido}       
+                setStatus={setStatusPedido} 
+                dataAtual={data_cadastro}         
+                setDate={setData_cadastro}   
             />
-
+            <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
+               {
+                    loading ? 
+                    ( 
+                        <View style={{ flex:1, alignItems:"center", justifyContent:'center'}}>
+                         <ActivityIndicator color='#185FED' size={50}/>
+                       </View>
+                        ) :
+                      (
+                        <> 
+                            <FlatList
+                                data={orcamentosRegistrados}
+                                renderItem={({ item }) => <ItemOrcamento item={item} pedido={item} />}
+                                keyExtractor={(item: any) => item.codigo.toString()}
+                                contentContainerStyle={{ paddingBottom: 100 }} 
+                                showsVerticalScrollIndicator={false}
+                                refreshControl={
+                                    <RefreshControl 
+                                        refreshing={refreshing} 
+                                        onRefresh={onRefresh} 
+                                        colors={['#185FED']} 
+                                        tintColor="#185FED"  
+                                    />
+                                }
+                                ListEmptyComponent={() => (
+                                    <View style={{ alignItems: 'center', marginTop: 50 }}>
+                                        <Text style={{ color: '#999', fontSize: 16 }}>Nenhum registro encontrado.</Text>
+                                    </View>
+                                )}
+                            />
+                 
             <TouchableOpacity
                 onPress={() => { setModalvisible(true) }}
                 style={{
@@ -507,7 +559,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Reprovado</Text>
                 </View>
             </View>
-
+   </>
+                )
+                }
             <Modal visible={modalVisible} animationType="slide">
                 <CameraView
                     style={{ flex: 1 }}
@@ -529,6 +583,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     </View>
                 </CameraView>
             </Modal>
+        
         </View>
     )
 }

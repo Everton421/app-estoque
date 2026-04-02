@@ -7,6 +7,7 @@ import { CameraView } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useItemsPedido } from "../../database/queryPedido/queryItems";
 import { configMoment } from "../../services/moment";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
 
 export interface Cliente {
   bairro: string;
@@ -111,6 +112,11 @@ export const Separacao = ({ navigation, route }: any) => {
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
     const useMoment = configMoment();
 
+     const [ visibleAlert , setVisibleAlert ] = useState(false);
+     const [ messageAlert , setMessageAlert ] = useState<string>('');
+     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [ titleAlert, setTitleAlert ] = useState<string>('');
+
     function handleCodeRead(data: string) {
         setModalvisible(false);
         fyndBarcode(data);
@@ -138,7 +144,12 @@ export const Separacao = ({ navigation, route }: any) => {
             if (codigo_pedido !== undefined) {
                 let orderData = await useQuerypedidos.selectCompleteOrderByCode(codigo_pedido) as Pedido;
                 if (!orderData) {
-                    return Alert.alert("Erro", `Não foi possivel localizar o pedido ${codigo_pedido}.`);
+                    setVisibleAlert(true)
+                    setMessageAlert(`Não foi possivel localizar o pedido ${codigo_pedido}.`)
+                    setTypeAlert('error') 
+                    setTitleAlert("Erro")
+                    return
+
                 }
                 setData(orderData);
 
@@ -216,12 +227,19 @@ export const Separacao = ({ navigation, route }: any) => {
             const resultUpdate = await useQuerypedidos.newUpdate({ enviado: 'N', situacao_separacao: situacao_separacao, data_recadastro: useMoment.dataHoraAtual() }, codigo_pedido);
             
             if (resultUpdate && resultUpdate.changes > 0) {
-                Alert.alert("Sucesso", "Separação salva com sucesso!");
-                navigation.goBack();
+                  setVisibleAlert(true)
+                    setMessageAlert("Separação salva com sucesso!")
+                    setTypeAlert('success') 
+                    setTitleAlert("Sucesso")
+              //  navigation.goBack();
             }
         } catch (e) {
             console.log("erro ao salvar a separação", e);
-            Alert.alert("Erro", "Ocorreu um problema ao salvar a separação.");
+                 setVisibleAlert(true)
+                    setMessageAlert("Ocorreu um problema ao salvar a separação.")
+                    setTypeAlert('error') 
+                    setTitleAlert("Erro")
+                    return
         }
     }
 
@@ -239,6 +257,20 @@ export const Separacao = ({ navigation, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: concluido ? '#4CAF50' : '#FFC107' 
             }}>
+
+                 <CustomAlert 
+                          visible={visibleAlert}
+                          message={messageAlert}
+                          onConfirm={
+                                ()=>{ 
+                                 setVisibleAlert(false)
+                                    navigation.navigate('vendas')
+                            }
+                            }
+                          title={titleAlert}
+                          type={typeAlert}
+                          />
+
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                        { item.id && 
                             <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>

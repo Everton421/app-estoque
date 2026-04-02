@@ -1,240 +1,265 @@
-import { TextInput, Text, Button, TouchableOpacity, View, Image, Alert, Modal, ActivityIndicator, Animated, ScrollView, } from "react-native";
+import { TextInput, Text, TouchableOpacity, View, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import useApi from "../../services/api";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../contexts/auth";
 import { useUsuario } from "../../database/queryUsuario/queryUsuario";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { restartDatabaseService } from "../../services/restartDatabase";
-import { queryEmpresas } from "../../database/queryEmpresas/queryEmpresas";
-import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProdutosSetor";
-import { useSyncMovimentos } from "../../hooks/sync-movimentos/useSyncMovimentos";
-import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
-import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias";
-import { useSyncFotos } from "../../hooks/sync-fotos/useSyncFotos";
-import { useSyncMarcas } from "../../hooks/sync-marcas/useSyncMarcas";
-import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
-import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
-import { configMoment } from "../../services/moment";
-import { ConnectedContext } from "../../contexts/conectedContext";
-import { DotIndicatorLoadingData } from "../../components/dotIndicator";
-import axios from "axios";
-
-type PrevUser = { 
-  email:string
-  senha:string
-  codigo:string
-  nome:string
-  lembrar:string
-  token:string
-}
-
-type propsLoadingLogin = { isLoading: boolean }
-
-const LoadingLogin = ({ isLoading }: propsLoadingLogin) => (
-  <Modal animationType='slide' transparent={true} visible={isLoading}>
-    <View style={{
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    }}>
-      <ActivityIndicator size="large" color="#FFF" />
-      {/**
-      <Text style={styles.loadingText}>Carregando  pedidos ...  </Text>
-       <Animated.View style={[styles.progressBar, { width: `${1}%` }]} />*/}
-    </View>
-  </Modal>
-);
-
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const Login = ({ navigation }: any) => {
 
-  const api = useApi();
-  const useQueryUsuario = useUsuario();
-  const useRestart = restartDatabaseService();
+    const api = useApi();
+    const useQueryUsuario = useUsuario();
+    const useRestart = restartDatabaseService();
+    
+    // Estados do Alerta Customizado
+    const[visibleAlert, setVisibleAlert] = useState(false);
+    const [messageAlert, setMessageAlert] = useState<string>('');
+    const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [titleAlert, setTitleAlert] = useState<string>('');
 
-  const { logado, setLogado, usuario, setUsuario }: any = useContext(AuthContext);
+    const { setLogado, setUsuario }: any = useContext(AuthContext);
 
+    const[email, setEmail] = useState("");
+    const [senha, setSenha] = useState("");
+    const [lembrar, setLembrar] = useState<boolean>(false);
+    const [loading, setLoading] = useState(false);
+    const[showPassword, setShowPassword] = useState(false); // Para mostrar/ocultar senha
 
-
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [lembrar, setLembrar] = useState<Boolean>(false);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    async function buscaUser() {
-      let users: any = await useQueryUsuario.selectRemember();
-      if (users?.length > 0) {
-        setUsuario(users[0]);
-        console.log(users);
-        //   setLogado(true)
-        //    navigation.navigate('home')
-        setEmail(users[0].email);
-        setSenha(users[0].senha);
-
-        if (users[0].lembrar === "S") {
-          setLembrar(true);
+    useEffect(() => {
+        async function buscaUser() {
+            let users: any = await useQueryUsuario.selectRemember();
+            if (users?.length > 0) {
+                setUsuario(users[0]);
+                setEmail(users[0].email);
+                setSenha(users[0].senha);
+                if (users[0].lembrar === "S") {
+                    setLembrar(true);
+                }
+            }
         }
-      }
+        buscaUser();
+    },[]);
+
+    const dispararAlerta = (titulo: string, mensagem: string, tipo: 'success' | 'error' | 'warning' | 'info') => {
+        setTitleAlert(titulo);
+        setMessageAlert(mensagem);
+        setTypeAlert(tipo);
+        setVisibleAlert(true);
     }
-    buscaUser();
-  }, []);
 
- 
+    async function logar() {
+        if (!email) return dispararAlerta("Erro", "É necessário informar o e-mail!", "error");
+        if (!senha) return dispararAlerta("Erro", "É necessário informar a senha!", "error");
 
-  async function logar() {
-    if (!email) return Alert.alert("é necessario informar o email!");
-    if (!senha) return Alert.alert("é necessario informar a senha!");
+        let user = { email: email, senha: senha };
 
-    let user = { email: email, senha: senha };
+        let userRemember: any = await useQueryUsuario.selectRemember();
 
-    let userRemember: any = await useQueryUsuario.selectRemember();
-
-    if (userRemember.length > 0 && userRemember[0].email === user.email) {
-      if (lembrar === false) {
-        await useQueryUsuario.updateRemember();
-      }
-      console.log("usuario encontrado", userRemember[0].nome);
-      setUsuario(userRemember[0]);
-      setLogado(true);
-      return;
-    } else {
-
-      try {
-        setLoading(true)
-
-       let response: any = await api.post("/login", user);
-
-        if (response.status == 200) {
-          let lembrarUsuario = lembrar ? "S" : "N";
-          let userMobile = {
-            email: user.email,
-            senha: user.senha,
-            codigo: response.data.codigo,
-            nome: response.data.usuario,
-            lembrar: lembrarUsuario,
-            token: response.data.token
-          };
-
-          await useRestart.restart();
-          setUsuario(userMobile);
-          setLogado(true);
-
-          let codeUser = await useQueryUsuario.create(userMobile);
-
-          return Alert.alert(response.data.status.msg);
+        if (userRemember.length > 0 && userRemember[0].email === user.email) {
+            if (lembrar === false) {
+                await useQueryUsuario.updateRemember();
+            }
+            setUsuario(userRemember[0]);
+            setLogado(true);
+            return;
         } else {
+            try {
+                setLoading(true);
+                let response: any = await api.post("/login", user);
+
+                if (response.status == 200) {
+                    let lembrarUsuario = lembrar ? "S" : "N";
+                    let userMobile = {
+                        email: user.email,
+                        senha: user.senha,
+                        codigo: response.data.codigo,
+                        nome: response.data.usuario,
+                        lembrar: lembrarUsuario,
+                        token: response.data.token
+                    };
+
+                    await useRestart.restart();
+                    setUsuario(userMobile);
+                    setLogado(true);
+
+                    await useQueryUsuario.create(userMobile);
+                    return;
+                }
+            } catch (e: any) {
+                console.log(e);
+                if (e.response && e.response.status === 400) {
+                    dispararAlerta("Falha no Login", e.response.data.msg, "error");
+                } else {
+                    dispararAlerta("Erro", "Ocorreu um erro inesperado ao conectar ao servidor.", "error");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
- 
-      } catch (e: any) {
-        console.log(e)
-        if (e.response.status === 400) {
-          console.log(e.response.data.msg)
-          Alert.alert('Erro!', e.response.data.msg);
-        }
-      } finally {
-        setLoading(false)
-      }
     }
-  }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#EAF4FE" }}>
-
-      <LoadingLogin isLoading={loading} />
-
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, backgroundColor: "#EAF4FE" }}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginLeft: 5, marginTop: 25 }}
+    return (
+        /* --- AJUSTE AQUI: O behavior foi ajustado para Android e iOS --- */
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1, backgroundColor: "#EAF4FE" }}
         >
-          <Ionicons name="arrow-back" size={30} color="#185FED" />
-        </TouchableOpacity>
+            
+            <CustomAlert
+                visible={visibleAlert}
+                message={messageAlert}
+                onConfirm={() => setVisibleAlert(false)}
+                title={titleAlert}
+                type={typeAlert}
+            />
 
-        <View style={{ width: "100%", alignItems: "center" }}>
-          <View
-            style={{backgroundColor: "#FFF",borderRadius: 60,height: 120,width: 120,alignItems: "center",justifyContent: "center",elevation: 3,
-            }}
-          >
-            <FontAwesome6 name="user-tie" size={60} color="#185FED" />
-          </View>
-
-          <View
-            style={{top: 10,backgroundColor: "#FFF",width: "95%",padding: 15,borderRadius: 10,justifyContent: "center",alignItems: "center",elevation: 3,
-            }}
-          >
-            <Text style={{color: "#185FED",fontSize: 25,fontWeight: "bold",width: "100%",textAlign: "center",  }} >
-              Login 
-            </Text>
-
-            <View style={{ width: "100%" }}>
-              <View style={{ width: "100%",   alignItems:"center"}}>
-                 <Text style={{ alignSelf:'flex-start',marginLeft:15 ,color: "#185FED", fontWeight: "bold" }}>EMAIL </Text>
-                  <TextInput
-                    style={{ borderBottomWidth: 1, width: "90%" }}
-                    placeholder="example@example.com"
-                    onChangeText={(t) => setEmail(t)}
-                    value={email}
-                    autoComplete="email"
-                  />
-                </View>
-            </View>
-
-            <View style={{ width: "100%", marginTop: 50,  }}>
-             <View  style={{ width: "100%",alignItems:"center"}} > 
-                <Text style={{ alignSelf:'flex-start',marginLeft:10 ,color: "#185FED", fontWeight: "bold" }}> SENHA </Text>
-                <TextInput
-                  style={{ borderBottomWidth: 1, width: "90%" }}
-                  secureTextEntry={false}
-                  onChangeText={(v) => setSenha(v)}
-                  placeholder="*********"
-                  value={senha}
-                />
-            </View>
-              <View style={{ margin: 10  }}>
-
-                <TouchableOpacity
-                  style={{ alignItems: "center",padding: 10,borderRadius: 5,backgroundColor: "#185FED",elevation:5 }}
-                  onPress={() => logar()}
-                >
-                  <Text style={{color: "#FFF",width: "100%",textAlign: "center" }} >
-                    LOGIN
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={{ margin: 5, alignItems: "center" }}
-              onPress={() => {
-                lembrar ? setLembrar(false) : setLembrar(true);
-              }}
+            {/* --- AJUSTE AQUI: keyboardShouldPersistTaps e paddingBottom aumentado --- */}
+            <ScrollView 
+                contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 40, paddingBottom: 60 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
-              <View style={[{ padding: 8, borderWidth: 2, borderRadius: 2 }]}>
-                {lembrar ? (
-                  <View style={{ position: "absolute", left: -2, top: -9 }}>
-                    <FontAwesome name="check" size={26} color="#185FED" />
-                  </View>
-                ) : null}
-              </View>
-              <Text style={{ width: "100%", textAlign: "center" }}>
-                {" "}
-                lembrar
-              </Text>
-            </TouchableOpacity>
+                
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ alignSelf: 'flex-start', padding: 5, marginBottom: 20 }}>
+                    <Ionicons name="arrow-back" size={28} color="#185FED" />
+                </TouchableOpacity>
 
-            <TouchableOpacity style={{ margin: 6 }} onPress={() => navigation.navigate('enviar_codigo')}>
-              <Text style={{ color: '#185FED', fontWeight: "bold" }} > esqueci minha senha</Text>
-            </TouchableOpacity>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    
+                    <View style={{
+                        backgroundColor: "#FFF",
+                        borderRadius: 50,
+                        height: 100,
+                        width: 100,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        elevation: 5,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        marginBottom: -40, 
+                        zIndex: 10
+                    }}>
+                        <FontAwesome6 name="user-tie" size={45} color="#185FED" />
+                    </View>
 
-          </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
+                    <View style={{
+                        backgroundColor: "#FFF",
+                        width: "100%",
+                        padding: 20,
+                        paddingTop: 60, 
+                        borderRadius: 16,
+                        elevation: 3,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                    }}>
+                        <Text style={{ color: "#333", fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 30 }}>
+                            Bem-vindo de volta!
+                        </Text>
+
+                        {/* Input E-mail */}
+                        <View style={{ marginBottom: 20 }}>
+                            <Text style={{ color: "#555", fontWeight: "600", marginBottom: 8, marginLeft: 4 }}>E-mail</Text>
+                            <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F5F7FA',
+                                borderWidth: 1,
+                                borderColor: '#E0E0E0',
+                                borderRadius: 10,
+                                paddingHorizontal: 12,
+                                height: 50
+                            }}>
+                                <MaterialCommunityIcons name="email-outline" size={22} color="#185FED" style={{ marginRight: 10 }} />
+                                <TextInput
+                                    style={{ flex: 1, color: '#333', fontSize: 16 }}
+                                    placeholder="Digite seu e-mail"
+                                    placeholderTextColor="#999"
+                                    onChangeText={setEmail}
+                                    value={email}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                />
+                            </View>
+                        </View>
+
+                        {/* Input Senha */}
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ color: "#555", fontWeight: "600", marginBottom: 8, marginLeft: 4 }}>Senha</Text>
+                            <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F5F7FA',
+                                borderWidth: 1,
+                                borderColor: '#E0E0E0',
+                                borderRadius: 10,
+                                paddingHorizontal: 12,
+                                height: 50
+                            }}>
+                                <MaterialCommunityIcons name="lock-outline" size={22} color="#185FED" style={{ marginRight: 10 }} />
+                                <TextInput
+                                    style={{ flex: 1, color: '#333', fontSize: 16 }}
+                                    secureTextEntry={!showPassword}
+                                    onChangeText={setSenha}
+                                    placeholder="Sua senha"
+                                    placeholderTextColor="#999"
+                                    value={senha}
+                                />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#999" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Opções: Lembrar e Esqueci a Senha */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+                            <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                                onPress={() => setLembrar(!lembrar)}
+                            >
+                                <MaterialCommunityIcons 
+                                    name={lembrar ? "checkbox-marked" : "checkbox-blank-outline"} 
+                                    size={24} 
+                                    color={lembrar ? "#185FED" : "#999"} 
+                                />
+                                <Text style={{ marginLeft: 8, color: '#555', fontWeight: '500' }}>Lembrar-me</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={() => navigation.navigate('enviar_codigo')}>
+                                <Text style={{ color: '#185FED', fontWeight: "bold" }}>Esqueci a senha</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Botão de Login */}
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: loading ? "#B0C4DE" : "#185FED",
+                                borderRadius: 10,
+                                paddingVertical: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                elevation: loading ? 0 : 4
+                            }}
+                            onPress={logar}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                                <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>ENTRAR</Text>
+                            )}
+                        </TouchableOpacity>
+
+                    </View>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
 };

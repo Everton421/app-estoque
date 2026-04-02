@@ -19,11 +19,18 @@ import { restartDatabaseService } from "../../services/restartDatabase";
 import { enviaPedidos } from "../../services/sendOrders";
 import { ConfigLeitor    } from "./components/configLeitor";
 import { useSyncClients } from "../../hooks/sync-clientes/useSyncClientes";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
 
 export const Configurações = ({ navigation }: any) => {
 
     const api = useApi();
     const { connected, setConnected, internetConnected }: any = useContext(ConnectedContext);
+
+
+     const [ visibleAlert , setVisibleAlert ] = useState(false);
+     const [ messageAlert , setMessageAlert ] = useState<string>('');
+     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [ titleAlert, setTitleAlert ] = useState<string>('');
 
     const syncprodSector = useSyncProdSector();
     const syncMovimentos = useSyncMovimentos();
@@ -88,9 +95,22 @@ export const Configurações = ({ navigation }: any) => {
         } catch (err: any) {
             setConectado(false);
             setMsgApi(err.response?.data?.msg || "Erro");
-            if (err.status === 400) Alert.alert("Erro!", err.response.data.msg);
+            if (err.status === 400){
+                   setVisibleAlert(true)
+                    setMessageAlert(err.response.data.msg)
+                    setTypeAlert('error') 
+                    setTitleAlert("Erro")
+                    return
+            }  
             setError(err.response?.data?.msg || "Erro desconhecido");
-            if (err.status !== 400) Alert.alert("Erro!", "Erro desconhecido!");
+              if (err.status !== 400){
+                   setVisibleAlert(true)
+                    setMessageAlert("Erro desconhecido!")
+                    setTypeAlert('error') 
+                    setTitleAlert("Erro")
+                    return
+            }  
+
         } finally {
             setLoading(false);
         }
@@ -149,15 +169,34 @@ export const Configurações = ({ navigation }: any) => {
     };
 
     const handleSync = () => {
-        if (loading) return Alert.alert('Aguarde!', 'Estabelecendo conexão...');
-        if (!internetConnected) Alert.alert('Erro', 'Sem conexão com a internet!');
+          if (loading){
+            setVisibleAlert(true)
+            setMessageAlert("Estabelecendo conexão...")
+            setTypeAlert('info') 
+            setTitleAlert("Aguarde!")
+            return
+          }
+
+        if(!internetConnected){
+            setVisibleAlert(true)
+            setMessageAlert("Sem conexão com a internet!")
+            setTypeAlert('error') 
+            setTitleAlert("Erro")
+            return
+        }
         if (!connected) {
-            Alert.alert('', 'Falha ao se conectar com o servidor!');
-            return;
+              setVisibleAlert(true)
+            setMessageAlert("Falha ao se conectar com o servidor!")
+            setTypeAlert('error') 
+            setTitleAlert("Erro")
+            return
         }
         if (!conectado) {
-            Alert.alert(msgApi);
-            return;
+              setVisibleAlert(true)
+            setMessageAlert(msgApi)
+            setTypeAlert('error') 
+            setTitleAlert("Erro")
+            return
         }
         syncDataProcess();
     };
@@ -231,6 +270,15 @@ export const Configurações = ({ navigation }: any) => {
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
             {item && <DotIndicatorLoadingData isLoading={isLoading} item={item} progress={progress} />}
+
+            <CustomAlert 
+                          visible={visibleAlert}
+                          message={messageAlert}
+                          onConfirm={()=>setVisibleAlert(false)}
+                          title={titleAlert}
+                          type={typeAlert}
+                          />
+
 
             {/* --- HEADER --- */}
             <View style={{
