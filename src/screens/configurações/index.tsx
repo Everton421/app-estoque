@@ -53,6 +53,10 @@ export const Configurações = ({ navigation }: any) => {
     const [error, setError] = useState<string>();
     const [conectado, setConectado] = useState<boolean>();
     const [msgApi, setMsgApi] = useState('');
+
+    const [ cancelText, setCancelText ] = useState<string |  undefined>();
+    const [ confirmText, setConfirmText ] = useState<string | undefined>();
+
     
     // Estados do Picker de Data
     const [showPicker, setShowPicker] = useState(false);
@@ -206,6 +210,13 @@ export const Configurações = ({ navigation }: any) => {
     },[]);
 
     function restart() {
+        setVisibleAlert(true)
+        setTitleAlert('Atenção');
+        setTypeAlert('warning');
+        setCancelText('cancel');
+        setConfirmText('Sim');
+        setMessageAlert(`Será necessario uma nova sincronização, deseja concluir esta operação ?`);
+        /*
         Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`,[
             { text: 'Não', style: 'cancel' },
             {
@@ -214,6 +225,7 @@ export const Configurações = ({ navigation }: any) => {
                 }
             }
         ]);
+        */
     }
 
     async function syncOrders() {
@@ -274,9 +286,17 @@ export const Configurações = ({ navigation }: any) => {
             <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
-                          onConfirm={()=>setVisibleAlert(false)}
+                          onConfirm={async ()=>{  
+                            await useRestartService.restart();
+                            setVisibleAlert(false)
+                          } }
+                          onCancel={()=>setVisibleAlert(false)}
+                          
                           title={titleAlert}
                           type={typeAlert}
+                          cancelText={cancelText}
+                          confirmText={confirmText}
+
                           />
 
 

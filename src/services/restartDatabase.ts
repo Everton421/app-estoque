@@ -36,7 +36,9 @@ export const restartDatabaseService = ()=>{
       token TEXT
     ); 
 
- CREATE TABLE IF NOT EXISTS produtos (
+    CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+
+  CREATE TABLE IF NOT EXISTS produtos (
       codigo          INTEGER PRIMARY KEY NOT NULL,
       id              TEXT,   
       estoque         REAL DEFAULT 0,
@@ -57,10 +59,17 @@ export const restartDatabaseService = ()=>{
       observacoes1    BLOB,
       observacoes2    BLOB,
       observacoes3    BLOB,
-      tipo TEXT
-      );
-       
-       
+       tipo TEXT
+       );
+
+    CREATE INDEX IF NOT EXISTS idx_produtos_num_fabricante ON produtos(num_fabricante);
+    CREATE INDEX IF NOT EXISTS idx_produtos_num_original ON produtos(num_original);
+    CREATE INDEX IF NOT EXISTS idx_produtos_sku ON produtos(sku);
+    CREATE INDEX IF NOT EXISTS idx_produtos_marca ON produtos(marca);
+    CREATE INDEX IF NOT EXISTS idx_produtos_ativo ON produtos(ativo);
+    CREATE INDEX IF NOT EXISTS idx_produtos_grupo ON produtos(grupo);
+    CREATE INDEX IF NOT EXISTS idx_produtos_descricao ON produtos(descricao);
+        
 
       CREATE TABLE IF NOT EXISTS setores (
        codigo INTEGER PRIMARY KEY NOT NULL,
@@ -80,10 +89,13 @@ export const restartDatabaseService = ()=>{
          local2_produto TEXT,
          local3_produto TEXT,
          local4_produto TEXT, 
-         data_recadastro TEXT NOT NULL 
-      );
-      
-        CREATE TABLE IF NOT EXISTS movimentos_produtos (
+       data_recadastro TEXT NOT NULL 
+       );
+
+    CREATE INDEX IF NOT EXISTS idx_produto_setor_setor ON produto_setor(setor);
+    CREATE INDEX IF NOT EXISTS idx_produto_setor_produto ON produto_setor(produto);
+       
+         CREATE TABLE IF NOT EXISTS movimentos_produtos (
          codigo    INTEGER PRIMARY KEY NOT NULL,
          setor INTEGER  NOT NULL DEFAULT 0,
          ent_sai TEXT,
@@ -91,11 +103,16 @@ export const restartDatabaseService = ()=>{
          produto INTEGER  NOT NULL DEFAULT 0,
          quantidade INTEGER  NOT NULL DEFAULT 0,
          tipo TEXT NOT NULL DEFAULT A, 
-         historico  TEXT NOT NULL,
-         data_recadastro TEXT NOT NULL
-      );
+       historico  TEXT NOT NULL,
+       data_recadastro TEXT NOT NULL
+       );
 
+    CREATE INDEX IF NOT EXISTS idx_movimentos_produto ON movimentos_produtos(produto);
+    CREATE INDEX IF NOT EXISTS idx_movimentos_setor ON movimentos_produtos(setor);
+    CREATE INDEX IF NOT EXISTS idx_movimentos_tipo ON movimentos_produtos(tipo);
+    CREATE INDEX IF NOT EXISTS idx_movimentos_data ON movimentos_produtos(data_recadastro);
  
+   
       CREATE TABLE IF NOT EXISTS api_config (
        codigo INTEGER PRIMARY KEY NOT NULL,
        url TEXT NOT NULL,
@@ -110,7 +127,9 @@ export const restartDatabaseService = ()=>{
        email TEXT NOT NULL,
        responsavel  INTEGER  NOT NULL DEFAULT 0,
        nome TEXT NOT NULL 
-      );
+       );
+
+    CREATE INDEX IF NOT EXISTS idx_empresas_cnpj ON empresas(cnpj);
 
     CREATE TABLE IF NOT EXISTS categorias (
        codigo INTEGER PRIMARY KEY NOT NULL,
@@ -136,7 +155,9 @@ export const restartDatabaseService = ()=>{
        foto TEXT NOT NULL,
        data_cadastro TEXT NOT NULL,
        data_recadastro TEXT NOT NULL
-      );
+       );
+
+    CREATE INDEX IF NOT EXISTS idx_fotos_produto ON fotos_produtos(produto);
   
       
        CREATE TABLE IF NOT EXISTS clientes (
@@ -153,9 +174,15 @@ export const restartDatabaseService = ()=>{
       bairro TEXT,
       estado TEXT,
       data_cadastro TEXT NOT NULL,
-      data_recadastro TEXT NOT NULL,
-      vendedor INTEGER NOT NULL DEFAULT 0
-     );
+       data_recadastro TEXT NOT NULL,
+       vendedor INTEGER NOT NULL DEFAULT 0
+      );
+
+    CREATE INDEX IF NOT EXISTS idx_clientes_vendedor ON clientes(vendedor);
+    CREATE INDEX IF NOT EXISTS idx_clientes_cnpj ON clientes(cnpj);
+    CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes(nome);
+    CREATE INDEX IF NOT EXISTS idx_clientes_cidade ON clientes(cidade);
+    CREATE INDEX IF NOT EXISTS idx_clientes_estado ON clientes(estado);
 
 
        -- 
@@ -184,6 +211,14 @@ export const restartDatabaseService = ()=>{
       enviado TEXT NOT NULL DEFAULT 'N',
       tipo INTEGER NOT NULL DEFAULT 1   --1 = Orçamento (gerado no sistema); 2 = Orçamento (gerado fora do sistema); 3 = Ordem de Serviço; 4 = Contrato de Prestação de Serviços; 5 = Devolução
     ); 
+       
+      CREATE INDEX IF NOT EXISTS idx_pedidos_data ON pedidos(data_cadastro);
+      CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor ON pedidos(vendedor);
+      CREATE INDEX IF NOT EXISTS idx_pedidos_situacao ON pedidos(situacao);
+      CREATE INDEX IF NOT EXISTS idx_pedidos_tipo ON pedidos(tipo);
+      CREATE INDEX IF NOT EXISTS idx_pedidos_enviado ON pedidos(enviado);
+      CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente);
+
 
        CREATE TABLE IF NOT EXISTS produtos_pedido (
       pedido INTEGER NOT NULL,
@@ -196,8 +231,12 @@ export const restartDatabaseService = ()=>{
       quantidade_separada REAL DEFAULT 0.00,
       quantidade_faturada REAL DEFAULT 0.00 
 
-     -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
-    );
+      -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
+     );
+
+    CREATE INDEX IF NOT EXISTS idx_produtos_pedido_pedido ON produtos_pedido(pedido);
+    CREATE INDEX IF NOT EXISTS idx_produtos_pedido_codigo ON produtos_pedido(codigo);
+
     CREATE TABLE IF NOT EXISTS servicos_pedido (
       pedido INTEGER NOT NULL,
       codigo INTEGER NOT NULL,
@@ -205,17 +244,22 @@ export const restartDatabaseService = ()=>{
       quantidade REAL DEFAULT 0.00,
       valor REAL DEFAULT 0.00 ,
       total REAL DEFAULT 0.00  
-    -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
-    );
+     -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo) -- Add a foreign key constraint
+     );
+
+    CREATE INDEX IF NOT EXISTS idx_servicos_pedido_pedido ON servicos_pedido(pedido);
+
         CREATE TABLE IF NOT EXISTS parcelas (
       pedido INTEGER NOT NULL,
       parcela INTEGER NOT NULL,
       valor REAL NOT NULL DEFAULT 0.00,
       vencimento TEXT NOT NULL DEFAULT '0000-00-00' 
-     -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo)
-    );
+       -- FOREIGN KEY (pedido) REFERENCES pedidos(codigo)
+     );
 
-      CREATE TABLE IF NOT EXISTS servicos ( 
+    CREATE INDEX IF NOT EXISTS idx_parcelas_pedido ON parcelas(pedido);
+
+      CREATE TABLE IF NOT EXISTS servicos (
       codigo INTEGER PRIMARY KEY NOT NULL,
       valor REAL DEFAULT 0,
       aplicacao TEXT NOT NULL,

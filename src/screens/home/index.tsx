@@ -20,6 +20,7 @@ import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { useSyncClients } from '../../hooks/sync-clientes/useSyncClientes';
 import { defaultColors } from '../../styles/global';
+import { CustomAlert } from '../../components/custom-alert/custom-alert';
 
 type cadEmpre =
   {
@@ -52,7 +53,14 @@ export const Home = ({ navigation }: any) => {
   const [progress, setProgress] = useState(0);
   const [item, setItem] = useState<string | undefined >();
 
+     const [ visibleAlert , setVisibleAlert ] = useState(false);
+     const [ messageAlert , setMessageAlert ] = useState<string>('');
+     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [ titleAlert, setTitleAlert ] = useState<string>('');
+    const [ cancelText, setCancelText ] = useState<string |  undefined>();
+    const [ confirmText, setConfirmText ] = useState<string | undefined>();
 
+    
   const [sair, setSair] = useState<boolean>(false)
   const [cadEmpresa, setCadEmpresa] = useState<cadEmpre>()
   const [loaidngEmpr, setLoadingEmpr] = useState(false);
@@ -159,16 +167,13 @@ export const Home = ({ navigation }: any) => {
 
 
   function alertSair() {
-    Alert.alert('Sair', 'Ao sair serão excluidos os dados do aplicativo, será necessario efetuar uma nova sincronização',
-      [
-        {
-          text: 'Cancelar',
-          onPress: () => setSair(false),
-          style: 'cancel',
-        },
-        { text: 'OK', onPress: () => setSair(true) }
-      ]);
-
+ 
+        setVisibleAlert(true)
+        setTitleAlert('Atenção');
+        setTypeAlert('warning');
+        setCancelText('Cancelar');
+        setConfirmText('OK');
+        setMessageAlert('Ao sair serão excluidos os dados do aplicativo, será necessario efetuar uma nova sincronização');
   }
 
   useEffect(() => {
@@ -261,7 +266,25 @@ export const Home = ({ navigation }: any) => {
           </View>
         </View>
       </View>
+     <CustomAlert 
+                          visible={visibleAlert}
+                          message={messageAlert}
+                          onConfirm={async ()=>{  
+                            setSair(true) ;
+                            setVisibleAlert(false)
+                          } }
+                          onCancel={()=> { 
+                             setVisibleAlert(false);
+                            setSair(false);
+                            }
+                            }
+                          
+                          title={titleAlert}
+                          type={typeAlert}
+                          cancelText={cancelText}
+                          confirmText={confirmText}
 
+                          />
       <ScrollView style={{ flex: 1 }}>
 
         <View style={{ width: '100%', alignItems: "center", justifyContent: "center" }}>
