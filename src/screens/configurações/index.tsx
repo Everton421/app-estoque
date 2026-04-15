@@ -3,6 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { DotIndicatorLoadingData } from "../../components/dotIndicator";
+import { LodingComponent } from "../../components/loading";
 import { ConnectedContext } from "../../contexts/conectedContext";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias";
@@ -13,13 +14,14 @@ import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProduto
 import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
 import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
 import useApi from "../../services/api";
-import { receberPedidos } from "../../services/getOrders";
+import { receberPedidos } from "../../hooks/sync-pedidos/getOrders";
 import { configMoment } from "../../services/moment";
 import { restartDatabaseService } from "../../services/restartDatabase";
-import { enviaPedidos } from "../../services/sendOrders";
+import { enviaPedidos } from "../../hooks/sync-pedidos/sendOrders";
 import { ConfigLeitor    } from "./components/configLeitor";
 import { useSyncClients } from "../../hooks/sync-clientes/useSyncClientes";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { usePedidos } from "../../database/queryPedido/queryPedido";
 
 export const Configurações = ({ navigation }: any) => {
 
@@ -29,8 +31,8 @@ export const Configurações = ({ navigation }: any) => {
 
      const [ visibleAlert , setVisibleAlert ] = useState(false);
      const [ messageAlert , setMessageAlert ] = useState<string>('');
-     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
-    const [ titleAlert, setTitleAlert ] = useState<string>('');
+     const [ typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+     const [ titleAlert, setTitleAlert ] = useState<string>('');
 
     const syncprodSector = useSyncProdSector();
     const syncMovimentos = useSyncMovimentos();
@@ -54,6 +56,8 @@ export const Configurações = ({ navigation }: any) => {
     const [conectado, setConectado] = useState<boolean>();
     const [msgApi, setMsgApi] = useState('');
 
+    const [ restartDb, setRestartDb ] = useState(false);
+
     const [ cancelText, setCancelText ] = useState<string |  undefined>();
     const [ confirmText, setConfirmText ] = useState<string | undefined>();
 
@@ -63,6 +67,9 @@ export const Configurações = ({ navigation }: any) => {
     const[dataSelecionada, setDataSelecionada] = useState();
     const [date, setDate] = useState(new Date());
     const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+    const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
+    const [pedidoMessage, setPedidoMessage] = useState<string>('');
+    const useQuerypedidos = usePedidos();
 
     const useGetOrders = receberPedidos();
     const useSendOrders = enviaPedidos();
@@ -210,6 +217,7 @@ export const Configurações = ({ navigation }: any) => {
     },[]);
 
     function restart() {
+        setRestartDb(true)
         setVisibleAlert(true)
         setTitleAlert('Atenção');
         setTypeAlert('warning');
@@ -231,15 +239,28 @@ export const Configurações = ({ navigation }: any) => {
     async function syncOrders() {
         try {
             setIsLoadingOrder(true);
-            let dataPedidos: any = formatDate(date); // Usa o formato correto da API
+            setPedidoMessage('Recebendo pedidos...');
+            setIsLoadingPedidos(true);
+            
+            let data: any = formatDate(date);
 
-            await useGetOrders.getPedidos(dataPedidos);
-            let responseSystem = await useSendOrders.postPedidos();
-            console.log(responseSystem);
+            await useGetOrders.getPedidos({ data, setIsLoading: () => {}, setProgress: () => {}, setItem: () => {} });
+            
+            setPedidoMessage('Enviando pedidos...');
+            data = data + ' 00:00:00';     
+            await useSendOrders.postPedidos({ data, setIsLoading: () => {}, setItem: () => {}});
+            
+            setVisibleAlert(true);
+            setMessageAlert("Pedidos sincronizados com sucesso!");
+            setTypeAlert('success');
+            setTitleAlert('Sucesso');
+
         } catch (e) {
             console.log(e);
+            Alert.alert('Erro', 'Falha ao sincronizar pedidos.');
         } finally {
             setIsLoadingOrder(false);
+            setIsLoadingPedidos(false);
         }
     }
 
@@ -282,16 +303,17 @@ export const Configurações = ({ navigation }: any) => {
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
             {item && <DotIndicatorLoadingData isLoading={isLoading} item={item} progress={progress} />}
+            {isLoadingPedidos && <LodingComponent isLoading={isLoadingPedidos} message={pedidoMessage} />}
 
             <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
                           onConfirm={async ()=>{  
-                            await useRestartService.restart();
+
+                            restartDb && await useRestartService.restart();
                             setVisibleAlert(false)
                           } }
                           onCancel={()=>setVisibleAlert(false)}
-                          
                           title={titleAlert}
                           type={typeAlert}
                           cancelText={cancelText}

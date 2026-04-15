@@ -264,7 +264,7 @@ export const Separacao = ({ navigation, route }: any) => {
                           onConfirm={
                                 ()=>{ 
                                  setVisibleAlert(false)
-                                    navigation.navigate('vendas')
+                                    navigation.goBack()
                             }
                             }
                           title={titleAlert}

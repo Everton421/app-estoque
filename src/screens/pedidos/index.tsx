@@ -11,9 +11,9 @@ import { AuthContext } from "../../contexts/auth";
 import { ConnectedContext } from "../../contexts/conectedContext";
 import { OrcamentoContext } from "../../contexts/orcamentoContext";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
-import { receberPedidos } from "../../services/getOrders";
+import { receberPedidos } from "../../hooks/sync-pedidos/getOrders";
 import { configMoment } from "../../services/moment";
-import { enviaPedidos } from "../../services/sendOrders";
+import { enviaPedidos } from "../../hooks/sync-pedidos/sendOrders";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
 import { ModalFilter } from "./components/modal-filter/modal-filter";
@@ -231,7 +231,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     useEffect(() => {
         busca()
-    },[data_cadastro, statusPedido, pesquisa])
+    },[data_cadastro, statusPedido, pesquisa,navigation ])
 
     useFocusEffect(
         useCallback(() => {

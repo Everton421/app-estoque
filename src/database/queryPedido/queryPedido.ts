@@ -264,6 +264,33 @@ const getCurrentDate = () => {
           }catch(e){ console.log(' erro ao consultar os pedidos! ',e) }
     }
 
+    type resultAllcode = { codigo:number }
+    /**
+     * 
+     * @returns retorna um array com o dados dos pedidos
+     */
+    async function selectAllCode (data_recadastro?: string) {
+          try{ 
+
+          let sql = `SELECT 
+            p.codigo 
+            FROM pedidos p
+            `;
+           
+            const conditions = [];
+            const values =[];
+
+            const whereclauase = " WHERE "
+             conditions.push( ' p.data_recadastro >= ? ' );
+             values.push(data_recadastro);
+
+            const finalSql  = sql + whereclauase + conditions.join('AND')
+              
+          let result = await db.getAllAsync(finalSql, values);
+
+          return result as resultAllcode[] ;
+          }catch(e){ console.log(' erro ao consultar os pedidos! ',e) }
+    }
       async function findByTipe( tipo:number, vendedor:number ){
         try{ 
         let result = await db.getAllAsync(`SELECT 
@@ -569,25 +596,25 @@ vendedor : number
           try{
           let dataClientOrder:any  = await queryClientes.selectByCode( order.codigo_cliente );
           clientOrder = dataClientOrder[0];
-        }catch(e){console.log(e)}
+        }catch(e){console.log( `[X] Erro ao buscar o cliente do pedido ${code} `,e)}
 
         let producstOrder:any
 
           try{
             producstOrder   = await queryItems.selectByCodeOrder(code);
-        }catch(e){console.log(e)}
+        }catch(e){console.log( `[X] Erro ao buscar o produtos do pedido ${code} `,e)}
 
         let servicesOrder:any
 
         try{
             servicesOrder  = await queryServicosPedido.selectByCodeOrder(code);
-        }catch(e){console.log(e)}
+               }catch(e){console.log( `[X] Erro ao buscar o servicos do pedido ${code} `,e)}
         
         let parcelas:any
 
         try{
            parcelas  = await queryParcelas.selectByCodeOrder(code) 
-        }catch(e){console.log(e)}
+               }catch(e){console.log( `[X] Erro ao buscar parcelas do pedido ${code} `,e)}
             
            order.produtos = producstOrder;
            order.parcelas = parcelas
@@ -595,7 +622,7 @@ vendedor : number
            order.servicos = servicesOrder
            return order
 
-        }catch(e){ `erro ao consultar o pedido codigo: ${code}`}
+        }catch(e){ `[X] erro ao consultar o pedido codigo: ${code}`}
 
         }
 
@@ -1092,6 +1119,6 @@ vendedor : number
 
 
     return {
-      update, newUpdate, findByParam,selectLastCode, newSelect,createOrderByCode,findByTipeAndDate,updateSentOrderByCode, findByTipeAndClient, updateByCode, selectLastId , findByTipe, deleteAllOrder, updateOrder , create , selectAll,selectByCode , createOrder, selectCompleteOrderByCode , deleteOrder}
+      update, newUpdate, selectAllCode, findByParam,selectLastCode, newSelect,createOrderByCode,findByTipeAndDate,updateSentOrderByCode, findByTipeAndClient, updateByCode, selectLastId , findByTipe, deleteAllOrder, updateOrder , create , selectAll,selectByCode , createOrder, selectCompleteOrderByCode , deleteOrder}
 
 }
