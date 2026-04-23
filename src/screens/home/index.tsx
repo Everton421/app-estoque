@@ -22,15 +22,22 @@ import { useSyncClients } from '../../hooks/sync-clientes/useSyncClientes';
 import { defaultColors } from '../../styles/global';
 import { CustomAlert } from '../../components/custom-alert/custom-alert';
 
-type cadEmpre =
-  {
-    cnpj: string,
-    email_empresa: string,
-    telefone_empresa: string,
-    nome: string,
-    codigo: number,
-    responsavel: number
+
+  type typeCompanyRequest = {
+    cnpj : string
+    data_contrato : string
+    telefone : string
+    nome : string
+    email : string
+    codigo : any
+    responsavel : string
+    logo_url : string
+    cor_fonte : string
+    cor_fundo : string
+    cor_banner : string
   }
+
+
 
 export const Home = ({ navigation }: any) => {
 
@@ -53,16 +60,16 @@ export const Home = ({ navigation }: any) => {
   const [progress, setProgress] = useState(0);
   const [item, setItem] = useState<string | undefined >();
 
-     const [ visibleAlert , setVisibleAlert ] = useState(false);
-     const [ messageAlert , setMessageAlert ] = useState<string>('');
-     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
-    const [ titleAlert, setTitleAlert ] = useState<string>('');
-    const [ cancelText, setCancelText ] = useState<string |  undefined>();
-    const [ confirmText, setConfirmText ] = useState<string | undefined>();
+  const [ visibleAlert , setVisibleAlert ] = useState(false);
+  const [ messageAlert , setMessageAlert ] = useState<string>('');
+  const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+  const [ titleAlert, setTitleAlert ] = useState<string>('');
+  const [ cancelText, setCancelText ] = useState<string |  undefined>();
+  const [ confirmText, setConfirmText ] = useState<string | undefined>();
 
     
   const [sair, setSair] = useState<boolean>(false)
-  const [cadEmpresa, setCadEmpresa] = useState<cadEmpre>()
+  const [cadEmpresa, setCadEmpresa] = useState<typeCompanyRequest>()
   const [loaidngEmpr, setLoadingEmpr] = useState(false);
 
   let useQueryEmpresa = queryEmpresas();
@@ -73,30 +80,37 @@ export const Home = ({ navigation }: any) => {
   const verifyDateSinc = async () => {
     let validConfig = await useQueryConfigApi.select(1)
     let dataUltSinc: string;
-    let data =
+    let dataLastSincronization =
     {
       codigo: 1,
       url: '',
       porta: 3306,
       token: '',
       data_sinc: useMoment.dataHoraAtual(),
-      data_env: '0000-00-00 00:00:00'
-    }
+      data_env: '0000-00-00 00:00:00',  
+      offline: "N"
+    } as any
 
     if (validConfig && validConfig?.length > 0) {
       dataUltSinc = validConfig[0].data_sinc
+      dataLastSincronization.data_sinc = validConfig[0].data_sinc;
+
       console.log("Ultima Sincronizacao : ", validConfig[0].data_sinc)
-      useQueryConfigApi.updateByParam(data)
+      useQueryConfigApi.updateByParam(dataLastSincronization)
     } else {
-      let aux = await useQueryConfigApi.create(data);
+      let aux = await useQueryConfigApi.create(dataLastSincronization);
       dataUltSinc = '';
       console.log("Executando primeira sincronizacao")
     }
-    return dataUltSinc;
+    return dataLastSincronization;
   }
 
   const syncDataProcess = async () => {
-    let data = await verifyDateSinc();
+    let { data_sinc, offline } = await verifyDateSinc();
+    const data = data_sinc;
+    if(  offline === "N"){
+      return;
+    }
     setIsLoading(true);
     setProgress(0);
 
@@ -125,38 +139,42 @@ export const Home = ({ navigation }: any) => {
   async function buscaEmpresa() {
     setLoadingEmpr(true)
     let validEmpr: any = await useQueryEmpresa.selectAll();
-    if (validEmpr?.length > 0) {
+    if (validEmpr && validEmpr?.length > 0) {
       setCadEmpresa(validEmpr[0]);
       setLoadingEmpr(false)
     } else {
       try {
-        let validEmpresa = await api.post("/empresa/validacao",
+        let resultRequestCompany = await api.get("/empresa",
           {
-            Headers: {
+            headers: {
               token: usuario.token
             }
-          });
+          }) ;
 
-        if (validEmpresa.data.status.cadastrada) {
+            const companyRequest = resultRequestCompany.data as typeCompanyRequest;
+
+        if (resultRequestCompany.status == 200) {
           let objEmpr = {
-            codigo_empresa: validEmpresa.data.data.codigo,
-            nome: validEmpresa.data.data.nome,
-            cnpj: validEmpresa.data.data.cnpj,
-            email: validEmpresa.data.data.email_empresa,
-            responsavel: validEmpresa.data.data.responsavel,
+            codigo_empresa: Number(companyRequest.codigo),
+            nome: companyRequest.nome,
+            cnpj:  companyRequest.cnpj,
+            email:  companyRequest.email,
+            responsavel:  companyRequest.responsavel,
           };
           let aux = await useQueryEmpresa.createByCode(objEmpr);
-          setCadEmpresa(validEmpresa.data.data)
+          setCadEmpresa( companyRequest)
+  
         }
       } catch (e: any) {
-        console.log('Ocorreu um erro ao tentar validar a empresa ', e.response.data.msg)
+        console.log('Ocorreu um erro ao tentar validar a empresa ', e.response.data.message)
+        console.log('[X] ', e.response.data)
       } finally {
         setLoadingEmpr(false)
       }
     }
 
-
   }
+
 
   useEffect(
     () => {
@@ -237,14 +255,16 @@ export const Home = ({ navigation }: any) => {
       <View style={{ backgroundColor: '#185FED', elevation: 7, padding: 5, height: 200, borderBottomEndRadius: 50, borderStartEndRadius: 50 }}>
         <View  >
           < View style={{ width: '100%', alignItems: "center", flexDirection: "row", justifyContent: "space-between" }} >
-            <View style={{ backgroundColor: '#FFF', borderRadius: 55, padding: 3, margin: 3 }}>
+            <TouchableOpacity style={{ backgroundColor: '#FFF', borderRadius: 55, padding: 3, margin: 3 }}
+              onPress={()=> console.log(cadEmpresa)}
+            >
               <Image
                 style={{ width: 45, height: 45, resizeMode: 'stretch', }}
                 source={
                   require('../../imgs/intersig120x120.png')
                 }
               />
-            </View>
+            </TouchableOpacity>
 
             {
               loaidngEmpr ? (
@@ -266,6 +286,7 @@ export const Home = ({ navigation }: any) => {
           </View>
         </View>
       </View>
+
      <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}

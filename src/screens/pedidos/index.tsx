@@ -20,6 +20,9 @@ import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import useApi from "../../services/api";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import { ApiConfig } from "../../types/type-config-api";
 
 export type pedido = {
     codigo?: number,
@@ -98,10 +101,29 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const [ visibleAlert , setVisibleAlert ] = useState(false);
     const [ messageAlert , setMessageAlert ] = useState<string>('');
     const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
 
     const [refreshing, setRefreshing] = useState(false);
 
     const [ loading, setLoading ] = useState(false);
+
+   const api = useApi();
+
+    const useQueryConfigApi = queryConfig_api();
+
+    async function getConfigMobileApi() {
+        try {
+                setLoading(true)
+            const resultConfigMobileApi = await useQueryConfigApi.select(1);
+            if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                setConfigMobileApi(resultConfigMobileApi[0]);
+            }
+        } catch (e) {
+        } finally {
+                setLoading(true)
+        }
+    }
+
 
    async function getDefaultConfig() {
         try {
@@ -115,8 +137,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
+    useEffect(() => {
+        getConfigMobileApi();
+    }, [])
 
-    async function fyndBarcode(codeScanned: string) {
+    async function fyndOrderByBarcode(codeScanned: string) {
 
         if(!configLeitorPedido ) {
                  setMessageAlert(`É necessario configurar o leitor de busca dos pedidos.`)
@@ -175,7 +200,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        fyndBarcode(data);
+        fyndOrderByBarcode(data);
     }
 
     const getFitroPedidos = async () => {

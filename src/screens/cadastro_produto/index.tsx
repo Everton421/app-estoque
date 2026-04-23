@@ -1,93 +1,149 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
-import { Alert, Button, FlatList, Image, Modal, Text, TouchableOpacity, View, ScrollView, StyleSheet } from "react-native";
-import { TextInput } from "react-native-gesture-handler";
-import { RenderModalCategorias } from "./modal-categorias";
-import { RenderModalMarcas } from "./modal-marcas";
-import useApi from "../../services/api";
-import NetInfo from '@react-native-community/netinfo';
+import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
+import NetInfo from '@react-native-community/netinfo';
+import React, { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { TextInput } from "react-native-gesture-handler";
 import { ConnectedContext } from "../../contexts/conectedContext";
-import { MaterialIcons } from "@expo/vector-icons";
-import { AntDesign } from "@expo/vector-icons";
-import { useProducts } from "../../database/queryProdutos/queryProdutos";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosProdutos";
-import { typeFotoProduto } from "./types/fotos";
-import { LodingComponent } from "../../components/loading";
+import { useProducts } from "../../database/queryProdutos/queryProdutos";
+import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
+import { RenderModalCategorias } from "./_components/modal-categorias";
+import { RenderModalMarcas } from "./_components/modal-marcas";
+import { typeFotoProduto } from "./types/fotos";
 
-type produtoBancoLocal = { 
-   id:string, unidade_medida:string,ativo : string, class_fiscal : string, codigo : number, cst: string, data_cadastro:  string, data_recadastro: string, descricao :string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original : string, observacoes1: string, observacoes2 : string, observacoes3 : string, origem : string, preco : number, sku : string, tipo : string
+
+type ApiConfig = {
+    codigo?: number
+    url: string,
+    porta: number,
+    token: string
+    data_sinc: string,
+    data_env: string,
+    offline: 'S' | 'N'
+}
+
+
+type produtoBancoLocal = {
+    id: string, unidade_medida: string, ativo: string, class_fiscal: string, codigo: number, cst: string, data_cadastro: string, data_recadastro: string, descricao: string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original: string, observacoes1: string, observacoes2: string, observacoes3: string, origem: string, preco: number, sku: string, tipo: string
 };
 
 export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
-    // ... (toda a sua lógica de state, useEffect e funções como 'carregarProduto', 'gravar', etc., permanece a mesma)
-    const [ marcaSelecionada, setMarcaSelecionada ] = useState<{ codigo:number }>(); 
-    const [ categoriaSelecionada, setCategoriaSelecionada ] = useState(0); 
-    const [ estoque, setEstoque ] = useState<any>(0);
-    const [ preco, setPreco ] = useState<any>(0);
-    const [ unidade, setUnidade ] = useState( 'UND')
+    const useQueryConfigApi = queryConfig_api();
+    const [marcaSelecionada, setMarcaSelecionada] = useState<{ codigo: number }>();
+    const [categoriaSelecionada, setCategoriaSelecionada] = useState(0);
+    const [estoque, setEstoque] = useState<any>(0);
+    const [preco, setPreco] = useState<any>(0);
+    const [unidade, setUnidade] = useState('UND')
 
-    const [ sku, setSku ] = useState<string>('');
-    const [ descricao, setDescricao] = useState<string>('');
-    const [ gtim, setGtim ] = useState<string>('');
-    const [ referencia, setReferencia ] = useState<string>('');
-    const [ id , setId ] = useState<string>(); 
+    const [sku, setSku] = useState<string>('');
+    const [descricao, setDescricao] = useState<string>('');
+    const [gtim, setGtim] = useState<string>('');
+    const [referencia, setReferencia] = useState<string>('');
+    const [id, setId] = useState<string>();
 
     const [visible, setVisible] = useState<Boolean>(false);
     const [link, setLink] = useState("");
     const [fotos, setFotos] = useState<typeFotoProduto[]>([]);
 
     const [produto, setProduto] = useState<produtoBancoLocal>();
-    const [ imgs, setImgs] = useState<typeFotoProduto[]>();
-    const [ loading, setLoading ] = useState<boolean>(false);
-    const [ dados , setDados ] = useState('');
+    const [imgs, setImgs] = useState<typeFotoProduto[]>();
+    const [loading, setLoading] = useState<boolean>(false);
+    const [dados, setDados] = useState('');
     const api = useApi();
-    const {connected,  setConnected} = useContext<any>(ConnectedContext)
+    const { connected, setConnected } = useContext<any>(ConnectedContext)
     const useQueryFotos = useFotosProdutos();
     const useQueryProdutos = useProducts();
     const useMoment = configMoment();
+    const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
 
-    const [ loading2, setLoading2 ] = useState(false);
 
-    let { codigo_produto } =   route.params || { codigo_produto : 0};
-    
- 
-    async function carregarProduto(){
-        try{
+    let { codigo_produto } = route.params || { codigo_produto: 0 };
+
+
+    async function getConfigMobileApi() {
+        try {
             setLoading(true)
-
-            if( codigo_produto && codigo_produto > 0 ){
-            let dataProd:any= await useQueryProdutos.selectByCode(codigo_produto);
-                
-                let dadosFoto:any = await useQueryFotos.selectByCode(codigo_produto)   
-                dataProd[0].fotos = dadosFoto;
-                
-                setDados(dataProd);
-
-                setImgs(dadosFoto)
-            let prod:produtoBancoLocal = dataProd[0]  
-            setProduto(prod)
-            if(dataProd.length > 0 ){
-                    setUnidade(prod.unidade_medida)
-                    setCategoriaSelecionada(prod.grupo);
-                    setMarcaSelecionada(prod.marca as any);
-                    setReferencia(prod.num_original)
-                    setEstoque(prod.estoque);
-                    setPreco( Number(prod.preco));
-                    setSku(prod.sku);
-                    setDescricao(prod.descricao)
-                    setGtim(prod.num_fabricante)
-                    setId(prod.id);
-                }
-            } 
-        }catch(e) {
-        }finally{
+            const resultConfigMobileApi = await useQueryConfigApi.select(1);
+            if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                setConfigMobileApi(resultConfigMobileApi[0]);
+            }
+        } catch (e) {
+        } finally {
             setLoading(false)
         }
     }
     useEffect(() => {
-        function setConexao(){
+        getConfigMobileApi();
+    }, [])
+
+    async function carregarProduto() {
+        if (configMobileApi && configMobileApi.offline === 'N') {
+            try {
+                setLoading(true)
+                const responseProduct = await api.get(`/produtos/${codigo_produto}`);
+                const productRequest = responseProduct.data;
+                setDados(responseProduct?.data);
+
+                setUnidade(productRequest.unidade_medida)
+                setCategoriaSelecionada(productRequest.grupo);
+                setMarcaSelecionada(productRequest.marca as any);
+                setReferencia(productRequest.num_original)
+                setEstoque(productRequest.estoque);
+                setPreco(Number(productRequest.preco));
+                setSku(productRequest.sku);
+                setDescricao(productRequest.descricao)
+                setGtim(productRequest.num_fabricante)
+                setId(productRequest.id);
+                setImgs(productRequest.fotos)
+
+            } catch (e) {
+                console.log(`[X] Erro ao buscar ${codigo_produto} na api `, e)
+            } finally {
+                setLoading(false)
+            }
+        } else {
+
+            try {
+                setLoading(true)
+
+                if (codigo_produto && codigo_produto > 0) {
+                    let dataProd: any = await useQueryProdutos.selectByCode(codigo_produto);
+
+                    let dadosFoto: any = await useQueryFotos.selectByCode(codigo_produto)
+                    dataProd[0].fotos = dadosFoto;
+
+                    setDados(dataProd);
+
+                    setImgs(dadosFoto)
+                    let prod: produtoBancoLocal = dataProd[0]
+                    setProduto(prod)
+                    if (dataProd.length > 0) {
+                        setUnidade(prod.unidade_medida)
+                        setCategoriaSelecionada(prod.grupo);
+                        setMarcaSelecionada(prod.marca as any);
+                        setReferencia(prod.num_original)
+                        setEstoque(prod.estoque);
+                        setPreco(Number(prod.preco));
+                        setSku(prod.sku);
+                        setDescricao(prod.descricao)
+                        setGtim(prod.num_fabricante)
+                        setId(prod.id);
+                    }
+                }
+            } catch (e) {
+            } finally {
+                setLoading(false)
+            }
+        }
+
+
+    }
+    useEffect(() => {
+        function setConexao() {
             const unsubscribe = NetInfo.addEventListener((state) => {
                 setConnected(state.isConnected as any);
             });
@@ -99,111 +155,123 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
         carregarProduto();
     }, []);
 
-    async function gravar (){
-        if( connected === false ) return Alert.alert('Erro', 'É necessario estabelecer conexão com a internet para efetuar o cadastro !');
-        if(!preco) setPreco(0);
-        if(!estoque) setEstoque(0);
-        if(!sku) setSku('');
-        if(!referencia) setReferencia('');
-        if(!marcaSelecionada) return Alert.alert('É necessario informar uma marca para gravar o produto!');
-        if(!categoriaSelecionada) return Alert.alert('É necessario informar uma categoria para gravar o produto!');
+
+    useEffect(() => {
+        carregarProduto();
+
+    }, [configMobileApi]);
+
+
+    async function gravar() {
+        if (connected === false) return Alert.alert('Erro', 'É necessario estabelecer conexão com a internet para efetuar o cadastro !');
+        if (!preco) setPreco(0);
+        if (!estoque) setEstoque(0);
+        if (!sku) setSku('');
+        if (!referencia) setReferencia('');
+        if (!marcaSelecionada) return Alert.alert('É necessario informar uma marca para gravar o produto!');
+        if (!categoriaSelecionada) return Alert.alert('É necessario informar uma categoria para gravar o produto!');
 
         setLoading(true);
-        if( codigo_produto && codigo_produto > 0   ){
-            let data =   { "unidade_medida":unidade,"codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao,
-                 "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  {codigo: marcaSelecionada.codigo} , "grupo": {codigo:categoriaSelecionada } };
-                console.log(data)
- 
-            try{
-                
+        if (codigo_produto && codigo_produto > 0) {
+            let data = {
+                "unidade_medida": unidade, "codigo": codigo_produto, "preco": preco, "estoque": estoque, "descricao": descricao,
+                "sku": sku, "num_original ": referencia, "num_fabricante": gtim, "marca": { codigo: marcaSelecionada.codigo }, "grupo": { codigo: categoriaSelecionada }
+            };
+            console.log(data)
+
+            try {
+
                 if (imgs && imgs.length > 0) {
-                    let obj = { produto: codigo_produto, fotos: imgs  };
-                      imgs.forEach(async (f:typeFotoProduto) => {
+                    let obj = { produto: codigo_produto, fotos: imgs };
+                    imgs.forEach(async (f: typeFotoProduto) => {
                         f.data_cadastro = useMoment.dataAtual();
                         f.data_recadastro = useMoment.dataHoraAtual()
-                     } );
-                     console.log(obj)
-                       await api.post('/offline/fotos', obj);
-                      await useQueryFotos.deleteByCodeProduct(codigo_produto);
-                      
-                      imgs.forEach(async (f:typeFotoProduto) => {
-                         await useQueryFotos.create(f)
-                      } );
-                } 
-                 
-                 let responseProdutoApi = await api.put('/produto', data);
-                 if(responseProdutoApi.status === 200 && responseProdutoApi.data.codigo > 0 ){
-                 let dataRecad = responseProdutoApi.data.data_recadastro
-                         let dadosUpdateLocal =  { "unidade_medida":unidade ,"codigo":codigo_produto, "preco":preco, "estoque":estoque, "descricao":descricao, 
-                             "sku":sku,"num_original ":referencia, "num_fabricante":gtim, "marca":  marcaSelecionada.codigo, "grupo": categoriaSelecionada , data_recadastro:dataRecad};
-                         await useQueryProdutos.update(dadosUpdateLocal, data.codigo)
-                     navigation.goBack();
-                     return Alert.alert('', `Produto ${responseProdutoApi.data.codigo} Alterado Com Sucesso! `)     
-                 }
+                    });
+                    console.log(obj)
+                    await api.post('/offline/fotos', obj);
+                    await useQueryFotos.deleteByCodeProduct(codigo_produto);
 
-            }catch(e:any){
-                if(e.status === 400 ){ Alert.alert("Erro!" , e.response.data.msg ); }
-            } finally{ setLoading(false) } 
-           
+                    imgs.forEach(async (f: typeFotoProduto) => {
+                        await useQueryFotos.create(f)
+                    });
+                }
+
+                let responseProdutoApi = await api.put('/produto', data);
+                if (responseProdutoApi.status === 200 && responseProdutoApi.data.codigo > 0) {
+                    let dataRecad = responseProdutoApi.data.data_recadastro
+                    let dadosUpdateLocal = {
+                        "unidade_medida": unidade, "codigo": codigo_produto, "preco": preco, "estoque": estoque, "descricao": descricao,
+                        "sku": sku, "num_original ": referencia, "num_fabricante": gtim, "marca": marcaSelecionada.codigo, "grupo": categoriaSelecionada, data_recadastro: dataRecad
+                    };
+                    await useQueryProdutos.update(dadosUpdateLocal, data.codigo)
+                    navigation.goBack();
+                    return Alert.alert('', `Produto ${responseProdutoApi.data.codigo} Alterado Com Sucesso! `)
+                }
+
+            } catch (e: any) {
+                if (e.status === 400) { Alert.alert("Erro!", e.response.data.msg); }
+            } finally { setLoading(false) }
+
         } else {
-            let data =   { "preco":preco, "estoque":estoque, "descricao":descricao, "sku":sku, "num_fabricante":gtim, "num_original ":referencia, "marca":  { codigo:marcaSelecionada.codigo} , "grupo":{ codigo:categoriaSelecionada} };
- 
-          
-            try{
+            let data = { "preco": preco, "estoque": estoque, "descricao": descricao, "sku": sku, "num_fabricante": gtim, "num_original ": referencia, "marca": { codigo: marcaSelecionada.codigo }, "grupo": { codigo: categoriaSelecionada } };
+
+
+            try {
                 let response = await api.post('/produto', data)
-                if(response.status === 200 && response.data.codigo > 0 ){
+                if (response.status === 200 && response.data.codigo > 0) {
                     // ... seu código de sucesso de criação
-                   let dadosInsertLocal =
-                     { "codigo":codigo_produto,
-                        "preco":preco,
-                        "estoque":estoque,
-                        "descricao":descricao,
-                        "sku":sku,
-                        "num_original":referencia,
-                        "marca":  marcaSelecionada.codigo,
-                         "grupo": categoriaSelecionada,
-                        "origem":'0',
-                        "ativo":'S',
-                        "class_fiscal":'0000.00.00',
-                        "cst":'00',
-                        "num_fabricante":gtim,
-                        "data_cadastro":useMoment.dataAtual(),
+                    let dadosInsertLocal =
+                    {
+                        "codigo": codigo_produto,
+                        "preco": preco,
+                        "estoque": estoque,
+                        "descricao": descricao,
+                        "sku": sku,
+                        "num_original": referencia,
+                        "marca": marcaSelecionada.codigo,
+                        "grupo": categoriaSelecionada,
+                        "origem": '0',
+                        "ativo": 'S',
+                        "class_fiscal": '0000.00.00',
+                        "cst": '00',
+                        "num_fabricante": gtim,
+                        "data_cadastro": useMoment.dataAtual(),
                         "data_recadastro": useMoment.dataHoraAtual(),
-                        "observacoes1":'',
-                        "observacoes2":'',
-                        "observacoes3":'',
-                        "tipo":'0',
-                        };
-                    
-                  await useQueryProdutos.createByCode(dadosInsertLocal, response.data.codigo)
-                    Alert.alert('',`Produto ${descricao} registrado com sucesso!`);
+                        "observacoes1": '',
+                        "observacoes2": '',
+                        "observacoes3": '',
+                        "tipo": '0',
+                    };
+
+                    await useQueryProdutos.createByCode(dadosInsertLocal, response.data.codigo)
+                    Alert.alert('', `Produto ${descricao} registrado com sucesso!`);
                     navigation.goBack();
                 }
-            }catch(e:any){
-                if(e.status === 400 ){ Alert.alert('Erro!',` ${e.response.data.msg}`) }
-            }finally{ setLoading(false) }
-     
+            } catch (e: any) {
+                if (e.status === 400) { Alert.alert('Erro!', ` ${e.response.data.msg}`) }
+            } finally { setLoading(false) }
+
         }
     }
 
     const renderImgs = ({ item }: { item: typeFotoProduto }) => {
         return (
-          <View style={styles.modalImageItem}>
-            <TouchableOpacity style={styles.modalDeleteButton} onPress={() => deleteItemListImgs(item)}>
-              <AntDesign name="closecircle" size={24} color="#E53935" />
-            </TouchableOpacity>
-            {item.foto && item.link && (
-              <Image
-                source={{ uri: `${item.link}` }}
-                style={styles.modalImageThumbnail}
-                resizeMode="contain"
-              />
-            )}
-          </View>
+            <View style={styles.modalImageItem}>
+                <TouchableOpacity style={styles.modalDeleteButton} onPress={() => deleteItemListImgs(item)}>
+                    <AntDesign name="closecircle" size={24} color="#E53935" />
+                </TouchableOpacity>
+                {item.foto && item.link && (
+                    <Image
+                        source={{ uri: `${item.link}` }}
+                        style={styles.modalImageThumbnail}
+                        resizeMode="contain"
+                    />
+                )}
+            </View>
         );
-      };
-      
-    const deleteItemListImgs = (item:typeFotoProduto) => {
+    };
+
+    const deleteItemListImgs = (item: typeFotoProduto) => {
         const updatedImgs = imgs?.filter((i: typeFotoProduto) => i.sequencia !== item.sequencia) || [];
         setImgs(updatedImgs);
         setFotos(updatedImgs);
@@ -213,18 +281,18 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
         if (link === "") return;
         const maxSequencia = imgs && imgs.length > 0 ? Math.max(...imgs.map((i) => i.sequencia)) : 0;
         const newImage: typeFotoProduto = {
-          produto: codigo_produto,
-          data_cadastro: "0000-00-00",
-          data_recadastro: "0000-00-00 00:00:00",
-          descricao: link, foto: link, link: link,
-          sequencia: maxSequencia + 1,
+            produto: codigo_produto,
+            data_cadastro: "0000-00-00",
+            data_recadastro: "0000-00-00 00:00:00",
+            descricao: link, foto: link, link: link,
+            sequencia: maxSequencia + 1,
         };
         const updatedImgs = [...(imgs || []), newImage];
         setImgs(updatedImgs);
         setFotos(updatedImgs);
         setLink('');
     };
-    
+
     // ===================================================================================
     // ESTILOS CENTRALIZADOS - AQUI FICA TODA A ESTILIZAÇÃO
     // ===================================================================================
@@ -322,6 +390,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
             fontSize: 16,
             color: colors.text,
             marginLeft: 4,
+            flex: 1
         },
         numericInput: { fontSize: 16, color: colors.text, flex: 1, marginLeft: 4 },
 
@@ -359,127 +428,135 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
     return (
         <View style={styles.mainContainer}>
-            <LodingComponent isLoading={loading} />
-            
-            <ScrollView contentContainerStyle={styles.scrollView}>
-                {/* --- CARD CABEÇALHO: IMAGEM E INFOS BÁSICAS --- */}
-                <View style={styles.headerCard}>
-                    <TouchableOpacity onPress={() => setVisible(true)}>
-                        <View style={styles.imagePicker}>
-                            {imgs && imgs.length > 0 ? (
-                                <Image
-                                    source={{ uri: `${imgs[0].link}` }}
-                                    style={styles.productImage}
-                                    resizeMode="cover"
+            {
+                loading ?
+                    <View style={{ flex: 1, justifyContent: "center" }}>
+                        <ActivityIndicator size={50} color="#185FED" />
+                    </View>
+
+                    :
+                    <ScrollView contentContainerStyle={styles.scrollView}>
+                        {/* --- CARD CABEÇALHO: IMAGEM E INFOS BÁSICAS --- */}
+                        <View style={styles.headerCard}>
+                            <TouchableOpacity onPress={() => setVisible(true)}>
+                                <View style={styles.imagePicker}>
+                                    {imgs && imgs.length > 0 ? (
+                                        <Image
+                                            source={{ uri: `${imgs[0].link}` }}
+                                            style={styles.productImage}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <MaterialIcons name="add-a-photo" size={40} color={colors.textSecondary} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            <View style={styles.headerInfoContainer}>
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoBoxLabel}>Código:</Text>
+                                    <Text style={styles.infoBoxValue}>{codigo_produto || 'Novo'}</Text>
+                                </View>
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoBoxLabel}>id:</Text>
+                                    <Text style={styles.infoBoxValue} numberOfLines={1}>{id && id}</Text>
+                                </View>
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoBoxLabel}>R$</Text>
+                                    <TextInput
+                                        onChangeText={(v) => setPreco(v.replace(/[^0-9,.]/g, ''))}
+                                        style={styles.numericInput}
+                                        keyboardType="numeric"
+                                        defaultValue={String(preco)}
+                                        placeholder="0,00"
+                                        placeholderTextColor={colors.placeholder}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* --- CARD FORMULÁRIO: DEMAIS CAMPOS --- */}
+                        <View style={styles.formCard}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Descrição do Produto</Text>
+                                <TextInput
+                                    onChangeText={(value) => setDescricao(value)}
+                                    style={styles.textInput}
+                                    placeholder="Ex: Roda de Liga Leve Aro 15"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(descricao)}
                                 />
-                            ) : (
-                                <MaterialIcons name="add-a-photo" size={40} color={colors.textSecondary} />
-                            )}
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Unidade de medida</Text>
+                                <TextInput
+                                    onChangeText={(value) => setUnidade(value)}
+                                    style={styles.textInput}
+                                    placeholder="Unidade de medida do produto"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(unidade)}
+                                />
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>SKU</Text>
+                                <TextInput
+                                    onChangeText={(value) => setSku(value)}
+                                    style={styles.textInput}
+                                    placeholder="Código SKU do produto"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(sku)}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Código de Barras (GTIN)</Text>
+                                <TextInput
+                                    onChangeText={(value) => setGtim(value)}
+                                    style={styles.textInput}
+                                    placeholder="789..."
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(gtim)}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Referência</Text>
+                                <TextInput
+
+                                    onChangeText={(value) => setReferencia(value)}
+                                    style={styles.textInput}
+                                    placeholder="Código do fabricante"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={referencia ? String(referencia) : ''}
+                                />
+                            </View>
                         </View>
-                    </TouchableOpacity>
 
-                    <View style={styles.headerInfoContainer}>
-                         <View style={styles.infoBox}>
-                            <Text style={styles.infoBoxLabel}>Código:</Text>
-                            <Text style={styles.infoBoxValue}>{codigo_produto || 'Novo'}</Text>
+                        {/* --- SELETORES DE MARCA E CATEGORIA --- */}
+                        <View style={styles.formCard}>
+                            <View>
+                                <Text style={styles.inputLabel}>Marca</Text>
+                                <RenderModalMarcas codigoMarca={marcaSelecionada} setMarca={setMarcaSelecionada} />
+                            </View>
+                            <View>
+                                <Text style={styles.inputLabel}>Categoria</Text>
+                                <RenderModalCategorias codigoCategoria={categoriaSelecionada} setCategoria={setCategoriaSelecionada} />
+                            </View>
                         </View>
-                        <View style={styles.infoBox}>
-                            <Text style={styles.infoBoxLabel}>id:</Text>
-                            <Text style={styles.infoBoxValue}>{id  && id }</Text>
-                        </View>
-                        <View style={styles.infoBox}>
-                            <Text style={styles.infoBoxLabel}>R$</Text>
-                            <TextInput
-                                onChangeText={(v) => setPreco(v.replace(/[^0-9,.]/g, ''))}
-                                style={styles.numericInput}
-                                keyboardType="numeric"
-                                defaultValue={String(preco)}
-                                placeholder="0,00"
-                                placeholderTextColor={colors.placeholder}
-                            />
-                        </View>
-                    </View>
-                </View>
 
-                {/* --- CARD FORMULÁRIO: DEMAIS CAMPOS --- */}
-                <View style={styles.formCard}>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Descrição do Produto</Text>
-                        <TextInput
-                            onChangeText={(value) => setDescricao(value)}
-                            style={styles.textInput}
-                            placeholder="Ex: Roda de Liga Leve Aro 15"
-                            placeholderTextColor={colors.placeholder}
-                            value={String(descricao)}
-                        />
-                    </View>
-                      <View style={styles.inputGroup}>
-                               <Text style={styles.inputLabel}>Unidade de medida</Text>
-                               <TextInput
-                                 onChangeText={(value) => setUnidade(value)}
-                                 style={styles.textInput}
-                                 placeholder="Unidade de medida do produto"
-                                 placeholderTextColor={colors.placeholder}
-                                 value={String(unidade)}
-                             />
-                         </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>SKU</Text>
-                        <TextInput
-                            onChangeText={(value) => setSku(value)}
-                            style={styles.textInput}
-                            placeholder="Código SKU do produto"
-                            placeholderTextColor={colors.placeholder}
-                            value={String(sku)}
-                        />
-                    </View>
+                        {/* --- BOTÃO DE GRAVAR --- */}
+                        <TouchableOpacity
+                            style={styles.saveButton}
+                        //   onPress={() => gravar()}
+                        >
+                            <Text style={styles.saveButtonText}>Gravar Produto</Text>
+                        </TouchableOpacity>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Código de Barras (GTIN)</Text>
-                        <TextInput
-                            onChangeText={(value) => setGtim(value)}
-                            style={styles.textInput}
-                            placeholder="789..."
-                            placeholderTextColor={colors.placeholder}
-                            value={String(gtim)}
-                            keyboardType="numeric"
-                        />
-                    </View>
+                    </ScrollView>
+            }
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Referência</Text>
-                        <TextInput
-                                
-                            onChangeText={(value) =>  setReferencia(value) } 
-                            style={styles.textInput}
-                            placeholder="Código do fabricante"
-                            placeholderTextColor={colors.placeholder}
-                            value={referencia ? String(referencia) : ''}
-                        />
-                    </View>
-                </View>
 
-                {/* --- SELETORES DE MARCA E CATEGORIA --- */}
-                <View style={styles.formCard}>
-                    <View>
-                        <Text style={styles.inputLabel}>Marca</Text>
-                        <RenderModalMarcas codigoMarca={marcaSelecionada} setMarca={setMarcaSelecionada} />
-                    </View>
-                    <View>
-                        <Text style={styles.inputLabel}>Categoria</Text>
-                        <RenderModalCategorias codigoCategoria={categoriaSelecionada} setCategoria={setCategoriaSelecionada} />
-                    </View>
-                </View>
-
-                {/* --- BOTÃO DE GRAVAR --- */}
-                <TouchableOpacity
-                    style={styles.saveButton}
-                 //   onPress={() => gravar()}
-                >
-                    <Text style={styles.saveButtonText}>Gravar Produto</Text>
-                </TouchableOpacity>
-
-            </ScrollView>
 
             {/* --- MODAL DE IMAGENS --- */}
             <Modal visible={visible} transparent={true} animationType="fade">
@@ -490,7 +567,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                 <Text style={styles.modalBackButtonText}>Voltar</Text>
                             </TouchableOpacity>
                         </View>
-                        
+
                         <View style={styles.modalImageListContainer}>
                             {imgs && imgs.length > 0 ? (
                                 <FlatList
@@ -501,7 +578,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                     showsHorizontalScrollIndicator={false}
                                 />
                             ) : (
-                                <Text style={{color: colors.textSecondary}}>Nenhuma imagem adicionada.</Text>
+                                <Text style={{ color: colors.textSecondary }}>Nenhuma imagem adicionada.</Text>
                             )}
                         </View>
 
@@ -518,8 +595,8 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                 onChangeText={(v) => setLink(v)}
                                 value={link}
                             />
-                            <TouchableOpacity style={styles.modalAddButton} 
-                                    //onPress={gravarImgs}
+                            <TouchableOpacity style={styles.modalAddButton}
+                            //onPress={gravarImgs}
                             >
                                 <Entypo name="arrow-with-circle-up" size={40} color={colors.primary} />
                             </TouchableOpacity>

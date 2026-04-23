@@ -8,7 +8,11 @@ import { useUsuario } from "../../database/queryUsuario/queryUsuario";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
+  type typeUserRequest = {
+    codigo:string
+    email:string
+    nome:string
+      }
 export const Login = ({ navigation }: any) => {
 
     const api = useApi();
@@ -51,6 +55,25 @@ export const Login = ({ navigation }: any) => {
         setVisibleAlert(true);
     }
 
+
+async function getuserApi(token:string){
+
+      try {
+          let resultRequestCompany = await api.get("/usuarios",
+            {
+              headers: {
+                token:  token
+              }
+            }) ;
+            const  userRequest = resultRequestCompany.data as typeUserRequest;
+            return userRequest
+        } catch (e: any) {
+          console.log(`[X] Erro ao tentar consultar usuario`, e)
+        } finally {
+
+  }     
+}   
+
     async function logar() {
         if (!email) return dispararAlerta("Erro", "É necessário informar o e-mail!", "error");
         if (!senha) return dispararAlerta("Erro", "É necessário informar a senha!", "error");
@@ -69,24 +92,29 @@ export const Login = ({ navigation }: any) => {
         } else {
             try {
                 setLoading(true);
-                let response: any = await api.post("/login", user);
+                let responseLoginRequest = await api.post("/login", user) ;
 
-                if (response.status == 200) {
+                if (responseLoginRequest.status == 200) {
+
+                    const { token } =  responseLoginRequest.data as { token :string}
+
+                    const resultUserRequest = await getuserApi(token );
+
                     let lembrarUsuario = lembrar ? "S" : "N";
                     let userMobile = {
                         email: user.email,
                         senha: user.senha,
-                        codigo: response.data.codigo,
-                        nome: response.data.usuario,
+                        codigo: Number(resultUserRequest?.codigo) || 1  ,
+                        nome: resultUserRequest?.nome || '',
                         lembrar: lembrarUsuario,
-                        token: response.data.token
+                        token: responseLoginRequest.data.token
                     };
-
+                        
                     await useRestart.restart();
                     setUsuario(userMobile);
+                    await useQueryUsuario.create(userMobile);
                     setLogado(true);
 
-                    await useQueryUsuario.create(userMobile);
                     return;
                 }
             } catch (e: any) {

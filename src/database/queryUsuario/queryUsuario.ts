@@ -60,7 +60,6 @@ async function selectRemember(): Promise<Usuario[] | undefined>{
 }
  
 async function create ( user:Usuario ){
-    console.log(user)
     let  { codigo , nome, senha , email, token, lembrar } = user;
    let verifyUser: any
    
@@ -155,6 +154,54 @@ async function createUser ( user:Usuario ){
  }
 
 
+async function partialUpdate ( partialUserUpdate:  Partial<Omit<Usuario , 'codigo'>> & {codigo:number } ){
+    let  { codigo , nome, senha , email,  lembrar, token ,} = partialUserUpdate;
+    
+    let verifyUser: any = await selectByCode( codigo );
+    
+       // console.log('Usuario', nome,' ja foi cadastrado!');    
+    try{
+ 
+              console.log(`Usuario codigo:${codigo} atualizado ! ` );
+
+              const startSql = ` UPDATE usuarios SET `;
+
+              const updateFields = [ ]
+              const valuesUpdateFields =[]
+
+              if(nome){
+                updateFields.push(" nome =  ? " );
+                valuesUpdateFields.push(`${nome}`);
+              } 
+               if(senha){
+                updateFields.push(" senha =  ? " );
+                valuesUpdateFields.push(`${senha}`);
+              }
+               if(email){
+                updateFields.push(" email =  ? " );
+                valuesUpdateFields.push(`${email}`);
+              }
+               if(lembrar){
+                updateFields.push(" lembrar =  ? " );
+                valuesUpdateFields.push(`${lembrar}`);
+              }
+              if(token){
+                updateFields.push(" token =  ? " );
+                valuesUpdateFields.push(`${token}`);
+              }
+              
+              const whereClause = " WHERE codigo = ? "
+              valuesUpdateFields.push(`${codigo}`);
+
+              const finalSql = startSql +  updateFields.join(' , ') + whereClause;
+
+         let resultupdateQuery = await db.runAsync(finalSql,valuesUpdateFields );
+              return resultupdateQuery.lastInsertRowId
+ 
+     }catch(e){
+         console.log('Erro ao atualizar o usuario: ', codigo,' nome: ', nome ,' ', e)
+     }
+ }
 
 async function update ( user:Usuario ){
     let  { codigo , nome, senha , email,  lembrar, token } = user;
@@ -220,6 +267,6 @@ async function deleteAll(){
 
 
 
-return  { insert,deleteAll, updateRemember,signin ,selectRemember ,createUser, selectAll, create, update, selectByCode, selectByName  } 
+return  { insert,deleteAll,partialUpdate, updateRemember,signin ,selectRemember ,createUser, selectAll, create, update, selectByCode, selectByName  } 
 
 }

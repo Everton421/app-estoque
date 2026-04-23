@@ -57,7 +57,8 @@ export function RenderItensClients({ item, handleSelect }: Props) {
                 
                 {/* Linha Nome e Código */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                     <Text style={{  fontSize: 12, color: '#185FED', fontWeight: 'bold', backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2,  borderRadius: 4   }}>
+                     <Text numberOfLines={1} 
+                     style={{  flex:1, fontSize: 12, color: '#185FED', fontWeight: 'bold', backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2,  borderRadius: 4   }}>
                          {item.id ? ("id: "+ item.id) : "Cód: "+ item.codigo}   
 
                     </Text>

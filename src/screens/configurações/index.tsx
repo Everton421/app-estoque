@@ -21,7 +21,18 @@ import { enviaPedidos } from "../../hooks/sync-pedidos/sendOrders";
 import { ConfigLeitor    } from "./components/configLeitor";
 import { useSyncClients } from "../../hooks/sync-clientes/useSyncClientes";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
-import { usePedidos } from "../../database/queryPedido/queryPedido";
+
+
+type ApiConfig = {
+        codigo?:number
+        url: string,
+        porta: number,
+        token: string
+        data_sinc:string,
+        data_env:string,
+        offline: 'S' | 'N'
+    }
+
 
 export const Configurações = ({ navigation }: any) => {
 
@@ -33,6 +44,9 @@ export const Configurações = ({ navigation }: any) => {
      const [ messageAlert , setMessageAlert ] = useState<string>('');
      const [ typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
      const [ titleAlert, setTitleAlert ] = useState<string>('');
+
+     const [ visibleAlertUpdateConfigApi , setVisibleAlertUpdateConfigApi  ] = useState(false);
+
 
     const syncprodSector = useSyncProdSector();
     const syncMovimentos = useSyncMovimentos();
@@ -60,21 +74,25 @@ export const Configurações = ({ navigation }: any) => {
 
     const [ cancelText, setCancelText ] = useState<string |  undefined>();
     const [ confirmText, setConfirmText ] = useState<string | undefined>();
-
     
+    const [ confirmAlertFunction, setConfirmAlertFunction ] = useState<()=>void>(()=>{});
+    const [ cancelAlertFunction, setAlertCancelFunction] = useState<()=>void>(()=>{});
+
     // Estados do Picker de Data
     const [showPicker, setShowPicker] = useState(false);
-    const[dataSelecionada, setDataSelecionada] = useState();
+    const [dataSelecionada, setDataSelecionada] = useState();
     const [date, setDate] = useState(new Date());
     const [isLoadingOrder, setIsLoadingOrder] = useState(false);
     const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
     const [pedidoMessage, setPedidoMessage] = useState<string>('');
-    const useQuerypedidos = usePedidos();
+
+    const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
+    const [ isloadingApiConfigurationQuery, setIsloadingApiConfigurationQuery ] = useState(false);
+
 
     const useGetOrders = receberPedidos();
     const useSendOrders = enviaPedidos();
 
-    // Formato da API (YYYY-MM-DD)
     const formatDate = (date: any) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -82,7 +100,6 @@ export const Configurações = ({ navigation }: any) => {
         return `${year}-${month}-${day}`;
     };
 
-    // Formato para exibição na tela (DD/MM/YYYY)
     const formatDisplayDate = (dateToFormat: any) => {
         const day = String(dateToFormat.getDate()).padStart(2, '0');
         const month = String(dateToFormat.getMonth() + 1).padStart(2, '0');
@@ -93,7 +110,7 @@ export const Configurações = ({ navigation }: any) => {
     async function connect() {
         try {
             setLoading(true);
-            const response = await api.get('/');
+            const response = await api.get('/health');
             if (response.status === 200) {
                 setConectado(true);
                 setConnected(true);
@@ -212,8 +229,22 @@ export const Configurações = ({ navigation }: any) => {
         syncDataProcess();
     };
 
+    async function getConfigMobileApi(){
+        try{
+            setIsloadingApiConfigurationQuery(true)
+        const resultConfigMobileApi  = await useQueryConfigApi.select(1);
+        if(resultConfigMobileApi && resultConfigMobileApi.length >  0 ){
+            setConfigMobileApi(resultConfigMobileApi[0]);
+        }
+        }catch(e){
+        }finally{
+            setIsloadingApiConfigurationQuery(false);
+        }
+    }
+
     useEffect(() => {
         connect();
+       getConfigMobileApi()
     },[]);
 
     function restart() {
@@ -224,17 +255,18 @@ export const Configurações = ({ navigation }: any) => {
         setCancelText('cancel');
         setConfirmText('Sim');
         setMessageAlert(`Será necessario uma nova sincronização, deseja concluir esta operação ?`);
-        /*
-        Alert.alert('Atenção', `Será necessario uma nova sincronização, deseja concluir esta operação ?`,[
-            { text: 'Não', style: 'cancel' },
-            {
-                text: 'Sim', onPress: async () => {
-                    await useRestartService.restart()
-                }
-            }
-        ]);
-        */
+     
     }
+
+    async function  partialUpdateConfigMobileApi( { isOffline }:{ isOffline: "S" | "N"} ){
+         await useQueryConfigApi.updateByParam({ offline: isOffline, codigo: 1});   
+            setVisibleAlertUpdateConfigApi(false)
+    }
+
+
+        function enableOfflineConfig(){
+            setVisibleAlertUpdateConfigApi(true)
+        }
 
     async function syncOrders() {
         try {
@@ -308,19 +340,25 @@ export const Configurações = ({ navigation }: any) => {
             <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
-                          onConfirm={async ()=>{  
-
-                            restartDb && await useRestartService.restart();
-                            setVisibleAlert(false)
-                          } }
-                          onCancel={()=>setVisibleAlert(false)}
+                          onConfirm={  ()=> confirmAlertFunction()}
+                          onCancel={()=>cancelAlertFunction()}
                           title={titleAlert}
                           type={typeAlert}
                           cancelText={cancelText}
                           confirmText={confirmText}
 
                           />
+                   <CustomAlert 
+                          visible={visibleAlertUpdateConfigApi}
+                          message={"Ao selecionar esta opção será necessario fazer um sincronização dos dados, confirma esta operação ? "}
+                          onConfirm={  ()=> partialUpdateConfigMobileApi({ isOffline: 'S' })}
+                          onCancel={()=> partialUpdateConfigMobileApi({ isOffline: 'S' })}
+                          title={"Atenção"}
+                          type={"warning"}
+                          cancelText={"Não"}
+                          confirmText={"Sim"}
 
+                          />
 
             {/* --- HEADER --- */}
             <View style={{
@@ -463,8 +501,19 @@ export const Configurações = ({ navigation }: any) => {
 
                 <ConfigLeitor />
 
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Manutenção</Text>
 
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Manutenção</Text>
+                <MenuCard
+                    icon={
+                            configMobileApi && configMobileApi.offline === 'S' ? 
+                                  <Ionicons name="cloud-offline-sharp" size={24} color="#4CAF50" /> :
+                              <Ionicons name="cloud-offline-sharp" size={24} color="#D32F2F" /> 
+                            }
+                    title="Trabalhar Offline"
+                    subtitle={ configMobileApi && configMobileApi.offline === 'S' ? "Offline" : 'Não habilitado' }
+                    danger={configMobileApi && configMobileApi.offline != 'S' && 'danger'}
+                    onPress={enableOfflineConfig}
+                />
                 <MenuCard
                     icon={<MaterialCommunityIcons name="database-remove" size={24} color="#D32F2F" />}
                     title="Limpar Base de Dados"

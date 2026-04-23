@@ -98,8 +98,10 @@ export async function construtor(db: SQLiteDatabase) {
        porta INTEGER  NOT NULL DEFAULT 3000,
        token TEXT NOT NULL,
        data_sinc TEXT NOT NULL,
-       data_env TEXT DEFAULT '0000-00-00 00:00:00' 
-      );
+       data_env TEXT DEFAULT '0000-00-00 00:00:00', 
+        offline TEXT NOT NULL DEFAULT 'S'
+       );
+
       CREATE TABLE IF NOT EXISTS empresas (
        codigo INTEGER PRIMARY KEY NOT NULL,
        cnpj TEXT NOT NULL,

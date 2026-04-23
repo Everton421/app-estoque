@@ -8,6 +8,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosProdutos";
 import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
 import { Entypo } from "@expo/vector-icons";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import useApi from "../../services/api";
 
 type selectCompleteProdSector = {
     data_recadastro: string,
@@ -23,8 +25,21 @@ type selectCompleteProdSector = {
     local4_produto: string
 }
 
+type ApiConfig = {
+        codigo?:number
+        url: string,
+        porta: number,
+        token: string
+        data_sinc:string,
+        data_env:string,
+        offline: 'S' | 'N'
+    }
+
+
+
 export function Produtos({ navigation }: any) {
 
+    const useQueryConfigApi = queryConfig_api();
     const useQueryProdutos = useProducts();
     const useQueryFotos = useFotosProdutos();
     const useQueryProdutoSetores = useProdutoSetores();
@@ -39,61 +54,135 @@ export function Produtos({ navigation }: any) {
     const [visibleModalSetores, setVisibleModalSetores] = useState(false);
     const [dataProdSector, setDataProdSector] = useState<selectCompleteProdSector[]>([])
     const [loadingItemModalSetor, setLoadingItemModalSetor] = useState(false);
+    const [ isLoadingDataProduct , setIsLoadingDataProduct ] = useState(false);
 
+    const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
+    const api = useApi();
+
+
+
+    async function getConfigMobileApi(){
+        try{
+               setIsLoadingDataProduct(true)
+        const resultConfigMobileApi  = await useQueryConfigApi.select(1);
+        if(resultConfigMobileApi && resultConfigMobileApi.length >  0 ){
+            setConfigMobileApi(resultConfigMobileApi[0]);
+        }
+        }catch(e){
+        }finally{
+             setIsLoadingDataProduct(false)
+        }
+    }
+
+    useEffect(()=>{
+      getConfigMobileApi();
+    },[])
+
+    
 
     async function filterByDescription() {
-        // Agora usa o limitQuery do estado
-         //console.log(" [ F ] function filterByDescription() ")
-        const response: any = await useQueryProdutos.selectByDescription(pesquisa, limitQuery);
-        
-        for (let p of response) {
-            let dadosFoto: any = await useQueryFotos.selectByCode(p.codigo)
-            if (dadosFoto?.length > 0) {
-                p.fotos = dadosFoto
-            } else {
-                p.fotos = []
-            }
-        }
-        
-        // Se a busca estiver vazia, limpamos os dados ou mantemos vazio, conforme sua lógica
-        setDados(response);
+   
+         if(configMobileApi && configMobileApi.offline === 'N'){
+              try{
+                    setIsLoadingDataProduct(true)
+                    const responseProduct = await api.get('/produtos/search', 
+                        {
+                            params: { 
+                                limit: limitQuery,
+                                search: pesquisa,
+                                ativo: 'S'
+                            }
+                        }
+                    );
+                      setDados(responseProduct?.data);
+                }catch(e){
+                    console.log( "[X] Erro ao buscar produtos na api ",e )
+                }finally{
+                    setIsLoadingDataProduct(false)
+                }
+         }else{
+
+            try{
+                    setIsLoadingDataProduct(true)
+                const response: any = await useQueryProdutos.selectByDescription(pesquisa, limitQuery);
+                for (let p of response) {
+                    let dadosFoto: any = await useQueryFotos.selectByCode(p.codigo)
+                    if (dadosFoto?.length > 0) {
+                        p.fotos = dadosFoto
+                    } else {
+                        p.fotos = []
+                    }
+                }
+                
+                // Se a busca estiver vazia, limpamos os dados ou mantemos vazio, conforme sua lógica
+                setDados(response);
+           }catch(e){
+
+           }finally{
+                    setIsLoadingDataProduct(false)
+           }
+
+         }
     }
 
     async function filterAll() {
-      //  console.log(" [ F ] function filterByDescription() ")
-         const response: any = await useQueryProdutos.selectAllLimit(limitQuery);
-         for( let p of response ){
-             let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
-             if(dadosFoto?.length > 0 ) p.fotos = dadosFoto
-         }
-         
-         setDados(response)
+          if(configMobileApi && configMobileApi.offline === 'N'){
+            try{
+                setIsLoadingDataProduct(true)
+            const responseProduct = await api.get('/produtos/search', {
+                params:{
+                    limit: limitQuery,
+                    ativo: 'S'
+                }
+            });
+         setDados(responseProduct?.data);
+            }catch(e){
+                    console.log( "[X] Erro ao buscar produtos na api ",e )
+            }finally{
+                setIsLoadingDataProduct(false)
+            }
+
+
+         }else{
+            try{
+                setIsLoadingDataProduct(true)
+                const response: any = await useQueryProdutos.selectAllLimit(limitQuery);
+                for( let p of response ){
+                    let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
+                    if(dadosFoto?.length > 0 ) p.fotos = dadosFoto
+                }
+           setDados(response)
+            }catch(e){
+
+            }finally{
+                setIsLoadingDataProduct(false)
+            }
+
+        }
     }
     
 
     useEffect(() => {
-        console.log("UseEffect  1 ... ")
+        console.log("useEffect")
         const unsubscribe = navigation.addListener('focus', () => {
-           // console.log(" [ X ] Valor pesquisa: ", pesquisa    )
             if (pesquisa != '' ) {
                 filterByDescription()
             } else {
-                filterAll()
+              filterAll()
             }
         });
         return unsubscribe;
-    }, [navigation, limitQuery, pesquisa ]); // Adicionado limitQuery para atualizar ao voltar pra tela se mudou o padrão
+     }, [navigation, limitQuery, pesquisa,configMobileApi ]); // Adicionado limitQuery para atualizar ao voltar pra tela se mudou o padrão
 
-    // Recarrega sempre que a pesquisa OU o limite mudar
+
      useEffect(() => {
-        console.log("UseEffect 2 ... ") 
-
          if (pesquisa != '') {
              filterByDescription()
          } else {
-             filterAll()
+          filterAll()
          }
-     }, [pesquisa, limitQuery]) 
+     }, [pesquisa, limitQuery, configMobileApi]) 
+
 
 
     async function viewItemSector(item: any) {
@@ -138,14 +227,14 @@ export function Produtos({ navigation }: any) {
                 </View>
                 <View style={styles.contentContainer}>
                     <View style={styles.cardHeader}>
-                        <Text style={styles.textCode}> {item.id ? "Id. "+ item.id : "Cód. "+item.codigo }</Text>
-                        <Text style={styles.textPrice}>R$ {preco.toFixed(2)}</Text>
+                        <Text style={styles.textCode} numberOfLines={1}> {item.id ? "Id. "+ item.id : "Cód. "+item.codigo }</Text>
+                        <Text style={styles.textPrice}>R$ {Number(preco)?.toFixed(2) || 0}</Text>
                     </View>
                     <Text numberOfLines={2} style={styles.textDescription}>{item.descricao}</Text>
                     <View style={styles.cardFooter}>
                         <View style={styles.stockInfo}>
                             <Text style={styles.stockLabel}>Estoque Total</Text>
-                            <Text style={styles.stockValue}>{item.estoque?.toFixed(2)}</Text>
+                            <Text style={styles.stockValue}>{Number(item.estoque)?.toFixed(2) || 0}</Text>
                         </View>
                         <TouchableOpacity style={styles.btnSector} onPress={() => { viewItemSector(item) }}>
                             <Entypo name="archive" size={18} color="#185FED" />
@@ -246,6 +335,13 @@ export function Produtos({ navigation }: any) {
             </View>
 
             {/* --- LISTA PRINCIPAL --- */}
+            {
+                 isLoadingDataProduct ? 
+                 <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                     <ActivityIndicator size={50} color="#185FED" /> 
+                 </View>
+                
+                :
             <FlatList
                 data={dados}
                 renderItem={(item) => renderItem(item)}
@@ -253,7 +349,8 @@ export function Produtos({ navigation }: any) {
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 showsVerticalScrollIndicator={false}
             />
-
+                 
+            }
             {/* --- BOTÃO FLUTUANTE --- */}
             <TouchableOpacity
                 style={styles.fab}
@@ -361,7 +458,7 @@ const styles = StyleSheet.create({
     noImagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' },
     contentContainer: { flex: 1, justifyContent: 'space-between' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    textCode: { fontSize: 12, color: '#757575' },
+    textCode: { fontSize: 12, color: '#757575', flex:1 },
     textPrice: { fontSize: 16, fontWeight: 'bold', color: '#185FED' },
     textDescription: { fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 4 },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 },

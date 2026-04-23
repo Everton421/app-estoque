@@ -8,6 +8,8 @@ import useApi from "../../services/api";
 import { LodingComponent } from "../../components/loading";
 import { configMoment } from "../../services/moment";
 import { useSetores } from "../../database/querySetores/querySetores";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import { ApiConfig } from "../../types/type-config-api";
 
 type sector = {
     codigo: number;
@@ -27,30 +29,102 @@ export const Setores = ({ navigation }: any) => {
     const api = useApi();
     const dateService = configMoment();
 
+    const useQueryConfigApi = queryConfig_api();
+
+    const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
+
+
+        async function getConfigMobileApi() {
+            try {
+                setLoading(true)
+                const resultConfigMobileApi = await useQueryConfigApi.select(1);
+                if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                    setConfigMobileApi(resultConfigMobileApi[0]);
+                }
+            } catch (e) {
+            } finally {
+                setLoading(false)
+            }
+        }
+
+   useEffect(() => {
+        getConfigMobileApi();
+    }, [])
+
+/*
     useFocusEffect(() => {
         async function busca() {
-            let data: any = await useQuerySetores.selectAll();
-            if (data?.length > 0) {
-                setDados(data);
-            }
+            if(configMobileApi && configMobileApi.offline === 'N'){
+                try{
+                        setLoading(true)
+                        const responseSector = await api.get('/setores/search', 
+                            {
+                                params: { 
+                                    limit: 25,
+                                    search: pesquisa,
+                                    ativo: 'S'
+                                }
+                            }
+                        );
+                        setDados(responseSector?.data);
+                    }catch(e){
+                        console.log( "[X] Erro ao buscar setores na api ",e )
+                    }finally{
+                        setLoading(false)
+                    }
+            
+                }else{
+             let data: any = await useQuerySetores.selectAll();
+                    if (data?.length > 0) {
+                        setDados(data);
+                    }
+                }
         }
 
         if (pesquisa === '' || pesquisa === undefined) {
             busca();
         }
-    });
+    });*/
 
-    useEffect(() => {
-        async function busca() {
+
+ async function busca() {
+         if(configMobileApi && configMobileApi.offline === 'N'){
+            
+               try{
+                    setLoading(true)
+                    const responseSector = await api.get('/setores/search', 
+                        {
+                            params: { 
+                                limit: 25,
+                                search: pesquisa,
+                                ativo: 'S'
+                            }
+                        }
+                    );
+                      setDados(responseSector?.data);
+                }catch(e){
+                    console.log( "[X] Erro ao buscar setores na api ",e )
+                }finally{
+                    setLoading(false)
+                }
+        }else{
+
             let data: any = await useQuerySetores.selectByDescription(pesquisa);
             if (data?.length > 0) {
                 setDados(data);
             }
+             }
+
         }
+
+
+    useEffect(() => {
         if (pesquisa !== '' || pesquisa !== undefined) {
             busca();
         }
-    }, [pesquisa]);
+    }, [pesquisa, configMobileApi]);
+
+
 
     function handleSelect(item: sector) {
         setSetorSelecionado(item);
@@ -128,7 +202,6 @@ export const Setores = ({ navigation }: any) => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
-            <LodingComponent isLoading={loading} />
 
             {/* --- HEADER ESTILIZADO --- */}
             <View style={{
@@ -174,7 +247,10 @@ export const Setores = ({ navigation }: any) => {
                 </View>
             </View>
 
-            {/* --- LISTA --- */}
+        {
+            loading  ? 
+           <ActivityIndicator size="large" color="#185FED" style={{ marginTop: 20 }} />
+            :
             <FlatList
                 data={dados}
                 renderItem={(i) => renderItem(i)}
@@ -182,6 +258,10 @@ export const Setores = ({ navigation }: any) => {
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 showsVerticalScrollIndicator={false}
             />
+        }
+
+
+             
 
             {/* --- MODAL EDITAR --- */}
             <Modal

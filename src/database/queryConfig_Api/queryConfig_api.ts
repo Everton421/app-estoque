@@ -10,7 +10,8 @@ export const queryConfig_api = ()=>{
         porta: number,
         token: string
         data_sinc:string,
-        data_env:string
+        data_env:string,
+        offline: 'S' | 'N'
     }
 
     async function  select( codigo:number ):Promise<ApiConfig[] | undefined> {
@@ -33,7 +34,8 @@ export const queryConfig_api = ()=>{
                      porta = ${api.porta},
                      token = '${api.token}',
                      data_sinc = '${api.data_sinc}',
-                     data_env ='${api.data_env}'
+                     data_env ='${api.data_env}',
+                     offline = '${api.offline}'
                      where codigo = ${api.codigo}
                     ` )
             }catch(e){ console.log(`Erro ao tentar atualizar as configurações da api `, e)}
@@ -46,7 +48,8 @@ export const queryConfig_api = ()=>{
              porta?: number,
              token?: string
              data_sinc?:string,
-             data_env?:string
+             data_env?:string,
+             offline?: 'S' | 'N'
         }
     async function updateByParam( api:partialApiConf  ){
       
@@ -71,9 +74,16 @@ export const queryConfig_api = ()=>{
         params.push(' data_sinc = ? ')
         values.push(`${api.data_sinc}`)
     }
+
+    if(api.offline){
+        params.push(' offline = ? ');
+        values.push(`${api.offline}`);
+    }
+
     if(api.data_env){
         params.push(' data_env = ? ')
         values.push(`${api.data_env}`)
+        }
 
         let whereClause = ` WHERE codigo = ${api.codigo };`;
     if( params.length > 0 ){
@@ -84,7 +94,6 @@ export const queryConfig_api = ()=>{
            // console.log("SQL : ", finalSql, " VALUES : ",values)
          await db.runAsync( finalSql, values )
             }catch(e){ console.log(`Erro ao tentar atualizar as configurações da api `, e)}
-        }
 }
 
  async function create( api:ApiConfig ){
@@ -92,8 +101,8 @@ export const queryConfig_api = ()=>{
     try{
         let aux = await db.runAsync(
             `INSERT INTO api_config 
-            ( codigo, url, porta , token, data_sinc, data_env )
-             VALUES ( ${api.codigo}, ${api.porta}, '${api.token}','${api.url}','${api.data_sinc}' ,'${api.data_env}' ) 
+            ( codigo, url, porta , token, data_sinc, data_env, offline )
+             VALUES ( ${api.codigo}, ${api.porta}, '${api.token}','${api.url}','${api.data_sinc}' ,'${api.data_env}', '${api.offline}' ) 
             `)
             return aux;
     } catch ( e) { console.log(' erro ao cadastrar a configuracao da api ',e)} 

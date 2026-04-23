@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
-import { Text, FlatList, Image, Modal, TextInput, TouchableOpacity, View, StyleSheet } from "react-native";
-import { useClients } from "../../database/queryClientes/queryCliente";
-import Ionicons from '@expo/vector-icons/Ionicons';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { RenderItensClients } from "./components/renderItemsClients/RenderItensClients";
 import { FontAwesome5 } from "@expo/vector-icons";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CustomHeader } from "../../components/custom-header/custom-header";
+import { useClients } from "../../database/queryClientes/queryCliente";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import useApi from "../../services/api";
+import { ApiConfig } from "../../types/type-config-api";
+import { RenderItensClients } from "./components/renderItemsClients/RenderItensClients";
 // import { defaultColors } from "../../styles/global"; // Pode remover se não for usar em outros lugares
 
 export type client = {
     codigo: number,
-    id:string
+    id: string
     cnpj: string,
     nome: string,
     ie: string,
@@ -25,15 +27,55 @@ export function Clientes({ navigation }: any) {
 
     const [pesquisa, setPesquisa] = useState('');
     const [dados, setDados] = useState<client[]>([]);
-    const[cSelecionado, setcSelecionado] = useState<client>();
+    const [cSelecionado, setcSelecionado] = useState<client>();
     const [visible, setVisible] = useState(false);
     const [limitQuery, setLimitQuery] = useState(25); // Valor padrão inicial
-            const [ visibleModalFilter, setVisibleModalFilter] = useState(false);
+    const [visibleModalFilter, setVisibleModalFilter] = useState(false);
+    const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
+    const [isloadingDataClient, setIsLoadingDataClient] = useState(false);
+    const api = useApi();
+
+    const useQueryConfigApi = queryConfig_api();
 
     const useQueryClients = useClients();
 
+    async function getConfigMobileApi() {
+        try {
+            setIsLoadingDataClient(true)
+            const resultConfigMobileApi = await useQueryConfigApi.select(1);
+            if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                setConfigMobileApi(resultConfigMobileApi[0]);
+            }
+        } catch (e) {
+        } finally {
+            setIsLoadingDataClient(false)
+        }
+    }
+
     useEffect(() => {
-        async function filtrar() {
+        getConfigMobileApi();
+    }, [])
+
+    async function selecClientsInMobile() {
+            try {
+                setIsLoadingDataClient(true)
+                const responseCategorysproduct = await api.get('/categorias/search',
+                    {
+                        params: {
+                            limit: 25,
+                            search: pesquisa,
+                            ativo: 'S'
+                        }
+                    }
+                );
+                setDados(responseCategorysproduct?.data);
+            } catch (e) {
+                console.log("[X] Erro ao buscar categorias na api ", e)
+            } finally {
+                setIsLoadingDataClient(false)
+            }
+
+
             if (pesquisa !== '') {
                 let response: any = await useQueryClients.selectByDescription(pesquisa, limitQuery);
                 if (response.length > 0) {
@@ -47,20 +89,49 @@ export function Clientes({ navigation }: any) {
                     setDados(response)
                 }
             }
+   
+    }
+
+    async function getRequestClients(){
+
+        try{
+                    setIsLoadingDataClient(true)
+                    const responseCategorysproduct = await api.get('/clientes/search', 
+                        {
+                            params: { 
+                                limit: 25,
+                                search: pesquisa,
+                                ativo: 'S'
+                            }
+                        }
+                    );
+                      setDados(responseCategorysproduct?.data);
+                }catch(e){
+                    console.log( "[X] Erro ao buscar clientes na api ",e )
+                }finally{
+                    setIsLoadingDataClient(false)
+                }
+    }
+
+    useEffect(() => {
+        if (configMobileApi && configMobileApi.offline === 'N') {
+            getRequestClients()
+        } else {
+            selecClientsInMobile();
         }
-        filtrar();
-    }, [pesquisa, limitQuery])
+    }, [pesquisa,configMobileApi, limitQuery])
+
 
     function handleSelect(item: client) {
-          setcSelecionado(item);
-          setVisible(true);
+        setcSelecionado(item);
+        setVisible(true);
         //navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
     }
 
-      const FilterOption = ({ value, label }: { value: number, label: string }) => {
+    const FilterOption = ({ value, label }: { value: number, label: string }) => {
         const isSelected = limitQuery === value;
         return (
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.filterOption, isSelected && styles.filterOptionSelected]}
                 onPress={() => {
                     setLimitQuery(value);
@@ -76,19 +147,18 @@ export function Clientes({ navigation }: any) {
     }
 
 
-
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE', width: "100%" }}>
-            
-            <CustomHeader 
+
+            <CustomHeader
                 title="Clientes"
                 onBack={() => navigation.goBack()}
-                
+
                 showSearch={true}
                 searchValue={pesquisa}
                 onSearchChange={(value) => setPesquisa(value)}
                 searchPlaceholder="Pesquisar cliente..."
-                
+
                 showFilter={true}
                 onFilterPress={() => setVisibleModalFilter(true)} // Abre seu modal
             />
@@ -96,9 +166,9 @@ export function Clientes({ navigation }: any) {
             {/* --- MODAL DE DETALHES (Estilizado para o novo padrão) --- */}
             <Modal transparent={true} visible={visible} animationType="fade" onRequestClose={() => setVisible(false)}>
                 <View style={{ width: '100%', height: '100%', alignItems: "center", justifyContent: "center", backgroundColor: 'rgba(0,0,0, 0.5)' }}>
-                    
+
                     <View style={{ width: '90%', backgroundColor: '#F5F7FA', borderRadius: 16, overflow: 'hidden', elevation: 10, maxHeight: '80%' }}>
-                        
+
                         {/* Header do Modal */}
                         <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Detalhes do Cliente</Text>
@@ -116,7 +186,7 @@ export function Clientes({ navigation }: any) {
                                 <View style={{ flex: 1 }}>
                                     <Text style={{ fontWeight: "bold", fontSize: 18, color: '#333' }}>{cSelecionado?.nome}</Text>
                                     <Text style={{ color: '#185FED', fontWeight: 'bold', fontSize: 14 }}>Cód: {cSelecionado?.codigo}</Text>
-                                    <Text style={{ color: '#185FED', fontWeight: 'bold', fontSize: 14 }}>id: {cSelecionado?.id}</Text>
+                                    <Text style={{ color: '#185FED', fontWeight: 'bold', fontSize: 14, flex:1 }} numberOfLines={1} >id: {cSelecionado?.id}</Text>
                                 </View>
                             </View>
 
@@ -152,12 +222,12 @@ export function Clientes({ navigation }: any) {
                 onRequestClose={() => setVisibleModalFilter(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity 
-                        style={{flex:1, width:'100%'}} 
-                        activeOpacity={1} 
-                        onPress={() => setVisibleModalFilter(false)} 
+                    <TouchableOpacity
+                        style={{ flex: 1, width: '100%' }}
+                        activeOpacity={1}
+                        onPress={() => setVisibleModalFilter(false)}
                     />
-                    
+
                     <View style={styles.filterModalContent}>
                         <View style={styles.filterHeader}>
                             <Text style={styles.filterTitle}>Limite de Busca</Text>
@@ -165,7 +235,7 @@ export function Clientes({ navigation }: any) {
                                 <Ionicons name="close" size={24} color="#555" />
                             </TouchableOpacity>
                         </View>
-                        
+
                         <Text style={styles.filterSubtitle}>
                             Selecione quantos produtos exibir por vez:
                         </Text>
@@ -182,18 +252,24 @@ export function Clientes({ navigation }: any) {
                 </View>
             </Modal>
             {/* --- LISTA DE CLIENTES --- */}
-            <FlatList
-                data={dados}
-                renderItem={({ item }) => <RenderItensClients item={item}   handleSelect={handleSelect}/>}
-                keyExtractor={(i) => i.codigo.toString()}
-                contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={() => (
-                    <View style={{ alignItems: 'center', marginTop: 50 }}>
-                        <Text style={{ color: '#999', fontSize: 16 }}>Nenhum cliente encontrado.</Text>
-                    </View>
-                )}
-            />
+            {
+                isloadingDataClient ? 
+                <ActivityIndicator  size={50} color="#185FED" />
+            :
+                <FlatList
+                    data={dados}
+                    renderItem={({ item }) => <RenderItensClients item={item} handleSelect={handleSelect} />}
+                    keyExtractor={(i) => i.codigo.toString()}
+                    contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={() => (
+                        <View style={{ alignItems: 'center', marginTop: 50 }}>
+                            <Text style={{ color: '#999', fontSize: 16 }}>Nenhum cliente encontrado.</Text>
+                        </View>
+                    )}
+                />
+            }
+           
 
             {/* --- BOTÃO FLUTUANTE (FAB) --- */}
             <TouchableOpacity
@@ -213,9 +289,9 @@ export function Clientes({ navigation }: any) {
                     shadowOffset: { width: 0, height: 3 },
                     zIndex: 999
                 }}
-             //   onPress={() => {
-             //       navigation.navigate('cadastro_cliente')
-             //   }}
+            //   onPress={() => {
+            //       navigation.navigate('cadastro_cliente')
+            //   }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />
             </TouchableOpacity>
@@ -223,12 +299,12 @@ export function Clientes({ navigation }: any) {
         </View>
     )
 }
- const styles = StyleSheet.create({
+const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  filterOptionsContainer: {
+    filterOptionsContainer: {
         gap: 10,
     },
-     filterSubtitle: {
+    filterSubtitle: {
         fontSize: 13,
         color: '#777',
         marginBottom: 15,
@@ -242,7 +318,7 @@ export function Clientes({ navigation }: any) {
         // Centralizar na tela (já feito pelo modalOverlay, mas isso garante o card)
         position: 'absolute',
     },
-        filterHeader: {
+    filterHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -253,7 +329,7 @@ export function Clientes({ navigation }: any) {
         fontWeight: 'bold',
         color: '#333',
     },
-      filterText: {
+    filterText: {
         fontSize: 15,
         color: '#555',
         fontWeight: '500',
@@ -262,7 +338,7 @@ export function Clientes({ navigation }: any) {
         color: '#185FED',
         fontWeight: 'bold',
     },
-      filterOption: {
+    filterOption: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -277,4 +353,4 @@ export function Clientes({ navigation }: any) {
         backgroundColor: '#E3F2FD',
         borderColor: '#185FED',
     },
- })
+})
