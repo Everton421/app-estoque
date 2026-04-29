@@ -340,8 +340,8 @@ export const Configurações = ({ navigation }: any) => {
             <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
-                          onConfirm={  ()=> confirmAlertFunction()}
-                          onCancel={()=>cancelAlertFunction()}
+                          onConfirm={  ()=> setVisibleAlert(false)}
+                          onCancel={()=> setVisibleAlert(false)}
                           title={titleAlert}
                           type={typeAlert}
                           cancelText={cancelText}
