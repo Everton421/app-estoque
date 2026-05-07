@@ -185,8 +185,13 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         }
                     }
                 );
-                // setDados(responseProduct?.data);
-                console.log(responseApiOrder.data)
+                
+                if(responseApiOrder.status === 200 ){
+                      navigation.navigate('separacao', {
+                        codigo_pedido: code,
+                    });
+                }
+
             } catch (e) {
                 console.log("[X] Erro ao buscar pedidos na api ", e)
             } finally {
@@ -256,7 +261,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         data = filtroStatus.data_cadastro;
                     }
                     
-                let queryOrder = {   data_inicial: data, data_final:useMoment.dataAtual(),  situacao: situacao, search: '', limit:1000000 }
+                let queryOrder = {   data_inicial: data, data_final:useMoment.dataAtual(),  situacao: situacao, limit:1000000 }
                 if (pesquisa !== null && pesquisa !== '') queryOrder.search = pesquisa
                     console.log(queryOrder)
                 try {
@@ -322,10 +327,31 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
 
     async function selecionaOrcamentoModal(item: any) {
-        let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
-        setOrcamentoModal(aux);
+           if (configMobileApi && configMobileApi.offline === 'N') {
+              try {
+                     setIsLoadingOrderData(true)
+                    const responseApiOrder = await api.get(`/pedidos/${item.codigo}`,
+                      
+                    );
+                 
+            console.log(responseApiOrder.data)
+                       setOrcamentoModal(responseApiOrder.data);
+             
+                } catch (e) {
+                    console.log("[X] Erro ao buscar pedidos na api ", e)
+                } finally {
+                     setIsLoadingOrderData(false)
+                }
+
+           }else{
+              let resultCompleteOrder = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
+                 setOrcamentoModal(resultCompleteOrder);
+           }
+    
         setVisibleModal(true)
     }
+
+
 
     const getStatusParams = (situacao: string) => {
         switch (situacao) {
@@ -352,17 +378,20 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     async function postPedido(item: any) {
         try {
-            setVisiblePostPedido(true);
-            setLoadingPedidoId(item.codigo);
-            let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
-            useGetPedidos.getPedido(item.codigo);
-            let resultPostApi = await usePostPedidos.postItem([aux]);
+            if(configMobileApi && configMobileApi.offline === 'S'){
+                setVisiblePostPedido(true);
+                setLoadingPedidoId(item.codigo);
+                let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
+                useGetPedidos.getPedido(item.codigo);
+                let resultPostApi = await usePostPedidos.postItem([aux]);
 
-            if (resultPostApi.status === 200 && resultPostApi.data.results && resultPostApi.data.results.length > 0) {
-                setLoadingPedidoId(0);
-                setVisiblePostPedido(false);
-                busca();
-            }
+                if (resultPostApi.status === 200 && resultPostApi.data.results && resultPostApi.data.results.length > 0) {
+                    setLoadingPedidoId(0);
+                    setVisiblePostPedido(false);
+                    busca();
+                }
+            }  
+
         } catch (e) {
             console.log(e);
             Alert.alert('', `Algo de inesperado ocorreu ao processar o pedido: ${item.id}!`, [
@@ -455,7 +484,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         </TouchableOpacity>
 
                         {item.situacao === 'AI' && (
-                            <TouchableOpacity onPress={() => fyndOrderBycode(Number(pedido.codigo))} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                            <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                                 <Feather name="package" size={20} color="#185FED" />
                             </TouchableOpacity>
                         )}
@@ -484,7 +513,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                             //    </View>
                             //) : (
                             <TouchableOpacity
-                                onPress={() => postPedido(item)}
+                                onPress={() => postPedido(item)  }
                                 disabled={isSyncing}
                                 style={{
                                     padding: 8,

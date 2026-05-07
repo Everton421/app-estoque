@@ -622,7 +622,9 @@ vendedor : number
            order.servicos = servicesOrder
            return order
 
-        }catch(e){ `[X] erro ao consultar o pedido codigo: ${code}`}
+        }catch(e){ 
+         console.log (`[X] erro ao consultar o pedido codigo: ${code}`)
+        }
 
         }
 

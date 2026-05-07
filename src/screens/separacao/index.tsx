@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator } from "react-native";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
 import { AntDesign, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/custom-header/custom-header";
@@ -8,6 +8,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useItemsPedido } from "../../database/queryPedido/queryItems";
 import { configMoment } from "../../services/moment";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { ApiConfig } from "../../types/type-config-api";
+import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import useApi from "../../services/api";
+import { useFocusEffect } from "@react-navigation/native";
 
 export interface Cliente {
   bairro: string;
@@ -50,6 +54,11 @@ export interface Produto {
 
 export interface Pedido {
   cliente: Cliente;
+  cliente_info?: {
+    codigo : number,
+     nome :string  
+      },
+
   codigo: number;
   codigo_cliente: number;
   contato: string;
@@ -112,21 +121,30 @@ export const Separacao = ({ navigation, route }: any) => {
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
     const useMoment = configMoment();
 
-     const [ visibleAlert , setVisibleAlert ] = useState(false);
-     const [ messageAlert , setMessageAlert ] = useState<string>('');
-     const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+    const [ visibleAlert , setVisibleAlert ] = useState(false);
+    const [ messageAlert , setMessageAlert ] = useState<string>('');
+    const [ typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
     const [ titleAlert, setTitleAlert ] = useState<string>('');
+    const [ configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
+    const [ isloadingOrderData, setIsLoadingOrderData] = useState(false);
 
-    function handleCodeRead(data: string) {
-        setModalvisible(false);
-        fyndBarcode(data);
+    const api = useApi();
+
+    const useQueryConfigApi = queryConfig_api();
+
+        async function getConfigMobileApi() {
+        try {
+            setIsLoadingOrderData(true)
+            const resultConfigMobileApi = await useQueryConfigApi.select(1);
+            if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                setConfigMobileApi(resultConfigMobileApi[0]);
+            }
+        } catch (e) {
+        } finally {
+            setIsLoadingOrderData(true)
+        }
     }
-
-    async function fyndBarcode(codigo: string) {
-        handleUpdateQuantityByCodeRead(Number(codigo), 1, 9999);
-    }
-
-    async function getDefaultConfig() {
+  async function getDefaultConfig() {
         try {
             let value: any = await AsyncStorage.getItem('configProduto');
             if (value !== null) {
@@ -136,11 +154,13 @@ export const Separacao = ({ navigation, route }: any) => {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
     }
+     useEffect(() => {
+         getConfigMobileApi();
+     }, [])
 
-    useEffect(() => {
-        getDefaultConfig();
 
-        async function busca() {
+
+             async function findOrderMobileDatabase() {
             if (codigo_pedido !== undefined) {
                 let orderData = await useQuerypedidos.selectCompleteOrderByCode(codigo_pedido) as Pedido;
                 if (!orderData) {
@@ -162,8 +182,68 @@ export const Separacao = ({ navigation, route }: any) => {
                 }
             }
         }
-        busca();
+
+        async function findOrderApi(){
+             try {
+                setIsLoadingOrderData(true)
+                const responseApiOrder = await api.get(`/pedidos/${codigo_pedido}` );
+                console.log(responseApiOrder.data)
+                    const orderData = responseApiOrder.data
+                    if (!orderData) {
+                        setVisibleAlert(true)
+                        setMessageAlert(`Não foi possivel localizar o pedido ${codigo_pedido}.`)
+                        setTypeAlert('error') 
+                        setTitleAlert("Erro")
+                        return
+                    }
+
+                  setData(responseApiOrder.data);
+                       if (orderData.produtos) {
+                            const produtosIniciais = orderData.produtos.map(p => ({
+                                ...p,
+                                quantidade_separada: p.quantidade_separada || 0 
+                            }));
+                            setListaSeparacao(produtosIniciais);
+                        }
+
+            } catch (e) {
+                console.log(`[X] Erro ao buscar pedido ${codigo_pedido} da api `, e)
+
+            } finally {
+                setIsLoadingOrderData(false)
+            }
+        }
+
+
+
+         useEffect(() => {
+            if (configMobileApi && configMobileApi.offline === 'N') {
+                findOrderApi()
+            }else{
+                //findOrderMobileDatabase();
+            }
     }, [codigo_pedido, navigation]);
+
+     useFocusEffect(
+            useCallback(() => {
+                getDefaultConfig();
+            }, [navigation])
+        );
+    
+
+    function handleCodeRead(data: string) {
+        setModalvisible(false);
+        fyndBarcode(data);
+    }
+
+    async function fyndBarcode(codigo: string) {
+        handleUpdateQuantityByCodeRead(Number(codigo), 1, 9999);
+    }
+
+  
+
+
+
 
     const handleUpdateQuantity = (codigo: number, newQuantity: number, maxQuantity: number) => {
         if (newQuantity < 0) newQuantity = 0;
@@ -273,7 +353,7 @@ export const Separacao = ({ navigation, route }: any) => {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                        { item.id && 
-                            <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
+                            <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold', flex:1 }} numberOfLines={1}>Id: {item.id}</Text>
                        }
                        {
                            item.id === 0  && 
@@ -309,7 +389,7 @@ export const Separacao = ({ navigation, route }: any) => {
                         <View style={{ minWidth: 40, borderBottomWidth: 2, borderBottomColor: concluido ? '#4CAF50' : '#185FED', alignItems: 'center' }}>
                             <TextInput
                                 style={{ fontSize: 20, fontWeight: 'bold', color: concluido ? '#4CAF50' : '#185FED', textAlign: 'center', paddingVertical: 0 }}
-                                value={String(quantidadeSeparada)}
+                                value={String(Number(quantidadeSeparada) )}
                                 onChangeText={(text) => {
                                     const num = Number(text.replace(/[^0-9]/g, ''));
                                     handleUpdateQuantity(item.codigo, num, item.quantidade);
@@ -345,96 +425,108 @@ export const Separacao = ({ navigation, route }: any) => {
                 title="Separação" 
                 onBack={() => navigation.goBack()} 
             />
+              
+                              
 
-            {data && (
-                <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15, marginBottom: 15, padding: 15, elevation: 2 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      
-                        <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
-                             <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
-                                 Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext:  {data.id_externo ? data.id_externo : '' } </Text> 
-                              </Text>
+            {
+            isloadingOrderData ? 
+              (
+                                    <View style={{ flex: 1, alignItems: "center", justifyContent: 'center' }}>
+                                        <ActivityIndicator color='#185FED' size={50} />
+                                    </View>
+                                )
+            : 
+           data && !isloadingOrderData &&(
+            <>
+                    <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15, marginBottom: 15, padding: 15, elevation: 2 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        
+                            <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
+                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+                                    Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext:  {data.id_externo ? data.id_externo : '' } </Text> 
+                                </Text>
+                        </View>
+                                    
+                        <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                            <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {data.nome || data.cliente_info?.nome}
+                        </Text>
+                            {data.contato ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                    <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
+                                    <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{data.contato}</Text>
+                                </View>
+                            ) : <View style={{ marginBottom: 8 }} />}
+
+                        <Text style={{ fontSize: 14, color: '#666' }}>
+                            <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
+                        </Text>
                     </View>
-                                
-                    <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-                        <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {data.nome}
-                    </Text>
-                        {data.contato ? (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                                <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
-                                <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{data.contato}</Text>
-                            </View>
-                        ) : <View style={{ marginBottom: 8 }} />}
+                    
 
-                    <Text style={{ fontSize: 14, color: '#666' }}>
-                        <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
-                    </Text>
+                <FlatList
+                    data={listaSeparacao}
+                    renderItem={renderProduto}
+                    keyExtractor={(item) => item.codigo.toString()}
+                    contentContainerStyle={{ paddingBottom: 100 }} 
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={() => (
+                        <View style={{ alignItems: 'center', marginTop: 50 }}>
+                            <MaterialCommunityIcons name="package-variant-closed" size={50} color="#BDBDBD" />
+                            <Text style={{ color: '#999', fontSize: 16, marginTop: 10 }}>Nenhum produto neste pedido.</Text>
+                        </View>
+                    )}
+                />
+
+                {/* BOTÃO FIXO NO RODAPÉ */}
+                <View style={{ 
+                    position: 'absolute', 
+                    bottom: 0, left: 0, right: 0, 
+                    backgroundColor: '#FFF', 
+                    padding: 15, 
+                    elevation: 10, 
+                    borderTopWidth: 1, 
+                    borderTopColor: '#E0E0E0' 
+                }}>
+                    <TouchableOpacity
+                        style={{ 
+                            backgroundColor: '#185FED', 
+                            borderRadius: 12, 
+                            paddingVertical: 15, 
+                            flexDirection: 'row', 
+                            justifyContent: 'center', 
+                            alignItems: 'center', 
+                            gap: 10 
+                        }}
+                        onPress={saveOrder}
+                    >
+                        <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>
+                    </TouchableOpacity>
                 </View>
-            )}
 
-            <FlatList
-                data={listaSeparacao}
-                renderItem={renderProduto}
-                keyExtractor={(item) => item.codigo.toString()}
-                contentContainerStyle={{ paddingBottom: 100 }} 
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={() => (
-                    <View style={{ alignItems: 'center', marginTop: 50 }}>
-                        <MaterialCommunityIcons name="package-variant-closed" size={50} color="#BDBDBD" />
-                        <Text style={{ color: '#999', fontSize: 16, marginTop: 10 }}>Nenhum produto neste pedido.</Text>
-                    </View>
-                )}
-            />
-
-            {/* BOTÃO FIXO NO RODAPÉ */}
-            <View style={{ 
-                position: 'absolute', 
-                bottom: 0, left: 0, right: 0, 
-                backgroundColor: '#FFF', 
-                padding: 15, 
-                elevation: 10, 
-                borderTopWidth: 1, 
-                borderTopColor: '#E0E0E0' 
-            }}>
+                {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
                 <TouchableOpacity
-                    style={{ 
-                        backgroundColor: '#185FED', 
-                        borderRadius: 12, 
-                        paddingVertical: 15, 
-                        flexDirection: 'row', 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        gap: 10 
+                    onPress={() => { setModalvisible(true) }}
+                    style={{
+                        backgroundColor: '#185FED',
+                        width: 56, height: 56,
+                        borderRadius: 28,
+                        position: "absolute",
+                        elevation: 6,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.3,
+                        right: 20,
+                        bottom: 90, 
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 99
                     }}
-                    onPress={saveOrder}
                 >
-                    <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
-                    <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>
+                    <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
                 </TouchableOpacity>
-            </View>
-
-            {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
-            <TouchableOpacity
-                onPress={() => { setModalvisible(true) }}
-                style={{
-                    backgroundColor: '#185FED',
-                    width: 56, height: 56,
-                    borderRadius: 28,
-                    position: "absolute",
-                    elevation: 6,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.3,
-                    right: 20,
-                    bottom: 90, 
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 99
-                }}
-            >
-                <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-            </TouchableOpacity>
-
+            </>
+            )}
             {/* MODAL CÂMERA */}
             <Modal visible={modalVisible} animationType="slide">
                 <CameraView

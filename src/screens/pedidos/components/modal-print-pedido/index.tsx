@@ -41,11 +41,11 @@ const ProdutoItem = ({ item }) => {
     return (
         <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.descricao}</Text>
-            <Text style={styles.cardSubtitle}>Código: {item.codigo}</Text>
+            <Text style={styles.cardSubtitle}>Código: {item?.codigo}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Qtd: {item.quantidade}</Text>
-                <Text style={styles.detailText}>Unit.: R$ {item.preco.toFixed(2)}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {item.total.toFixed(2)}</Text>
+                <Text style={styles.detailText}>Unit.: R$ {Number(item.preco)?.toFixed(2)}</Text>
+                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {Number(item.total)?.toFixed(2)}</Text>
             </View>
         </View>
     );
@@ -55,11 +55,11 @@ const ServicoItem = ({ item }) => {
     return (
         <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.aplicacao}</Text>
-            <Text style={styles.cardSubtitle}>Código: {item.codigo}</Text>
+            <Text style={styles.cardSubtitle}>Código: {item?.codigo}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Qtd: {item.quantidade}</Text>
-                <Text style={styles.detailText}>Unit.: R$ {item.valor.toFixed(2)}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {item.total.toFixed(2)}</Text>
+                <Text style={styles.detailText}>Unit.: R$ {Number(item.valor)?.toFixed(2)}</Text>
+                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {Number(item.total)?.toFixed(2)}</Text>
             </View>
         </View>
     );
@@ -71,7 +71,7 @@ const ParcelaItem = ({ item }) => {
             <Text style={styles.cardTitle}>Parcela {item.parcela}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Vencimento: {item.vencimento}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Valor: R$ {item.valor.toFixed(2)}</Text>
+                <Text style={[styles.detailText, styles.totalText]}>Valor: R$ {Number(item.valor)?.toFixed(2)}</Text>
             </View>
         </View>
     );
@@ -183,7 +183,7 @@ const compartilharProduto = async () => {
                     <View style={styles.header}>
                         <View>
                             <Text style={styles.headerTitle}>{getTipoOrcamento()}</Text>
-                            <Text style={styles.headerSubtitle}>ID Externo: {orcamento.id_externo || 'N/A'}</Text>
+                            <Text style={styles.headerSubtitle}>ID Externo: {orcamento?.id_externo || 'N/A'}</Text>
                         </View>
                         <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
                             <Ionicons name="close" size={28} color={COLORS.darkGray} />
@@ -195,18 +195,18 @@ const compartilharProduto = async () => {
                         <View style={styles.section}>
                             <InfoRow label="Data Cadastro:" value={  new Date(orcamento?.data_cadastro).toLocaleString("pt-br", {    year: "numeric", month: "short", day: "numeric"  }) } />
 
-                            <InfoRow label="Cliente:" value={`${orcamento.cliente.codigo} - ${orcamento.cliente.nome}`} />
+                            <InfoRow label="Cliente:" value={`${orcamento.cliente?.codigo || orcamento.cliente_info?.codigo} - ${orcamento.cliente?.nome || orcamento.cliente_info?.nome }`} />
                             <InfoRow label="Última alteração::" value={   new Date(orcamento?.data_recadastro).toLocaleTimeString("pt-br", { month: "short", day: "numeric"  })   } />
                         </View>
 
                         {/* Totais */}
                         <View style={styles.section}>
                             <View style={styles.totalsContainer}>
-                                <InfoRow label="Total Produtos:" value={`R$ ${orcamento.total_produtos?.toFixed(2) || '0.00'}`} />
-                                <InfoRow label="Total Serviços:" value={`R$ ${orcamento.total_servicos?.toFixed(2) || '0.00'}`} />
-                                <InfoRow label="Descontos:" value={`R$ ${orcamento.descontos?.toFixed(2) || '0.00'}`} />
+                                <InfoRow label="Total Produtos:" value={`R$ ${ Number(orcamento?.total_produtos)?.toFixed(2) || '0.00'}`} />
+                                <InfoRow label="Total Serviços:" value={`R$ ${Number(orcamento?.total_servicos)?.toFixed(2) || '0.00'}`} />
+                                <InfoRow label="Descontos:" value={`R$ ${Number(orcamento?.descontos)?.toFixed(2) || '0.00'}`} />
                                 <View style={styles.divider} />
-                                <InfoRow label="Total Geral:" value={`R$ ${orcamento.total_geral?.toFixed(2) || '0.00'}`} />
+                                <InfoRow label="Total Geral:" value={`R$ ${Number(orcamento?.total_geral)?.toFixed(2) || '0.00'}`} />
                             </View>
                         </View>
                         
@@ -217,7 +217,7 @@ const compartilharProduto = async () => {
                                 <FlatList
                                     data={orcamento.produtos}
                                     renderItem={({ item }) => <ProdutoItem item={item} />}
-                                    keyExtractor={(item) => item.codigo.toString()}
+                                    keyExtractor={(item) => item.codigo?.toString()}
                                     scrollEnabled={false} // Desabilita o scroll da FlatList interna
                                 />
                             </View>
@@ -230,7 +230,7 @@ const compartilharProduto = async () => {
                                 <FlatList
                                     data={orcamento.servicos}
                                     renderItem={({ item }) => <ServicoItem item={item} />}
-                                    keyExtractor={(item) => item.codigo.toString()}
+                                    keyExtractor={(item) => item.codigo?.toString()}
                                     scrollEnabled={false}
                                 />
                             </View>
