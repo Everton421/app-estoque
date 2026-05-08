@@ -132,16 +132,17 @@ export const Separacao = ({ navigation, route }: any) => {
 
     const useQueryConfigApi = queryConfig_api();
 
-        async function getConfigMobileApi() {
+        async function getConfigMobileApi() :Promise<ApiConfig | undefined>{
         try {
             setIsLoadingOrderData(true)
             const resultConfigMobileApi = await useQueryConfigApi.select(1);
             if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
                 setConfigMobileApi(resultConfigMobileApi[0]);
+                   return resultConfigMobileApi[0] as ApiConfig ;
             }
         } catch (e) {
         } finally {
-            setIsLoadingOrderData(true)
+            setIsLoadingOrderData(false)
         }
     }
   async function getDefaultConfig() {
@@ -187,7 +188,6 @@ export const Separacao = ({ navigation, route }: any) => {
              try {
                 setIsLoadingOrderData(true)
                 const responseApiOrder = await api.get(`/pedidos/${codigo_pedido}` );
-                console.log(responseApiOrder.data)
                     const orderData = responseApiOrder.data
                     if (!orderData) {
                         setVisibleAlert(true)
@@ -216,12 +216,16 @@ export const Separacao = ({ navigation, route }: any) => {
 
 
 
-         useEffect(() => {
-            if (configMobileApi && configMobileApi.offline === 'N') {
-                findOrderApi()
-            }else{
-                //findOrderMobileDatabase();
+        useEffect(() => {
+            async function loadConfigAndOrder() {
+                const config = await getConfigMobileApi();
+                if (config?.offline === 'S') {
+                    await findOrderMobileDatabase();
+                } else {
+                    await findOrderApi();
+                }
             }
+            loadConfigAndOrder();
     }, [codigo_pedido, navigation]);
 
      useFocusEffect(
@@ -278,7 +282,7 @@ export const Separacao = ({ navigation, route }: any) => {
     };
 
     // --- NOVA LÓGICA DE SALVAMENTO ---
-    async function saveOrder() {
+    async function saveOrderMobile() {
         let qtdTotalPedida = 0;
         let qtdTotalSeparada = 0;
 
@@ -322,6 +326,71 @@ export const Separacao = ({ navigation, route }: any) => {
                     return
         }
     }
+
+
+        async function saveOrderApi() {
+            let qtdTotalPedida = 0;
+            let qtdTotalSeparada = 0;
+
+            try {
+                const produtosAtualizados = data!.produtos.map(p => {
+                    const itemSeparado = listaSeparacao.find(ls => ls.codigo === p.codigo);
+                    const quantity = itemSeparado?.quantidade_separada ?? 0;
+                    qtdTotalPedida += p.quantidade;
+                    qtdTotalSeparada += quantity;
+                    return { ...p, quantidade_separada: quantity };
+                });
+
+                let situacao_separacao: 'I' | 'N' | 'P' = 'N';
+                if (qtdTotalSeparada === 0) {
+                    situacao_separacao = 'N';
+                } else if (qtdTotalSeparada >= qtdTotalPedida) {
+                    situacao_separacao = 'I';
+                } else {
+                    situacao_separacao = 'P';
+                }
+
+                const payload = {
+                    ...data,
+                    situacao_separacao,
+                    produtos: produtosAtualizados,
+                    cliente: { codigo: data.cliente_info.codigo}
+                };
+                delete payload.cliente_info;
+
+
+                console.log(payload)
+                const response = await api.post('/pedidos', [payload]);
+
+                if (response.status === 201 && response.data?.results) {
+                   // for (const p of listaSeparacao) {
+                   //     const quantity = p.quantidade_separada ?? 0;
+                   //     await useQueryItems.updatByParam({ quantidade_separada: quantity }, p.codigo, codigo_pedido);
+                   // }
+                    //
+                   // await useQuerypedidos.newUpdate({
+                   //     enviado: 'S',
+                   //     situacao_separacao,
+                   //     data_recadastro: useMoment.dataHoraAtual()
+                   // }, codigo_pedido);
+
+                    setVisibleAlert(true);
+                    setMessageAlert("Separação salva com sucesso!");
+                    setTypeAlert('success');
+                    setTitleAlert("Sucesso");
+                } else {
+                    throw new Error('Resposta inválida da API');
+                }
+                 
+            } catch (e) {
+                console.log("erro ao salvar a separação na api", e);
+                setVisibleAlert(true);
+                setMessageAlert("Ocorreu um problema ao enviar a separação para a API.");
+                setTypeAlert('error');
+                setTitleAlert("Erro");
+            }
+    }
+
 
     const renderProduto = ({ item }: { item: resultOrderItens }) => {
         const quantidadeSeparada = item.quantidade_separada || 0;
@@ -497,7 +566,7 @@ export const Separacao = ({ navigation, route }: any) => {
                             alignItems: 'center', 
                             gap: 10 
                         }}
-                        onPress={saveOrder}
+                        onPress={configMobileApi?.offline === 'S' ? saveOrderMobile : saveOrderApi}
                     >
                         <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
                         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>

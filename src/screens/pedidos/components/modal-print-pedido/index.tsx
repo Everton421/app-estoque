@@ -182,12 +182,14 @@ const compartilharProduto = async () => {
                     {/* Cabeçalho do Modal */}
                     <View style={styles.header}>
                         <View>
-                            <Text style={styles.headerTitle}>{getTipoOrcamento()}</Text>
-                            <Text style={styles.headerSubtitle}>ID Externo: {orcamento?.id_externo || 'N/A'}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
+                              <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
                             <Ionicons name="close" size={28} color={COLORS.darkGray} />
                         </TouchableOpacity>
+                            <Text style={styles.headerTitle} numberOfLines={1} >{getTipoOrcamento()}</Text>
+                            <Text style={  styles.headerSubtitle  } numberOfLines={1} >ID Externo: {orcamento?.id_externo || 'N/A'}</Text>
+                      
+                        </View>
+
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
@@ -292,6 +294,7 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 14,
         color: COLORS.darkGray,
+        flex:1
     },
     closeButton: {
         padding: SIZES.base / 2,
