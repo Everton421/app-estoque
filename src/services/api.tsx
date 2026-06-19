@@ -8,7 +8,7 @@ const useApi = () => {
 
     const api = axios.create({
         
-        baseURL: "http://100.120.164.10:3000", 
+        baseURL: "https://dev.intersig.com.br:3000", 
 
         timeout: 10000, // 10 segundos de limite
     });

@@ -218,7 +218,11 @@ export const Home = ({ navigation }: any) => {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
     },
-
+    {
+      "nome": "compras",
+      "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
+    },
+    
     {
       "nome": "usuarios",
       "icon": <FontAwesome name="users" size={24} color="#185FED" />

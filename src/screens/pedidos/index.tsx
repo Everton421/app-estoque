@@ -116,7 +116,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             }
         } catch (e) {
         } finally {
-            setIsLoadingOrderData(true)
+            setIsLoadingOrderData(false)
         }
     }
 
@@ -145,31 +145,68 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             setTypeAlert('warning')
             return
         }
-        let resultOrder;
-        try {
-            setIsLoadingOrderData(true)
-            resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido, value: String(codeScanned) })
-        } catch (e) {
-        } finally {
-            setIsLoadingOrderData(false)
-        }
-        if (resultOrder && resultOrder?.length > 0) {
-            if (resultOrder[0].situacao === 'FI') {
-                setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
+
+        if (configMobileApi && configMobileApi.offline === 'N') {
+            try {
+                setIsLoadingOrderData(true)
+                const responseApiOrder = await api.get('/pedidos',
+                    {
+                        params: {
+                            [configLeitorPedido]: codeScanned,
+                        }
+                    }
+                );
+                if (responseApiOrder.status === 200 && responseApiOrder.data?.length > 0) {
+                    let order = responseApiOrder.data[0];
+                    if (order.situacao === 'FI') {
+                        setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
+                        setVisibleAlert(true)
+                        setTypeAlert('warning')
+                    } else {
+                        navigation.navigate('separacao', {
+                            codigo_pedido: order.codigo,
+                        });
+                    }
+                } else {
+                    setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
+                    setVisibleAlert(true)
+                    setTypeAlert('error')
+                }
+            } catch (e) {
+                console.log("[X] Erro ao buscar pedido por código de barras na api ", e)
+                setMessageAlert(`Erro ao buscar pedido ${codeScanned} na API.`)
                 setVisibleAlert(true)
-                setTypeAlert('warning')
-            } else {
-
-                navigation.navigate('separacao', {
-                    codigo_pedido: resultOrder[0].codigo,
-                });
+                setTypeAlert('error')
+            } finally {
+                setIsLoadingOrderData(false)
             }
-
         } else {
-            setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
-            setVisibleAlert(true)
-            setTypeAlert('error')
-            return
+            let resultOrder;
+            try {
+                setIsLoadingOrderData(true)
+                resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido, value: String(codeScanned) })
+            } catch (e) {
+            } finally {
+                setIsLoadingOrderData(false)
+            }
+            if (resultOrder && resultOrder?.length > 0) {
+                if (resultOrder[0].situacao === 'FI') {
+                    setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
+                    setVisibleAlert(true)
+                    setTypeAlert('warning')
+                } else {
+
+                    navigation.navigate('separacao', {
+                        codigo_pedido: resultOrder[0].codigo,
+                    });
+                }
+
+            } else {
+                setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
+                setVisibleAlert(true)
+                setTypeAlert('error')
+                return
+            }
         }
     }
 
@@ -314,7 +351,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     useEffect(() => {
         busca()
-    }, [data_cadastro, statusPedido, pesquisa, navigation])
+    }, [data_cadastro, statusPedido, pesquisa, navigation, configMobileApi])
 
     useFocusEffect(
         useCallback(() => {

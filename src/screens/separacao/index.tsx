@@ -161,7 +161,7 @@ export const Separacao = ({ navigation, route }: any) => {
 
 
 
-             async function findOrderMobileDatabase() {
+        async function findOrderMobileDatabase() {
             if (codigo_pedido !== undefined) {
                 let orderData = await useQuerypedidos.selectCompleteOrderByCode(codigo_pedido) as Pedido;
                 if (!orderData) {
@@ -177,7 +177,8 @@ export const Separacao = ({ navigation, route }: any) => {
                 if (orderData.produtos) {
                     const produtosIniciais = orderData.produtos.map(p => ({
                         ...p,
-                        quantidade_separada: p.quantidade_separada || 0 
+                        quantidade: Number(p.quantidade) || 0,
+                        quantidade_separada: Math.round(Number(p.quantidade_separada) || 0)
                     }));
                     setListaSeparacao(produtosIniciais);
                 }
@@ -201,7 +202,8 @@ export const Separacao = ({ navigation, route }: any) => {
                        if (orderData.produtos) {
                             const produtosIniciais = orderData.produtos.map(p => ({
                                 ...p,
-                                quantidade_separada: p.quantidade_separada || 0 
+                                quantidade: Number(p.quantidade) || 0,
+                                quantidade_separada: Math.round(Number(p.quantidade_separada) || 0)
                             }));
                             setListaSeparacao(produtosIniciais);
                         }
@@ -250,11 +252,12 @@ export const Separacao = ({ navigation, route }: any) => {
 
 
     const handleUpdateQuantity = (codigo: number, newQuantity: number, maxQuantity: number) => {
-        if (newQuantity < 0) newQuantity = 0;
-        if (newQuantity > maxQuantity) newQuantity = maxQuantity; 
+        let newQty = Math.round(Number(newQuantity));
+        if (newQty < 0) newQty = 0;
+        if (newQty > maxQuantity) newQty = maxQuantity; 
 
         setListaSeparacao(prev => prev.map(p => 
-            p.codigo === codigo ? { ...p, quantidade_separada: newQuantity } : p
+            p.codigo === codigo ? { ...p, quantidade_separada: newQty } : p
         ));
     };
     
@@ -269,8 +272,7 @@ export const Separacao = ({ navigation, route }: any) => {
         });
 
         if (targetProduct) {
-            // Se já tiver algo separado, soma 1. Senão, inicia com 1.
-            let qtdAtual = targetProduct.quantidade_separada || 0;
+            let qtdAtual = Math.round(Number(targetProduct.quantidade_separada) || 0);
             let novaQtd = qtdAtual + 1;
 
             if (novaQtd > targetProduct.quantidade) novaQtd = targetProduct.quantidade; // Limita à quantidade do pedido
@@ -354,8 +356,14 @@ export const Separacao = ({ navigation, route }: any) => {
                     ...data,
                     situacao_separacao,
                     produtos: produtosAtualizados,
-                    cliente: { codigo: data.cliente_info.codigo}
+                    data_recadastro: useMoment.dataHoraAtual(),
+                    cliente: { codigo: data.cliente_info.codigo},
+                    observacoes2: '',
+                    just_ipi:'',
+                    just_icms:'',
+                    just_subst:""
                 };
+
                 delete payload.cliente_info;
 
 
@@ -363,6 +371,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 const response = await api.post('/pedidos', [payload]);
 
                 if (response.status === 201 && response.data?.results) {
+                    console.log(response.data)
                    // for (const p of listaSeparacao) {
                    //     const quantity = p.quantidade_separada ?? 0;
                    //     await useQueryItems.updatByParam({ quantidade_separada: quantity }, p.codigo, codigo_pedido);
