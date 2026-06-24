@@ -29,7 +29,7 @@ export const useSyncFotos = ()=>{
                    setIsLoading(true)
 
                         try {
-                        const aux = await api.get('/offline/fotos',
+                        const aux = await api.get('/fotos',
                             { params :{ data_recadastro : data}}
                         );
                         const dados = aux.data;

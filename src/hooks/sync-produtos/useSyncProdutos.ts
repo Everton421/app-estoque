@@ -34,7 +34,7 @@ export const useSyncProdutos = ()=>{
                 
                 try {
                     
-                        const aux = await api.get('/offline/produtos',  { 
+                        const aux = await api.get('/bulk/produtos',  { 
                             params :{ data_recadastro : data}
                         } );
                         const dados = aux.data;

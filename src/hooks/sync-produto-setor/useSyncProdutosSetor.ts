@@ -25,7 +25,7 @@ setProgress: React.Dispatch<React.SetStateAction<number>>
           setIsLoading(true)
           try {
 
-            const aux = await api.get('/offline/produto_setor',
+            const aux = await api.get('/bulk/produto-setor',
               { params :{ data_recadastro : data}}
             );
             const dados = aux.data;

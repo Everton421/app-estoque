@@ -214,23 +214,24 @@ export const Home = ({ navigation }: any) => {
       "nome": "vendas",
       "icon": <MaterialCommunityIcons name="cart-variant" size={30} color={defaultColors.darkBlue} />
     },
+      {
+      "nome": "compras",
+      "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
+    },
     {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
     },
+   
     {
-      "nome": "compras",
-      "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
+      "nome": "ajustes",
+      "icon": <FontAwesome5 name="sync-alt" size={24} color="#185FED" />
     },
-    
     {
       "nome": "usuarios",
       "icon": <FontAwesome name="users" size={24} color="#185FED" />
     },
-    {
-      "nome": "ajustes",
-      "icon": <FontAwesome5 name="sync-alt" size={24} color="#185FED" />
-    }
+    
   ];
 
   const Item = ({ value }: any) => {

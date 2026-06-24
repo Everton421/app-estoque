@@ -28,7 +28,7 @@ export const useSyncCategorias = ()=>{
                    setIsLoading(true)
 
                       try {
-                                const aux = await api.get('/offline/categorias',
+                                const aux = await api.get('/bulk/categorias',
                                     { params :{ data_recadastro : data}}
                                 );
                                 //console.log("request categorias ", aux.data )

@@ -25,7 +25,7 @@ export const useSyncMarcas = ()=>{
                    setIsLoading(true)
 
                         try {
-                        const aux = await api.get('/offline/marcas',
+                        const aux = await api.get('/bulk/marcas',
                             { params :{ data_recadastro : data}}
 
                         );

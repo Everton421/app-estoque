@@ -44,7 +44,7 @@ export const useSyncClients = ()=>{
                 
                 try {
                     
-                        const resultApiData = await api.get('/offline/clientes',  { 
+                        const resultApiData = await api.get('/bulk/clientes',  { 
                             params :{
                                  data_recadastro : data,
                                 }

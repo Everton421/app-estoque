@@ -259,7 +259,7 @@ export const Configurações = ({ navigation }: any) => {
     }
 
     async function  partialUpdateConfigMobileApi( { isOffline }:{ isOffline: "S" | "N"} ){
-         await useQueryConfigApi.updateByParam({ offline: isOffline, codigo: 1});   
+         await useQueryConfigApi.updateByParam({ offline: isOffline, codigo: 1, data_sinc:'2000-01-01'});   
             setVisibleAlertUpdateConfigApi(false)
     }
 
@@ -350,9 +350,9 @@ export const Configurações = ({ navigation }: any) => {
                           />
                    <CustomAlert 
                           visible={visibleAlertUpdateConfigApi}
-                          message={"Ao selecionar esta opção será necessario fazer um sincronização dos dados, confirma esta operação ? "}
+                          message={"Ao confirmar esta opção será necessario fazer um sincronização dos dados, confirma esta operação ? "}
                           onConfirm={  ()=> partialUpdateConfigMobileApi({ isOffline: 'S' })}
-                          onCancel={()=> partialUpdateConfigMobileApi({ isOffline: 'S' })}
+                          onCancel={()=> partialUpdateConfigMobileApi({ isOffline: 'N' })}
                           title={"Atenção"}
                           type={"warning"}
                           cancelText={"Não"}

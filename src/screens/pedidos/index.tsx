@@ -42,7 +42,7 @@ export type pedido = {
     data_recadastro: string,
     veiculo: number,
     tipo_os: number,
-    tipo: number,
+    tipo: 1 | 2 | 3 | 4 | 5 | 6, // 6 = (pedido de compra );  1 = Orçamento (gerado no sistema); 2 = Orçamento (gerado fora do sistema); 3 = Ordem de Serviço; 4 = Contrato de Prestação de Serviços; 5 = Devolução
     contato: string
 }
 
@@ -218,7 +218,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 const responseApiOrder = await api.get('/pedidos',
                     {
                         params: {
-                            codigo: code,
+                            [configLeitorPedido]: code,
                         }
                     }
                 );
@@ -298,16 +298,15 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         data = filtroStatus.data_cadastro;
                     }
                     
-                let queryOrder = {   data_inicial: data, data_final:useMoment.dataAtual(),  situacao: situacao, limit:1000000 }
+                let queryOrder = { tipo: tipo ,  data_inicial: data, data_final:useMoment.dataAtual(),  situacao: situacao, limit:1000000 , search:'' }
                 if (pesquisa !== null && pesquisa !== '') queryOrder.search = pesquisa
                     console.log(queryOrder)
                 try {
                     setIsLoadingOrderData(true)
                     const responseApiOrder = await api.get('/pedidos',
                         {
-                            params: {
-                                queryOrder
-                            }
+                            params:   queryOrder
+                             
                         }
                     );
                            setOrcamentosRegistrados(responseApiOrder.data);
@@ -358,8 +357,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             busca();
             getDefaultConfig();
 
-        }, [navigation])
-    );
+        }, [navigation]));
 
 
 
@@ -485,10 +483,19 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         </View>
                     </View>
                 </View>
-
+                {
+                    pedido.operacao == 'V' ? 
+                    (
                 <Text style={{ fontSize: 16, fontWeight: "bold", color: '#333', marginBottom: 2 }} numberOfLines={1}>
-                    {item?.nome || item.cliente_info.nome}
+                    {item?.cliente?.nome }
                 </Text>
+                    ):(
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: '#333', marginBottom: 2 }} numberOfLines={1}>
+                    {item?.fornecedor?.nome  }
+                </Text>
+                    )
+                }
+              
 
                 {item.contato ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
@@ -576,6 +583,32 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         )
     }
 
+    function switchTipoOrder(tipo:number){
+        switch ( tipo ) {
+            case 1:
+                 return 'Pedidos';       
+             break;
+            case 2: 
+                return 'Pedidos';       
+             break;
+             case 3 : 
+                return 'OS';
+             break;
+            case 4 : 
+               return 'Contratos';
+            break;
+            case 5 : 
+               return 'Devolução';
+            break;
+            case 6 : 
+               return 'Ordem de Compra';
+            break;
+
+            default: return 'Pedidos'
+                break;
+        }
+    }
+
     if (!permission) return null;
 
     if (modalVisible && !permission.granted) {
@@ -600,7 +633,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 type={typeAlert}
             />
             <CustomHeader
-                title={"Pedidos"}
+                title={switchTipoOrder(tipo)}
                 onBack={() => navigation.goBack()}
                 showSearch={true}
                 searchValue={pesquisa}

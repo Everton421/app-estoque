@@ -15,11 +15,13 @@ import { Separacao } from "../../screens/separacao";
 const StackConfig = createStackNavigator();
 
 const PedidosDeCompra= ({navigation}:any)=>{
-        return <Lista_pedidos  navigation={navigation} tipo={1} />
+        return <Lista_pedidos  navigation={navigation} tipo={6} />
 }
 
- 
-
+     const PedidosDeVenda= ({navigation}:any)=>{
+        return <Lista_pedidos  navigation={navigation} tipo={1} />
+}   
+            
 
 export const  Stack=()=>{
 
@@ -35,7 +37,7 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="acertos" component={Acertos}  options={ { headerShown:false}} />
                     <StackConfig.Screen name="novo_acerto" component={NovoAcerto}  options={{ headerShown:false }} />
                     <StackConfig.Screen name="clientes"   component={Clientes} options={{headerShown:false}} />
-                    <StackConfig.Screen name="vendas"                component={Lista_pedidos}  options={{headerShown:false}}  />
+                    <StackConfig.Screen name="vendas"                component={PedidosDeVenda}  options={{headerShown:false}}  />
                     <StackConfig.Screen name="compras"    component={PedidosDeCompra}  options={{headerShown:false}}  />
                     
                     <StackConfig.Screen name="separacao"                component={Separacao}  options={{headerShown:false}}  />

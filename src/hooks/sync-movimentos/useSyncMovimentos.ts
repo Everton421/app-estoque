@@ -26,7 +26,7 @@ export const useSyncMovimentos = ()=>{
                  setIsLoading(true)
 
                 try {
-                const aux = await api.get('/offline/movimentos_produtos',
+                const aux = await api.get('/bulk/movimentos_produtos',
                     { params :{ 
                     data_recadastro : data,
                     usuario:usuario.codigo

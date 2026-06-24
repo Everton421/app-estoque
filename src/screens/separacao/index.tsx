@@ -29,6 +29,21 @@ export interface Cliente {
   numero: string;
   vendedor: number;
 }
+export interface fornecedor {
+  bairro: string;
+  celular: string;
+  cep: string;
+  cidade: string;
+  cnpj: string;
+  codigo: number;
+  data_cadastro: string; 
+  data_recadastro: string;
+  endereco: string;
+  estado: string;
+  ie: string;
+  nome: string;
+  numero: string;
+}
 
 export interface Parcela {
   parcela: number;
@@ -54,11 +69,7 @@ export interface Produto {
 
 export interface Pedido {
   cliente: Cliente;
-  cliente_info?: {
-    codigo : number,
-     nome :string  
-      },
-
+ fornecedor: fornecedor
   codigo: number;
   codigo_cliente: number;
   contato: string;
@@ -352,19 +363,16 @@ export const Separacao = ({ navigation, route }: any) => {
                     situacao_separacao = 'P';
                 }
 
-                const payload = {
+               const payload = {
                     ...data,
                     situacao_separacao,
                     produtos: produtosAtualizados,
                     data_recadastro: useMoment.dataHoraAtual(),
-                    cliente: { codigo: data.cliente_info.codigo},
                     observacoes2: '',
                     just_ipi:'',
                     just_icms:'',
                     just_subst:""
                 };
-
-                delete payload.cliente_info;
 
 
                 console.log(payload)
@@ -392,7 +400,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 }
                  
             } catch (e) {
-                console.log("erro ao salvar a separação na api", e);
+                console.log("erro ao salvar a separação na api", e?.response?.data);
                 setVisibleAlert(true);
                 setMessageAlert("Ocorreu um problema ao enviar a separação para a API.");
                 setTypeAlert('error');

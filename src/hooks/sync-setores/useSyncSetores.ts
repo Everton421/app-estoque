@@ -27,7 +27,7 @@ export const useSyncSetores = ()=>{
 
 
                       try {
-                        const aux = await api.get('/offline/setores',
+                        const aux = await api.get('/bulk/setores',
                             { params :{ data_recadastro : data}}
                         );
                         const dados = aux.data;
