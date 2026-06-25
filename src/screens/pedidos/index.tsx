@@ -126,6 +126,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             const valuePedido: any = await AsyncStorage.getItem('configPedido');
             if (valuePedido !== null) {
                 setConfigLeitorPedido(valuePedido);
+                console.log(valuePedido)
             }
 
         } catch (e) {
@@ -145,14 +146,15 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             setTypeAlert('warning')
             return
         }
-
-        if (configMobileApi && configMobileApi.offline === 'N') {
+        console.log(codeScanned)
+     //   if (configMobileApi && configMobileApi.offline === 'N') {
             try {
                 setIsLoadingOrderData(true)
                 const responseApiOrder = await api.get('/pedidos',
                     {
                         params: {
-                            [configLeitorPedido]: codeScanned,
+                            [configLeitorPedido]: configLeitorPedido == 'codigo' ? Number(codeScanned) : codeScanned ,
+                            tipo
                         }
                     }
                 );
@@ -180,7 +182,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             } finally {
                 setIsLoadingOrderData(false)
             }
-        } else {
+       /* } else {
             let resultOrder;
             try {
                 setIsLoadingOrderData(true)
@@ -208,6 +210,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 return
             }
         }
+        */
     }
 
     async function fyndOrderBycode(code: number) {
@@ -215,12 +218,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         if (configMobileApi && configMobileApi.offline === 'N') {
             try {
                 setIsLoadingOrderData(true)
-                const responseApiOrder = await api.get('/pedidos',
-                    {
-                        params: {
-                            [configLeitorPedido]: code,
-                        }
-                    }
+                const responseApiOrder = await api.get(`/pedidos/${code}`,
+                 
                 );
                 
                 if(responseApiOrder.status === 200 ){
@@ -306,12 +305,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     const responseApiOrder = await api.get('/pedidos',
                         {
                             params:   queryOrder
-                             
                         }
                     );
                            setOrcamentosRegistrados(responseApiOrder.data);
                           setVisiblePostPedido(false);
-
              
                    // console.log(responseApiOrder.data)
                 } catch (e) {
@@ -395,6 +392,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             case 'FI': return { color: '#FF7F27', label: 'Faturado' };
             case 'RE': return { color: '#9C0404', label: 'Reprovado' };
             case 'FP': return { color: '#0023F5', label: 'Parcial' };
+            case 'BM': return { color: '#474747', label: 'Baixa Manual' };
             default: return { color: '#999999', label: 'Desconhecido' };
         }
     }
@@ -735,6 +733,12 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                     <View style={{ width: 12, height: 12, backgroundColor: '#9C0404', borderRadius: 6, marginBottom: 2 }} />
                                     <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Reprovado</Text>
                                 </View>
+                                <View style={{ alignItems: "center" }}>
+                                    <View style={{ width: 12, height: 12, backgroundColor: '#474747', borderRadius: 6, marginBottom: 2 }} />
+                                    <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Baixa Manual</Text>
+                                </View>
+
+
                             </View>
                         </>
                     )

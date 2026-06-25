@@ -153,8 +153,9 @@ const compartilharProduto = async () => {
   };
 
     const getTipoOrcamento = () => {
-        if (orcamento.tipo === 1) return `Orçamento: ${orcamento.id}`;
-        if (orcamento.tipo === 3) return `Ordem de Serviço: ${orcamento.id}`;
+        if (orcamento.tipo === 1) return `Orçamento: #${orcamento.id}`;
+        if (orcamento.tipo === 3) return `Ordem de Serviço: #${orcamento.id}`;
+        if (orcamento.tipo === 6) return `Ordem de Compra: #${orcamento.id}`;
         return `Documento: ${orcamento.id}`;
     }
 
@@ -197,7 +198,13 @@ const compartilharProduto = async () => {
                         <View style={styles.section}>
                             <InfoRow label="Data Cadastro:" value={  new Date(orcamento?.data_cadastro).toLocaleString("pt-br", {    year: "numeric", month: "short", day: "numeric"  }) } />
 
-                            <InfoRow label="Cliente:" value={`${orcamento.cliente?.codigo || orcamento.cliente_info?.codigo} - ${orcamento.cliente?.nome || orcamento.cliente_info?.nome }`} />
+                            {
+                                orcamento.tipo == 6 ?
+                                <InfoRow label="Fornecedor:" value={`${orcamento.fornecedor?.codigo  } - ${orcamento.fornecedor?.nome  }`} />
+                                :
+                                <InfoRow label="Cliente:" value={`${orcamento.cliente?.codigo } - ${orcamento.cliente?.nome   }`} />
+                            }
+
                             <InfoRow label="Última alteração::" value={   new Date(orcamento?.data_recadastro).toLocaleTimeString("pt-br", { month: "short", day: "numeric"  })   } />
                         </View>
 

@@ -149,10 +149,7 @@ export const receberPedidos = ()=>{
 
                               }
                       }else{
-                       console.log('')
-                       console.log(i)
-                       console.log('')
-                          await useQuerypedidos.createOrderByCode(i , codigo_pedido,  i.id, i.id_externo, i.id_externo);
+                          await useQuerypedidos.createOrderByCode(i , codigo_pedido,  i.id, i.id_externo, i.id_interno);
                       } 
                            const progressPercentage = Math.floor(((index + 1) / orcamentosSistema.data.length) * 100);
                            setProgress(progressPercentage);

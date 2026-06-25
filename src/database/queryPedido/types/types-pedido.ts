@@ -15,7 +15,8 @@
     total_geral:number,
     total_produtos:number,
     total_servicos:number,
-    cliente: { codigo:number} ,
+    cliente: { codigo:number} | null ,
+    fornecedor: { codigo:number} | null
     produtos:produto_pedido[],
     parcelas:parcela[], 
     servicos: servico_pedido[],

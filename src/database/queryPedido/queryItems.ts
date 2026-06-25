@@ -15,7 +15,7 @@ type resultOrderItens = {
     preco: number
     quantidade: number
     total: number
-
+    sequencia:number
     local_produto: string
     local1_produto: string
     local2_produto: string
@@ -39,11 +39,12 @@ const db = useSQLiteContext();
     }
         async function create(produto:produto_pedido, codeOrder:number){
             try{
-                const slq =  `
+                const sql =  `
                     INSERT INTO produtos_pedido 
                    (
                     pedido,
                     codigo,
+                    sequencia,
                     desconto,
                     quantidade,
                     preco,
@@ -52,6 +53,7 @@ const db = useSQLiteContext();
                     quantidade_faturada,
                     frete
                     ) VALUES (
+                     ?,
                      ?,
                       ?,
                       ?,
@@ -65,6 +67,7 @@ const db = useSQLiteContext();
                      const values = [ 
                         codeOrder,
                         produto.codigo,
+                        produto.sequencia,
                         produto.desconto,
                         produto.quantidade,
                         produto.preco,
@@ -73,7 +76,9 @@ const db = useSQLiteContext();
                         produto.quantidade_faturada,
                         produto.frete
                         ]
-                let result = await db.runAsync(slq,values
+                        console.log(sql)
+                        console.log(values)
+                let result = await db.runAsync(sql,values
                    
                 )
 
@@ -86,7 +91,7 @@ const db = useSQLiteContext();
             try{
 
                 const result = await db.getAllAsync(` SELECT 
-                                                        pp.codigo , pp.pedido, pp.desconto, pp.preco, pp.quantidade, pp.total,
+                                                        pp.codigo ,pp.sequencia, pp.pedido, pp.desconto, pp.preco, pp.quantidade, pp.total,
                                                         p.descricao,
                                                         p.num_fabricante,
                                                         p.num_original,
@@ -138,7 +143,7 @@ const db = useSQLiteContext();
             async function selectProductByCodeOrder( codigoProduto:number, code:number){
                 try{
                     let aux = await db.getAllAsync(`
-                        SELECT pp.codigo , pp.pedido,  pp.desconto, pp.preco, pp.quantidade, pp.total, p.descricao
+                        SELECT pp.codigo , pp.sequencia, pp.pedido,  pp.desconto, pp.preco, pp.quantidade, pp.total, p.descricao
                                                          FROM produtos_pedido pp
                                                          JOIN produtos p on p.codigo = pp.codigo
                                                          where pp.pedido = ${code}

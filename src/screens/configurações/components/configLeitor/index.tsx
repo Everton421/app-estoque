@@ -21,6 +21,7 @@ export const ConfigLeitor = () => {
         const [ tiposBuscaPedido ] = useState<propsSeletor[]>([
             { tipo:'Código externo', value: "id_externo"},
             { tipo:'Código interno', value: "id_interno"},
+            { tipo:'Id ', value: "id"},
             { tipo:'Código mobile', value: "codigo"},
         ])
 
@@ -71,7 +72,7 @@ export const ConfigLeitor = () => {
     }, []);
 
     return (
-        <View>
+        <View   >
             {/* Botão Card que aparece na tela de configurações */}
             <TouchableOpacity
                 onPress={() => setVisible(true)}
@@ -100,8 +101,8 @@ export const ConfigLeitor = () => {
             </TouchableOpacity>
 
             {/* Modal Estilizado */}
-            <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
-                <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+            <Modal visible={visible}   transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
+                <View style={{ flex: 1, height:'auto', backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center'  }}>
                     <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setVisible(false)} />
                     
                     <View style={{
@@ -111,7 +112,6 @@ export const ConfigLeitor = () => {
                         position: 'absolute',
                         elevation: 10,
                         overflow: 'hidden',
-                        maxHeight: '70%'
                     }}>
                         {/* Header do Modal */}
                         <View style={{
@@ -127,7 +127,7 @@ export const ConfigLeitor = () => {
                             </TouchableOpacity>
                         </View>
 
-                        <View style={{ padding: 20 }}>
+                        <View style={{ padding: 10  }}>
                             <Text style={{ fontSize: 14, color: '#666', marginBottom: 15 }}>
                                 Selecione qual campo será priorizado na leitura ou busca de produtos:
                             </Text>

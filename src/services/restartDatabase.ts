@@ -26,6 +26,7 @@ export const restartDatabaseService = ()=>{
       DROP TABLE IF EXISTS parcelas;
       DROP TABLE IF EXISTS produto_setor;
       DROP TABLE IF EXISTS movimentos_produtos;
+      DROP TABLE IF EXISTS fornecedores;
       
   CREATE TABLE IF NOT EXISTS usuarios (
       codigo INTEGER  NOT NULL, 
@@ -186,7 +187,28 @@ export const restartDatabaseService = ()=>{
     CREATE INDEX IF NOT EXISTS idx_clientes_cidade ON clientes(cidade);
     CREATE INDEX IF NOT EXISTS idx_clientes_estado ON clientes(estado);
 
-
+      CREATE TABLE IF NOT EXISTS fornecedores (
+      codigo INTEGER PRIMARY KEY NOT NULL,
+      id TEXT,
+      celular TEXT,
+      nome TEXT NOT NULL,
+      cep TEXT NOT NULL DEFAULT '00000-000',
+      endereco TEXT,
+      ie TEXT,
+      numero TEXT,
+      cnpj TEXT,
+      cidade TEXT,
+      bairro TEXT,
+      estado TEXT,
+      data_cadastro TEXT NOT NULL,
+       data_recadastro TEXT NOT NULL
+      );
+   
+    CREATE INDEX IF NOT EXISTS idx_clientes_cnpj ON fornecedores(cnpj);
+    CREATE INDEX IF NOT EXISTS idx_clientes_nome ON fornecedores(nome);
+    CREATE INDEX IF NOT EXISTS idx_clientes_cidade ON fornecedores(cidade);
+    CREATE INDEX IF NOT EXISTS idx_clientes_estado ON fornecedores(estado);
+     
        -- 
      CREATE TABLE IF NOT EXISTS pedidos (
       codigo INTEGER PRIMARY KEY ,
@@ -206,6 +228,7 @@ export const restartDatabaseService = ()=>{
       total_produtos REAL DEFAULT 0.00,
       total_servicos REAL DEFAULT 0.00,
       cliente INTEGER NOT NULL DEFAULT 0,
+      fornecedor INTEGER NOT NULL DEFAULT 0,
       veiculo INTEGER NOT NULL DEFAULT 0,
       data_cadastro TEXT NOT NULL,
       data_recadastro TEXT NOT NULL,
@@ -225,6 +248,7 @@ export const restartDatabaseService = ()=>{
        CREATE TABLE IF NOT EXISTS produtos_pedido (
       pedido INTEGER NOT NULL,
       codigo INTEGER NOT NULL,
+      sequencia INTEGER NOT NULL,
       desconto REAL DEFAULT 0.00,
       quantidade REAL DEFAULT 0.00,
       preco REAL DEFAULT 0.00,

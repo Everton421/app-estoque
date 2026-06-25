@@ -16,7 +16,6 @@ import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
 import useApi from "../../services/api";
 import { receberPedidos } from "../../hooks/sync-pedidos/getOrders";
 import { configMoment } from "../../services/moment";
-import { restartDatabaseService } from "../../services/restartDatabase";
 import { enviaPedidos } from "../../hooks/sync-pedidos/sendOrders";
 import { ConfigLeitor    } from "./components/configLeitor";
 import { useSyncClients } from "../../hooks/sync-clientes/useSyncClientes";
@@ -44,7 +43,7 @@ export const Configurações = ({ navigation }: any) => {
      const [ messageAlert , setMessageAlert ] = useState<string>('');
      const [ typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
      const [ titleAlert, setTitleAlert ] = useState<string>('');
-
+      const [isOffline , setIsOffline] = useState(false);
      const [ visibleAlertUpdateConfigApi , setVisibleAlertUpdateConfigApi  ] = useState(false);
 
 
@@ -58,7 +57,6 @@ export const Configurações = ({ navigation }: any) => {
 
      const syncClients = useSyncClients();
 
-    const useRestartService = restartDatabaseService();
     const useMoment = configMoment();
     const useQueryConfigApi = queryConfig_api();
 
@@ -70,24 +68,19 @@ export const Configurações = ({ navigation }: any) => {
     const [conectado, setConectado] = useState<boolean>();
     const [msgApi, setMsgApi] = useState('');
 
-    const [ restartDb, setRestartDb ] = useState(false);
 
     const [ cancelText, setCancelText ] = useState<string |  undefined>();
     const [ confirmText, setConfirmText ] = useState<string | undefined>();
     
-    const [ confirmAlertFunction, setConfirmAlertFunction ] = useState<()=>void>(()=>{});
-    const [ cancelAlertFunction, setAlertCancelFunction] = useState<()=>void>(()=>{});
 
     // Estados do Picker de Data
     const [showPicker, setShowPicker] = useState(false);
-    const [dataSelecionada, setDataSelecionada] = useState();
     const [date, setDate] = useState(new Date());
     const [isLoadingOrder, setIsLoadingOrder] = useState(false);
     const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
     const [pedidoMessage, setPedidoMessage] = useState<string>('');
 
     const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
-    const [ isloadingApiConfigurationQuery, setIsloadingApiConfigurationQuery ] = useState(false);
 
 
     const useGetOrders = receberPedidos();
@@ -149,7 +142,6 @@ export const Configurações = ({ navigation }: any) => {
         setShowPicker(false);
         setDate(currentDate);
         const dataaux: any = formatDate(currentDate);
-        setDataSelecionada(dataaux);
     };
 
     const verifyDateSinc = async () => {
@@ -161,8 +153,8 @@ export const Configurações = ({ navigation }: any) => {
             porta: 3306,
             token: '',
             data_sinc: useMoment.dataHoraAtual(),
-            data_env: '0000-00-00 00:00:00'
-        };
+            data_env: '0000-00-00 00:00:00',
+        } as any;
 
         if (validConfig && validConfig?.length > 0) {
             dataUltSinc = validConfig[0].data_sinc;
@@ -195,7 +187,23 @@ export const Configurações = ({ navigation }: any) => {
             setTimeout(() => setProgress(0), 1000);
         }
     };
+  async function getConfigMobileApi(){
+        try{
+        const resultConfigMobileApi  = await useQueryConfigApi.select(1);
+        if(resultConfigMobileApi && resultConfigMobileApi.length >  0 ){
+            console.log(resultConfigMobileApi)
 
+            setConfigMobileApi(resultConfigMobileApi[0]);
+            if(resultConfigMobileApi[0].offline == 'S'){
+                setIsOffline(true)
+            }else{
+                setIsOffline(false)
+            }
+        }
+        }catch(e){
+        }finally{
+        }
+    }
     const handleSync = () => {
           if (loading){
             setVisibleAlert(true)
@@ -227,28 +235,19 @@ export const Configurações = ({ navigation }: any) => {
             return
         }
         syncDataProcess();
+        getConfigMobileApi()
     };
 
-    async function getConfigMobileApi(){
-        try{
-            setIsloadingApiConfigurationQuery(true)
-        const resultConfigMobileApi  = await useQueryConfigApi.select(1);
-        if(resultConfigMobileApi && resultConfigMobileApi.length >  0 ){
-            setConfigMobileApi(resultConfigMobileApi[0]);
-        }
-        }catch(e){
-        }finally{
-            setIsloadingApiConfigurationQuery(false);
-        }
-    }
+  
 
     useEffect(() => {
         connect();
        getConfigMobileApi()
     },[]);
 
+
+
     function restart() {
-        setRestartDb(true)
         setVisibleAlert(true)
         setTitleAlert('Atenção');
         setTypeAlert('warning');
@@ -258,9 +257,14 @@ export const Configurações = ({ navigation }: any) => {
      
     }
 
-    async function  partialUpdateConfigMobileApi( { isOffline }:{ isOffline: "S" | "N"} ){
-         await useQueryConfigApi.updateByParam({ offline: isOffline, codigo: 1, data_sinc:'2000-01-01'});   
+    async function  partialUpdateConfigMobileApi( { updateIsOffline }:{ updateIsOffline: "S" | "N"} ){
+         await useQueryConfigApi.updateByParam({ offline: updateIsOffline, codigo: 1, data_sinc:'2000-01-01'});   
             setVisibleAlertUpdateConfigApi(false)
+            if(updateIsOffline == 'S'){
+                setIsOffline(true)
+            }else{
+                setIsOffline(false)
+            }
     }
 
 
@@ -337,7 +341,7 @@ export const Configurações = ({ navigation }: any) => {
             {item && <DotIndicatorLoadingData isLoading={isLoading} item={item} progress={progress} />}
             {isLoadingPedidos && <LodingComponent isLoading={isLoadingPedidos} message={pedidoMessage} />}
 
-            <CustomAlert 
+                 <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
                           onConfirm={  ()=> setVisibleAlert(false)}
@@ -346,13 +350,14 @@ export const Configurações = ({ navigation }: any) => {
                           type={typeAlert}
                           cancelText={cancelText}
                           confirmText={confirmText}
-
                           />
+             
+                          
                    <CustomAlert 
                           visible={visibleAlertUpdateConfigApi}
-                          message={"Ao confirmar esta opção será necessario fazer um sincronização dos dados, confirma esta operação ? "}
-                          onConfirm={  ()=> partialUpdateConfigMobileApi({ isOffline: 'S' })}
-                          onCancel={()=> partialUpdateConfigMobileApi({ isOffline: 'N' })}
+                          message={"Ao confirmar esta opção será necessario fazer uma sincronização dos dados, confirma esta operação ? "}
+                          onConfirm={  ()=> partialUpdateConfigMobileApi({ updateIsOffline: 'S' })}
+                          onCancel={()=> partialUpdateConfigMobileApi({ updateIsOffline: 'N' })}
                           title={"Atenção"}
                           type={"warning"}
                           cancelText={"Não"}
@@ -411,17 +416,19 @@ export const Configurações = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* --- AÇÕES GERAIS --- */}
+                {/* --- AÇÕES GERAIS --- 
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginLeft: 5 }}>Sincronização</Text>
 
                 <MenuCard
                     icon={<MaterialCommunityIcons name="database-sync" size={24} color="#185FED" />}
                     title="Sincronizar Cadastros"
-                    subtitle="Atualizar produtos, setores e categorias"
-                    onPress={handleSync}
-                />
+                    subtitle={`Atualizar produtos, setores, categorias ... Última verificação: ${ new Date(configMobileApi?.data_sinc as string).toLocaleTimeString('pt-br', { day:'2-digit', month:'long', year:'numeric' })} `} 
+                    onPress={ isOffline ? handleSync : null}
+
+                />*/}
 
                 {/* --- NOVO CARD DE PEDIDOS ESTILIZADO --- */}
+              {/** 
                 <View style={{
                     backgroundColor: '#FFF',
                     borderRadius: 12,
@@ -429,8 +436,7 @@ export const Configurações = ({ navigation }: any) => {
                     marginBottom: 10,
                     elevation: 2,
                 }}>
-                    {/* Header do Card */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
                         <View style={{ width: 45, height: 45, borderRadius: 25, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
                             <MaterialCommunityIcons name="clipboard-text-play" size={24} color="#185FED" />
                         </View>
@@ -440,7 +446,6 @@ export const Configurações = ({ navigation }: any) => {
                         </View>
                     </View>
 
-                    {/* Seletor de Data */}
                     <Text style={{ fontSize: 14, color: '#555', marginBottom: 5, fontWeight: '600' }}>A partir da data:</Text>
                     <TouchableOpacity
                         onPress={() => setShowPicker(true)}
@@ -472,7 +477,6 @@ export const Configurações = ({ navigation }: any) => {
                         />
                     )}
 
-                    {/* Botão de Ação */}
                     <TouchableOpacity
                         style={{
                             backgroundColor: isLoadingOrder ? '#B0C4DE' : '#185FED',
@@ -496,24 +500,29 @@ export const Configurações = ({ navigation }: any) => {
                         </Text>
                     </TouchableOpacity>
                 </View>
-
+                     */}    
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Preferências</Text>
 
                 <ConfigLeitor />
 
-
+  { /**
                 <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 10, marginTop: 10, marginLeft: 5 }}>Manutenção</Text>
+                
+              
                 <MenuCard
                     icon={
-                            configMobileApi && configMobileApi.offline === 'S' ? 
+                           isOffline  ? 
                                   <Ionicons name="cloud-offline-sharp" size={24} color="#4CAF50" /> :
                               <Ionicons name="cloud-offline-sharp" size={24} color="#D32F2F" /> 
                             }
                     title="Trabalhar Offline"
-                    subtitle={ configMobileApi && configMobileApi.offline === 'S' ? "Offline" : 'Não habilitado' }
-                    danger={configMobileApi && configMobileApi.offline != 'S' && 'danger'}
+                    subtitle={ isOffline ? "Offline" : 'Não habilitado' }
+                    danger={!isOffline && 'danger'}
                     onPress={enableOfflineConfig}
                 />
+                      
+                   
+                
                 <MenuCard
                     icon={<MaterialCommunityIcons name="database-remove" size={24} color="#D32F2F" />}
                     title="Limpar Base de Dados"
@@ -521,7 +530,7 @@ export const Configurações = ({ navigation }: any) => {
                     danger={true}
                     onPress={restart}
                 />
-
+  */}
                 {/* --- FOOTER DE LINKS --- */}
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 30, opacity: 0.7 }}>
                     <TouchableOpacity onPress={() => openUrl("https://www.intersig.com.br/termos-de-uso-app/")}>

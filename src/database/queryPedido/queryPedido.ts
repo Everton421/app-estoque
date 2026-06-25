@@ -12,96 +12,19 @@ export const usePedidos = () =>{
     const db =  useSQLiteContext();
   const queryItems          = useItemsPedido();
   const queryParcelas       = useParcelas(); 
-  const queryProdutos       = useProducts();
   const queryClientes       = useClients();
   const queryServicosPedido =  useServicosPedido();
       
  
 
-const getCurrentDate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // Adiciona zero à esquerda se o mês for menor que 10
-  const day = String(now.getDate()).padStart(2, '0'); // Adiciona zero à esquerda se o dia for menor que 10
-
-  return `${year}-${month}-${day}`;
-};
-
-    async function create( pedido:pedidoApi, id:string, id_externo:any, id_interno:any ){
-
-      let data = getCurrentDate();
-      try{
-        let result = await db.runAsync(
-            ` INSERT INTO pedidos 
-            (
-            codigo,
-            id,
-            id_externo,
-            id_interno,
-            situacao,
-            situacao_separacao,
-            contato,
-            frete,
-            vendedor,
-            descontos,
-            forma_pagamento,
-            enviado,
-            observacoes,
-            quantidade_parcelas,
-            total_geral,
-            total_produtos,
-            total_servicos,
-            cliente,
-            data_cadastro,
-            data_recadastro,
-            veiculo,
-            tipo_os,
-              tipo  
-            ) VALUES (
-             ${ pedido.codigo}, 
-            '${id}',
-            '${id_externo}',
-            '${id_interno}',
-            '${pedido.situacao}',
-            '${pedido.situacao_separacao}',
-            '${ pedido.contato}',
-             ${ pedido.frete} ,
-             ${ pedido.vendedor},
-             ${ pedido.descontos},
-             ${ pedido.forma_pagamento},
-             '${pedido.enviado}',
-            '${ pedido.observacoes}',
-             ${ pedido.quantidade_parcelas},
-             ${ pedido.total_geral},
-             ${ pedido.total_produtos},
-             ${ pedido.total_servicos},
-             ${ pedido.cliente.codigo},
-            '${ pedido.data_cadastro }',
-            '${pedido.data_recadastro}',
-             ${ pedido.veiculo},
-             ${ pedido.tipo_os},
-             ${ pedido.tipo}
-            )` 
-        );
-  
-
-        console.log(' orcamento inserido codigo : ' ,result.lastInsertRowId);
-        return result.lastInsertRowId;
-        }catch( e ){ console.log(` ocorreu um erro ao gravar o orcamento `,e)}
-    
-        
-      }
-
       async function createByCode( pedido:pedidoApi , code:number, id:string, id_externo:string,id_interno:any ){
-
-        let data = getCurrentDate();
         try{
             if(pedido.codigo_site > 0 ) {
               pedido.enviado = 'S'
             }
-          
-          let result = await db.runAsync(
-              ` INSERT INTO pedidos 
+            const fornecedor = pedido.fornecedor && pedido.fornecedor.codigo ? pedido.fornecedor.codigo : 0; 
+            const cliente = pedido.cliente && pedido.cliente.codigo ? pedido.cliente.codigo : 0; 
+            const sql =  ` INSERT INTO pedidos 
               (
               codigo,
               id,
@@ -121,39 +44,44 @@ const getCurrentDate = () => {
               total_produtos,
               total_servicos,
               cliente,
+              fornecedor,
               data_cadastro,
               data_recadastro,
               veiculo,
               tipo_os,
                 tipo  
               ) VALUES (
-              ${code}, 
+               ${code}, 
               '${id}',
               '${id_externo}',
               '${id_interno}',
               '${pedido.situacao}',
-             '${pedido.situacao_separacao}',
-              '${ pedido.contato}',
+              '${pedido.situacao_separacao}',
+              '${pedido.contato}',
                ${pedido.frete},
-               ${ pedido.vendedor},
-               ${ pedido.descontos},
-               ${ pedido.forma_pagamento},
-               '${pedido.enviado}',
-              '${ pedido.observacoes}',
-               ${ pedido.quantidade_parcelas},
-               ${ pedido.total_geral},
-               ${ pedido.total_produtos},
-               ${ pedido.total_servicos},
-               ${ pedido.cliente.codigo},
-              '${ pedido.data_cadastro}',
+               ${pedido.vendedor},
+               ${pedido.descontos},
+               ${pedido.forma_pagamento},
+              '${pedido.enviado}',
+              '${pedido.observacoes}',
+               ${pedido.quantidade_parcelas},
+               ${pedido.total_geral},
+               ${pedido.total_produtos},
+               ${pedido.total_servicos},
+               ${cliente},
+               ${fornecedor},
+              '${pedido.data_cadastro}',
               '${pedido.data_recadastro}',
-               ${ pedido.veiculo},
-               ${ pedido.tipo_os},
-               ${ pedido.tipo}
+               ${pedido.veiculo},
+               ${pedido.tipo_os},
+               ${pedido.tipo}
               )` 
+              console.log(sql)
+          let result = await db.runAsync(
+             sql
           );
     
-       
+          
   
            console.log(' orcamento inserido codigo : ' ,result.lastInsertRowId);
           return result.lastInsertRowId;
@@ -413,28 +341,28 @@ const getCurrentDate = () => {
 
 
 type resultQuery= {
-     codigo: number,
- codigo_cliente : number,
- contato : string,
- data_cadastro: string,
- data_recadastro: string,
- descontos : 0,
- enviado : 'S' | 'N',
- forma_pagamento : number
- id:  string
- id_externo: number
- id_interno : number
- nome : string,
- observacoes :  string ,
-situacao: string,
-tipo : number,
-tipo_os : number,
-total_geral : number
-total_produtos : number
-total_servicos : number
-veiculo : number
-vendedor : number
-}
+      codigo: number,
+      codigo_cliente : number,
+      contato : string,
+      data_cadastro: string,
+      data_recadastro: string,
+      descontos : 0,
+      enviado : 'S' | 'N',
+      forma_pagamento : number
+      id:  string
+      id_externo: number
+      id_interno : number
+      nome : string,
+      observacoes :  string ,
+      situacao: string,
+      tipo : number,
+      tipo_os : number,
+      total_geral : number
+      total_produtos : number
+      total_servicos : number
+      veiculo : number
+      vendedor : number
+  }
       type query ={
       chave: 'codigo' | 'id_interno' | 'id_externo'  
       value:any
@@ -593,6 +521,10 @@ vendedor : number
 
           let clientOrder  
           
+          if(order.tipo === 6 ){
+            
+          }
+
           try{
           let dataClientOrder:any  = await queryClientes.selectByCode( order.codigo_cliente );
           clientOrder = dataClientOrder[0];
@@ -642,6 +574,7 @@ vendedor : number
         }catch(e){ console.log(' erro ao consultar os pedidos! ',e) }
    }
 
+
    async function createOrderByCode( order:pedidoApi, code:number , id:string, id_externo:string, id_interno:any ){
 
     if(   !order.parcelas.length   ||  order.parcelas.length < 0 ){
@@ -651,14 +584,19 @@ vendedor : number
     let produtos:any = order.produtos;
     let parcelas: parcela[] = order.parcelas;
     let servicos: any = order.servicos;
-       let codeOrder:any = await createByCode( order, code, id, id_externo, id_interno);
+      console.log(order)
+    let codeOrder:any = await createByCode( order, code, id, id_externo, id_interno);
 
+       
                    if( codeOrder > 0 || codeOrder !== undefined  ){
        
                           if(  produtos.length > 0    ){
-                            produtos.forEach( async (prod:produto_pedido)=>{
-                              await queryItems.create( prod, code )
-                              })
+                            //produtos.forEach( async (prod:produto_pedido)=>{
+                            //  await queryItems.create( prod, code )
+                            //  })
+                              for(const prod of produtos){
+                               await queryItems.create( prod, code )
+                              }
                           } 
 
                           if( servicos.length > 0 ){
@@ -676,12 +614,13 @@ vendedor : number
                    }else{
                     console.log('ocorreu um erro ao tentar gravar o orcamento!')
                }
+             
   //  }  
 
 }
 
 
-    async function createOrder( order:pedidoApi , code:number, id:string , id_externo:number,id_interno:any ){
+    /*async function createOrder( order:pedidoApi , code:number, id:string , id_externo:number,id_interno:any ){
           if(   !order.parcelas.length   ||  order.parcelas.length < 0 ){
             console.log(`nao foi informado os parcelas`)
             return;  
@@ -717,6 +656,7 @@ vendedor : number
         //  }  
 
     }
+    */
 
     async function deleteOrder( code:number){
       let verifyOrder = await selectByCode(code);
@@ -1121,6 +1061,9 @@ vendedor : number
 
 
     return {
-      update, newUpdate, selectAllCode, findByParam,selectLastCode, newSelect,createOrderByCode,findByTipeAndDate,updateSentOrderByCode, findByTipeAndClient, updateByCode, selectLastId , findByTipe, deleteAllOrder, updateOrder , create , selectAll,selectByCode , createOrder, selectCompleteOrderByCode , deleteOrder}
+      update, newUpdate, selectAllCode, findByParam,selectLastCode, newSelect,createOrderByCode,findByTipeAndDate,updateSentOrderByCode, findByTipeAndClient, updateByCode, 
+      selectLastId , findByTipe, deleteAllOrder, updateOrder   , selectAll,selectByCode ,
+       //createOrder,
+        selectCompleteOrderByCode , deleteOrder}
 
 }

@@ -20,7 +20,7 @@ interface Props {
     handleSelect?: (item: IClient) => void;
 }
 
-export function RenderItensClients({ item, handleSelect }: Props) {
+export function RenderItensSuplier({ item, handleSelect }: Props) {
     return (
         <TouchableOpacity
             onPress={() => handleSelect && handleSelect(item) }

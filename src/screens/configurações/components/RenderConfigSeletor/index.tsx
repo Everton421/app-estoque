@@ -18,8 +18,8 @@ export function RenderConfigSeletor({ tipo, value, defaultConfig, setDefaultConf
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                paddingVertical: 14,
-                paddingHorizontal: 15,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
                 backgroundColor: isSelected ? '#E3F2FD' : '#F5F7FA', // Azul claro se selecionado, cinza se não
                 borderRadius: 8,
                 marginBottom: 8,

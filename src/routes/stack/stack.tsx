@@ -11,6 +11,7 @@ import { NovoAcerto } from "../../screens/novo_acerto";
 import { Clientes } from "../../screens/clientes";
 import { Lista_pedidos } from "../../screens/pedidos";
 import { Separacao } from "../../screens/separacao";
+import { Fornecedores } from "../../screens/fornecedores";
 
 const StackConfig = createStackNavigator();
 
@@ -37,6 +38,7 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="acertos" component={Acertos}  options={ { headerShown:false}} />
                     <StackConfig.Screen name="novo_acerto" component={NovoAcerto}  options={{ headerShown:false }} />
                     <StackConfig.Screen name="clientes"   component={Clientes} options={{headerShown:false}} />
+                    <StackConfig.Screen name="fornecedores"   component={Fornecedores} options={{headerShown:false}} />
                     <StackConfig.Screen name="vendas"                component={PedidosDeVenda}  options={{headerShown:false}}  />
                     <StackConfig.Screen name="compras"    component={PedidosDeCompra}  options={{headerShown:false}}  />
                     
