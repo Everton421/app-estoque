@@ -186,20 +186,37 @@ export function Produtos({ navigation }: any) {
 
 
     async function viewItemSector(item: any) {
+      //  setVisibleModalSetores(true)
+      //  try {
+      //      setLoadingItemModalSetor(true)
+      //      let dados: any = await useQueryProdutoSetores.selectCompleteProdSector(item.codigo);
+      //      if (dados?.length > 0) {
+      //          setDataProdSector(dados);
+      //      } else {
+      //          setDataProdSector([]);
+      //      }
+      //  } catch (error) {
+      //      console.log(`Erro consulta setores`)
+      //  } finally {
+      //      setLoadingItemModalSetor(false)
+      //  }
+
         setVisibleModalSetores(true)
-        try {
-            setLoadingItemModalSetor(true)
-            let dados: any = await useQueryProdutoSetores.selectCompleteProdSector(item.codigo);
-            if (dados?.length > 0) {
-                setDataProdSector(dados);
-            } else {
-                setDataProdSector([]);
-            }
-        } catch (error) {
-            console.log(`Erro consulta setores`)
-        } finally {
+
+          try{
+                setLoadingItemModalSetor(true)
+            const responseProduct = await api.get('/produtos-setor/search', {
+                params:{
+                   produto:item.codigo
+                }
+            });
+         setDataProdSector(responseProduct?.data);
+            }catch(e){
+                    console.log( "[X] Erro ao buscar produtos nos setores da api ",e )
+            }finally{
             setLoadingItemModalSetor(false)
-        }
+
+            }
     }
 
     function handleSelect(item: any) {

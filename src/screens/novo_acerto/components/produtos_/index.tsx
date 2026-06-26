@@ -13,6 +13,7 @@ import {
 import { useProducts } from "../../../../database/queryProdutos/queryProdutos";
 import { useFotosProdutos } from "../../../../database/queryFotosProdutos/queryFotosProdutos";
 import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import useApi from "../../../../services/api";
 
 export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProduto: React.Dispatch<React.SetStateAction<any>> }) => {
 
@@ -20,6 +21,7 @@ export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProdut
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [visibleProdutos, setVisibleProdutos] = useState(false);
+    const api = useApi();
 
     const useQueryProdutos = useProducts();
     const useQueryFotos = useFotosProdutos();
@@ -28,7 +30,19 @@ export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProdut
         const busca = async () => {
             setLoading(true); // Ativar loading
             try {
-                let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
+                
+          const responseProduct = await api.get('/produtos/search', 
+                        {
+                            params: { 
+                                limit: 20,
+                                search: pesquisa,
+                                ativo: 'S'
+                            }
+                        }
+                    );
+                      setData(responseProduct?.data);
+
+                /*let aux: any = await useQueryProdutos.selectByDescription(pesquisa, 20);
                 for (let p of aux) {
                     let dadosFoto: any = await useQueryFotos.selectByCode(p.codigo)
                     if (dadosFoto?.length > 0) {
@@ -36,8 +50,7 @@ export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProdut
                     } else {
                         p.fotos = []
                     }
-                }
-                setData(aux);
+                }*/
             } catch (e) {
                 console.log(e);
             } finally {
@@ -94,7 +107,7 @@ export const ListaProdutos = ({ produto, setProduto }: { produto: any, setProdut
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
                         <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
-                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4CAF50' }}>R$ {item.preco ? item.preco.toFixed(2) : '0.00'}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4CAF50' }}>R$ { item.preco }</Text>
                     </View>
                     
                     <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>

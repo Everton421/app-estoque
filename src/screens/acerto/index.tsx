@@ -6,6 +6,8 @@ import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { ModalFilter } from "./components/modal-filter";
 import { configMoment } from "../../services/moment";
+import useApi from "../../services/api";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
 
 type resultQueryMov = {
     data_recadastro: string
@@ -19,10 +21,35 @@ type resultQueryMov = {
     entrada_saida: 'E' | 'S'
     unidade_medida: string
 }
+type resultMovRequest = {
+     codigo: number,
+     setor : {
+      codigo : number,
+       id : string,
+       descricao : string,
+     },
+     id : string,
+     produto : {
+       codigo : number,
+       id : string,
+       descricao : string,
+       unidade_medida : string
+    },
+     unidade_medida : string,
+     ent_sai : string,
+     quantidade : number,
+     tipo : string,
+     historico : string,
+     data_recadastro : string,
+     usuario : 1,
+     id_setor : string,
+     id_produto : string
+  }
 
 export const Acertos = ({ navigation }: any) => {
     const moment = configMoment();
     const useQueryMovimentos = useMovimentos();
+    const api = useApi();
 
     const [loadingData, setLoadinData] = useState(false);
     const [dataMovimet, setDataMoviment] = useState<resultQueryMov[] | []>([]);
@@ -31,11 +58,25 @@ export const Acertos = ({ navigation }: any) => {
     const [tipoMovimento, setTipoMovimento] = useState<'S' | 'E' | '*'>('*');
     const [dateFilter, setDateFilter] = useState(moment.dataAtual());
 
+
+
     async function buscaPorDescricao(value: any) {
         try {
             setLoadinData(true);
-            let result = await useQueryMovimentos.selectQuery(value, { data: dateFilter, tipo: tipoMovimento });
-            setDataMoviment(result);
+                   console.log(tipoMovimento)
+                const result = await api.get('/movimentos_produtos/search', 
+                        {
+                            params: { 
+                                search: pesquisa,
+                                ent_sai: tipoMovimento,
+                                data_recadastro:dateFilter
+                            }
+                        }
+                    );
+
+          
+                        setDataMoviment(result.data);
+                  
         } catch (e) {
             console.log(e);
         } finally {
@@ -63,9 +104,9 @@ export const Acertos = ({ navigation }: any) => {
     };
 
     // --- RENDER ITEM (MANTIDO E ADAPTADO AO ESTILO INLINE) ---
-    function renderItem({ item }: { item: resultQueryMov }) {
-        const isEntrada = item.entrada_saida === 'E';
-        const colorStatus = getStatusColor(item.entrada_saida);
+    function renderItem({ item }: { item: resultMovRequest }) {
+        const isEntrada = item.ent_sai === 'E';
+        const colorStatus = getStatusColor(item.ent_sai);
 
         return (
             <TouchableOpacity style={{
@@ -84,7 +125,7 @@ export const Acertos = ({ navigation }: any) => {
             }}>
                 {/* Cabeçalho do Card: ID e Data */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 'bold' }}>#{item.codigo_movimento}</Text>
+                    <Text style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 'bold' }}>#{item.codigo}</Text>
                     <Text style={{ fontSize: 12, color: '#757575' }}>
                         {new Date(item.data_recadastro).toLocaleDateString('pt-BR')}
                     </Text>
@@ -103,7 +144,7 @@ export const Acertos = ({ navigation }: any) => {
                         backgroundColor: isEntrada ? '#E8F5E9' : '#FFEBEE'
                     }}>
                         <Ionicons
-                            name={getStatusIcon(item.entrada_saida)}
+                            name={getStatusIcon(item.ent_sai)}
                             size={28}
                             color={colorStatus}
                         />
@@ -112,14 +153,14 @@ export const Acertos = ({ navigation }: any) => {
                     {/* Informações do Produto */}
                     <View style={{ flex: 1, justifyContent: 'center' }}>
                         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 2 }} numberOfLines={2}>
-                            {item.descricao_produto}
+                            {item.produto.descricao}
                         </Text>
-                        <Text style={{ fontSize: 12, color: '#757575' }}>Cód. Prod: {item.codigo_produto}</Text>
+                        <Text style={{ fontSize: 12, color: '#757575' }}>Cód. Prod: {item.produto.codigo}</Text>
                     </View>
 
                     {/* Quantidade em Destaque */}
                     <View style={{ alignItems: 'flex-end', minWidth: 60 }}>
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colorStatus }}> {isEntrada ? '+' : '-'}{item.quantidade_movimento} </Text>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: colorStatus }}> {isEntrada ? '+' : '-'}{item.quantidade} </Text>
                         <Text style={{ fontSize: 10, color: '#9E9E9E', textTransform: 'uppercase' }}>{item.unidade_medida}</Text>
                     </View>
                 </View>
@@ -132,15 +173,15 @@ export const Acertos = ({ navigation }: any) => {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <MaterialIcons name="store" size={16} color="#757575" />
                         <Text style={{ fontSize: 13, color: '#616161', flex: 1 }} numberOfLines={1}>
-                            {item.descricao_setor} <Text style={{ fontSize: 10 }}>({item.codigo_setor})</Text>
+                            {item.setor.descricao} <Text style={{ fontSize: 10 }}>({item.setor.codigo})</Text>
                         </Text>
                     </View>
 
-                    {item.historico_movimento ? (
+                    {item.historico ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                             <MaterialIcons name="history" size={16} color="#757575" />
                             <Text style={{ fontSize: 13, color: '#616161', flex: 1 }} numberOfLines={2}>
-                                {item.historico_movimento}
+                                {item.historico}
                             </Text>
                         </View>
                     ) : null}
@@ -219,7 +260,7 @@ export const Acertos = ({ navigation }: any) => {
                 <FlatList
                     data={dataMovimet}
                     renderItem={(i) => renderItem(i)}
-                    keyExtractor={(i: resultQueryMov) => i.codigo_movimento.toString()}
+                    keyExtractor={(i: resultQueryMov) => i.codigo.toString()}
                     contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={() => (
@@ -254,6 +295,7 @@ export const Acertos = ({ navigation }: any) => {
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />
             </TouchableOpacity>
+ 
 
             <ModalFilter
                 setDate={setDateFilter}

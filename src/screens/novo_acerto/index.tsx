@@ -1,17 +1,16 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Button, Modal, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
 import { ListaProdutos } from "./components/produtos_";
 import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { prod_setor, useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
 import { FlatList } from "react-native-gesture-handler";
-import { useSetores } from "../../database/querySetores/querySetores";
 import { configMoment } from "../../services/moment";
 import { Setores } from "./components/setores";
 import { Locais } from "./components/locais";
-import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
-import { useProducts } from "../../database/queryProdutos/queryProdutos";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import useApi from "../../services/api";
+import { AuthContext } from "../../contexts/auth";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
 
 type filterBarcodeOption = {
     chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
@@ -21,13 +20,27 @@ type historico = { historico: string }
 type unidade_medida = {
     unidade_medida: string
 }
-type dataProdMov = prod_setor & historico & unidade_medida
-
+type dataProdMov = {
+    setor: number
+    produto: number
+    estoque: number
+    local_produto: string
+    local1_produto: string
+    local2_produto: string
+    local3_produto: string
+    local4_produto: string
+    data_recadastro: string
+    id_produto: string
+    id_setor: string
+    historico:string
+}
 
 export const NovoAcerto = ({ navigation }: any) => {
     const [modalVisible, setModalvisible] = useState(false);
     const [visibleModalSetores, setVisibleModalSetores] = useState(false);
     const [visibleLocais, setVisibleLocais] = useState(false);
+               const [visibleAlert, setVisibleAlert ] = useState(false);
+    const [messageAlert, setMessageAlert] = useState('');
 
     const [permission, requestPermission] = useCameraPermissions();
     const [prodSeletor, setProdSeletor] = useState<any>();
@@ -42,14 +55,14 @@ export const NovoAcerto = ({ navigation }: any) => {
 
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
 
-    const useQueryMovimento = useMovimentos();
-    const useQueryProdutos = useProducts();
-    const useQuerySetores = useSetores();
-    const useQueryProdutoSetores = useProdutoSetores();
     const moment = configMoment();
+    const api = useApi();
 
-    const qrcodeLock = useRef(false);
+    const {  usuario } = useContext(AuthContext) as any;
 
+    useEffect(()=>{
+        console.log(usuario.codigo)
+    },[])
     async function getDefaultConfig() {
         try {
             let value: any = await AsyncStorage.getItem('configProduto');
@@ -69,15 +82,31 @@ export const NovoAcerto = ({ navigation }: any) => {
     async function fyndBarcode(codeScanned: string) {
         try {
             setLoadingDataProd(true);
-            let resultDataProd = await useQueryProdutos.findByParam({ chave: defaultConfigFilter, value: String(codeScanned) });
-            if (resultDataProd.length > 0) {
-                handleSelectProduct(resultDataProd[0]);
+
+            const responseProduct = await api.get('/produtos/search',
+                {
+                    params: {
+                        [defaultConfigFilter]: defaultConfigFilter == "codigo" ? Number(codeScanned) : codeScanned,
+                        limit: 1,
+                        ativo: 'S'
+                    }
+                }
+            );
+
+
+            if (responseProduct.status == 200) {
+                if(responseProduct.data.length > 0 ){
+                    handleSelectProduct(responseProduct.data[0]);
+                }else{
+                    setMessageAlert(`Nenhum produto encontrado para o código: ${codeScanned}`);
+                    setVisibleAlert(true)
+                }
                 setLoadingDataProd(false);
             } else {
-                setLoadingDataProd(false);
-                console.log("produto nao foi encontrado!");
+                setMessageAlert(`Produto não encontrado, ${defaultConfigFilter}: ${codeScanned}`);
+                setVisibleAlert(true);
                 setDataProd([]);
-                return Alert.alert('Atenção!', `Produto não encontrado, ${defaultConfigFilter}: ${codeScanned}`);
+                setLoadingDataProd(false);
             }
         } catch (e) {
             setLoadingDataProd(false);
@@ -118,10 +147,18 @@ export const NovoAcerto = ({ navigation }: any) => {
     async function findProdSectorByCode(codigo: number, setor: number) {
         try {
             setLoadingDataProd(true);
-            let resultDataProd: any = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(codigo, setor);
 
-            if (resultDataProd && resultDataProd?.length > 0) {
-                setDataProd(resultDataProd);
+            const resultDataProd = await api.get('/produtos-setor/search',
+                {
+                    params: {
+                        produto: codigo,
+                        setor: setor
+                    }
+                }
+            );
+
+            if (resultDataProd.status == 200 && resultDataProd.data.length > 0) {
+                setDataProd(resultDataProd.data);
             } else {
                 let aux: any = {
                     data_recadastro: moment.dataHoraAtual(),
@@ -144,44 +181,56 @@ export const NovoAcerto = ({ navigation }: any) => {
     }
 
     async function findSetores() {
-        let resultDataSetores = await useQuerySetores.selectAll();
-        if (resultDataSetores && resultDataSetores?.length > 0) {
-            setDataSetores(resultDataSetores);
+        const resultDataSector = await api.get('/setores/search');
+
+        if (resultDataSector && resultDataSector?.status == 200) {
+            setDataSetores(resultDataSector.data);
         }
     }
 
     async function gravar(data: dataProdMov[]) {
         if (ent_sai === 'E') {
             let aux = Number(data[0].estoque) + novoSaldo;
-            data[0].estoque = aux;
+            data[0].estoque = Number(aux);
         }
         if (ent_sai === 'S') {
             let aux = Number(data[0].estoque) - novoSaldo;
-            data[0].estoque = aux;
+            data[0].estoque = Number(aux);
         }
         data[0].data_recadastro = moment.dataHoraAtual();
-        data[0].unidade_medida = prodSeletor.unidade_medida;
+        //  data[0].unidade_medida = prodSeletor.unidade_medida;
 
         try {
+
             setLoadingInsertItem(true);
-            let verifi = await useQueryProdutoSetores.selectByCodeProductAndCodeSector(Number(data[0].produto), Number(data[0].setor));
-
-            if (verifi && verifi.length > 0) {
-                let resultUpdate = await useQueryProdutoSetores.update(data[0]);
-            } else {
-                let resultInsert = await useQueryProdutoSetores.create(data[0]);
+            const { estoque, produto, setor, local1_produto, local2_produto, local3_produto, local4_produto, local_produto } = data[0]
+            const payload = {
+                estoque: Number(estoque),
+                produto: Number(produto),
+                setor: Number(setor),
+                local1_produto,
+                local2_produto,
+                local3_produto,
+                local4_produto,
+                local_produto
             }
+             const resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
 
-            await useQueryMovimento.create({
-                unidade_medida: data[0].unidade_medida,
-                tipo: 'A',
-                data_recadastro: moment.dataHoraAtual(),
-                historico: data[0].historico ? data[0].historico : '',
-                produto: Number(data[0].produto),
-                quantidade: novoSaldo,
-                setor: Number(data[0].setor),
-                ent_sai: ent_sai
-            });
+             if (resultUpdateProdSetor.status === 200 || resultUpdateProdSetor.status == 201) {
+
+                const payloadMovimentos  =  {
+                     unidade_medida: 'und' ,
+                     tipo: 'A',
+                     data_recadastro: moment.dataHoraAtual(),
+                     historico: data[0].historico ? data[0].historico : '',
+                     produto: Number(data[0].produto),
+                     quantidade: novoSaldo,
+                     setor: Number(data[0].setor),
+                     usuario:usuario.codigo,
+                     ent_sai: ent_sai
+                   }
+                const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
+            }
 
             setLoadingInsertItem(false);
             setDataProd([]);
@@ -258,7 +307,7 @@ export const NovoAcerto = ({ navigation }: any) => {
             </View>
 
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 50 }}>
-                
+
                 {/* --- SEÇÃO DE BUSCA E SCAN --- */}
                 <View style={{ flexDirection: "row", marginHorizontal: 15, marginBottom: 15, gap: 10 }}>
                     <View style={{ flex: 1 }}>
@@ -298,7 +347,7 @@ export const NovoAcerto = ({ navigation }: any) => {
                             <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>
                                 {prodSeletor.descricao}
                             </Text>
-                            
+
                             {/* Botão de Selecionar Setor */}
                             <TouchableOpacity
                                 style={{
@@ -330,11 +379,11 @@ export const NovoAcerto = ({ navigation }: any) => {
                         ) : (
                             dataProd && setorSelecionado ? dataProd.map((i, index) => (
                                 <View key={index} style={{ marginHorizontal: 15 }}>
-                                    
+
                                     {/* Card de Operação */}
                                     <View style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 15, elevation: 3, marginBottom: 15 }}>
-                                        
-                                        <Text style={{ textAlign: "center", fontSize: 14, color: "#999", marginBottom: 5 }}>Saldo Atual: <Text style={{fontWeight:'bold', color:'#333'}}>{i.estoque}</Text></Text>
+
+                                        <Text style={{ textAlign: "center", fontSize: 14, color: "#999", marginBottom: 5 }}>Saldo Atual: <Text style={{ fontWeight: 'bold', color: '#333' }}>{i.estoque}</Text></Text>
 
                                         {/* Seletor Entrada / Saída */}
                                         <View style={{ flexDirection: "row", backgroundColor: '#F5F5F5', borderRadius: 8, padding: 4, marginBottom: 20 }}>
@@ -388,7 +437,7 @@ export const NovoAcerto = ({ navigation }: any) => {
 
                                     {/* Card de Informações Adicionais */}
                                     <View style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 0, elevation: 3, marginBottom: 20, overflow: 'hidden' }}>
-                                        
+
                                         {/* Botão Locais */}
                                         <TouchableOpacity
                                             style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}
@@ -440,7 +489,7 @@ export const NovoAcerto = ({ navigation }: any) => {
                                         <MaterialIcons name="save" size={24} color="#FFF" />
                                         <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Registrar Acerto</Text>
                                     </TouchableOpacity>
-                                    
+
                                     <Locais
                                         item={i}
                                         setVisible={setVisibleLocais}
@@ -481,8 +530,8 @@ export const NovoAcerto = ({ navigation }: any) => {
                     <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
                         <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
                         <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             onPress={() => setModalvisible(false)}
                             style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
                         >
@@ -510,6 +559,14 @@ export const NovoAcerto = ({ navigation }: any) => {
                     </View>
                 </View>
             </Modal>
+            
+                  <CustomAlert
+                        visible={visibleAlert}
+                        onConfirm={ ()=>setVisibleAlert(false)}
+                        title="Produto não foi encontrado!"
+                        message={messageAlert}
+                        />
+
         </View>
     )
 }
