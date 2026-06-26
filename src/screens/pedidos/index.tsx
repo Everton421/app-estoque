@@ -154,7 +154,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     {
                         params: {
                             [configLeitorPedido]: configLeitorPedido == 'codigo' ? Number(codeScanned) : codeScanned ,
-                            tipo
+                            tipo,
+                            orderBy:'id'
                         }
                     }
                 );

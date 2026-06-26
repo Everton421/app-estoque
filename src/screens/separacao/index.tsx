@@ -348,8 +348,8 @@ export const Separacao = ({ navigation, route }: any) => {
             try {
                 const produtosAtualizados = data!.produtos.map(p => {
                     const itemSeparado = listaSeparacao.find(ls => ls.codigo === p.codigo);
-                    const quantity = itemSeparado?.quantidade_separada ?? 0;
-                    qtdTotalPedida += p.quantidade;
+                    const quantity = Number(itemSeparado?.quantidade_separada) ?? 0;
+                    qtdTotalPedida += Number(p.quantidade);
                     qtdTotalSeparada += quantity;
                     return { ...p, quantidade_separada: quantity };
                 });
@@ -362,7 +362,6 @@ export const Separacao = ({ navigation, route }: any) => {
                 } else {
                     situacao_separacao = 'P';
                 }
-
                const payload = {
                     ...data,
                     situacao_separacao,
@@ -397,7 +396,7 @@ export const Separacao = ({ navigation, route }: any) => {
                     setTitleAlert("Sucesso");
                 } else {
                     throw new Error('Resposta inválida da API');
-                }
+                } 
                  
             } catch (e) {
                 console.log("erro ao salvar a separação na api", e?.response?.data);
@@ -533,10 +532,19 @@ export const Separacao = ({ navigation, route }: any) => {
                                 </Text>
                         </View>
                                     
-                        <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-                            <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {data.nome || data.cliente_info?.nome}
-                        </Text>
-                            {data.contato ? (
+                        {
+                            data.tipo == 6 ?
+                             <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                               <Text style={{ fontWeight: 'bold' }}>Fornecedor:</Text> {   data.fornecedor.nome}
+                             </Text>
+                            
+                            :
+                             <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                               <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {  data.cliente.nome}
+                             </Text>
+                        }                                    
+
+                        {data.contato ? (
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                     <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
                                     <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{data.contato}</Text>

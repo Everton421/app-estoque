@@ -80,17 +80,17 @@ export const ModalFilter = ({ visible, setVisible, statusAtual, setStatus, dataA
     const dataParaO_Picker = parseDateString(dataAtual);
 
     return (
-        <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={() => setVisible(false)}>
+        <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={() => setVisible(false)}>
             <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
                 
                 <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={() => setVisible(false)} />
 
                 <View style={{
-                    width: "85%",
+                    width: "95%",
                     backgroundColor: "#FFF",
                     borderRadius: 16,
                     overflow: 'hidden',
-                    elevation: 10
+                    elevation: 10 
                 }}>
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Filtros</Text>
