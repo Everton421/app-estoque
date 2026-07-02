@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Button, FlatList, Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../contexts/auth";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
@@ -350,12 +350,17 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         busca()
     }, [data_cadastro, statusPedido, pesquisa, navigation, configMobileApi])
 
+    const buscaRef = useRef(busca);
+    buscaRef.current = busca;
+    const getDefaultConfigRef = useRef(getDefaultConfig);
+    getDefaultConfigRef.current = getDefaultConfig;
+
     useFocusEffect(
         useCallback(() => {
-            busca();
-            getDefaultConfig();
-
-        }, [navigation]));
+            buscaRef.current();
+            getDefaultConfigRef.current();
+        }, [])
+    );
 
 
 
@@ -519,9 +524,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
                 {/* --- RODAPÉ DE AÇÕES --- */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 12 }}>
-
-                    {/* Ações da Esquerda (Visualizar / Separar) */}
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                   
+                    <View style={{ flexDirection: 'row' , gap: 10,  }}>
                         <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                             <Feather name="eye" size={20} color="#185FED" />
                         </TouchableOpacity>
@@ -532,51 +536,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                             </TouchableOpacity>
                         )}
                     </View>
-
-                    {/* Status de Envio & Botão Sincronizar (Direita) */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-
-                        {/* Status Icon & Text */}
-                        {item.enviado === 'S' ? (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 11, color: '#4CAF50', fontWeight: 'bold' }}>Enviado</Text>
-                                <Ionicons name="checkmark-done-circle" size={22} color="#4CAF50" />
-                            </View>
-                        ) : (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 11, color: '#FF9800', fontWeight: 'bold' }}>Pendente</Text>
-                                <Ionicons name="time" size={22} color="#FF9800" />
-                            </View>
-                        )}
-
-                        {/* Botão de Sincronização */}
-                        {// !connected ? (
-                            //    <View style={{ padding: 8, backgroundColor: '#F5F5F5', borderRadius: 8 }}>
-                            //        <MaterialIcons name="sync-disabled" size={20} color="#BDBDBD" />
-                            //    </View>
-                            //) : (
-                            <TouchableOpacity
-                                onPress={() => postPedido(item)  }
-                                disabled={isSyncing}
-                                style={{
-                                    padding: 8,
-                                    backgroundColor: isSyncing ? '#E3F2FD' : '#E8F5E9',
-                                    borderRadius: 8,
-                                    minWidth: 36, // Garante que o tamanho não encolha quando mudar pro ActivityIndicator
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                {isSyncing ? (
-                                    <ActivityIndicator size="small" color="#185FED" />
-                                ) : (
-                                    <Ionicons name="sync-sharp" size={20} color="#4CAF50" />
-                                )}
-                            </TouchableOpacity>
-                            //)
-                        }
-                    </View>
-
+                
                 </View>
             </View>
         )

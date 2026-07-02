@@ -353,7 +353,7 @@ export const Home = ({ navigation }: any) => {
       </ScrollView>
 
       <View style={{ flexDirection: "row", position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#185FED', padding: 10, justifyContent: "space-between", }}>
-        <Text style={{ color: '#FFF', fontSize: 20, fontWeight: "bold", width: '50%' }}>
+        <Text style={{ color: '#FFF', fontSize: 20, fontWeight: "bold"  }}>
           {usuario && usuario.nome}
         </Text>
 

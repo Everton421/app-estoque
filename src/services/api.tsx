@@ -15,7 +15,7 @@ const useApi = () => {
 
     api.interceptors.request.use(
         async (config) => {
-            if (usuario && usuario.token) {
+            if (usuario && usuario.token && !config.headers["token"]) {
                config.headers["token"] = usuario.token;
             }
             return config;

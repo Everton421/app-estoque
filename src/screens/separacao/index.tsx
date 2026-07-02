@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator } from "react-native";
+import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator, Button } from "react-native";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
-import { AntDesign, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { AntDesign, Entypo, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/custom-header/custom-header";
-import { CameraView } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useItemsPedido } from "../../database/queryPedido/queryItems";
 import { configMoment } from "../../services/moment";
@@ -12,6 +12,9 @@ import { ApiConfig } from "../../types/type-config-api";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../services/api";
 import { useFocusEffect } from "@react-navigation/native";
+import { ModalFilter } from "../acerto/components/modal-filter";
+import { ModalSeries } from "./components/modal-series/modal-series";
+import { ModalSetores } from "./components/modal-setores/modal-setores";
 
 export interface Cliente {
   bairro: string;
@@ -52,6 +55,11 @@ export interface Parcela {
   vencimento: string;
 }
 
+export interface serie   {
+          lote_serie : number,
+           quantidade : number
+}
+
 export interface Produto {
   codigo: number;
   id:string
@@ -64,6 +72,7 @@ export interface Produto {
   num_fabricante: string;
   num_original: string;
   sku: string;
+  series: serie[]
   quantidade_separada?: number; 
 }
 
@@ -91,6 +100,7 @@ export interface Pedido {
   situacao_separacao: string;
   tipo: number;
   tipo_os: number;
+  setor:number
   total_geral: number;
   total_produtos: number;
   total_servicos: number;
@@ -112,6 +122,8 @@ type resultOrderItens = {
     preco: number
     quantidade: number
     total: number
+    series: serie[]
+    controle_lote_serie: 'S' | 'N'
     local_produto: string
     local1_produto: string
     local2_produto: string
@@ -131,6 +143,7 @@ export const Separacao = ({ navigation, route }: any) => {
     const[modalVisible, setModalvisible] = useState(false);
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
     const useMoment = configMoment();
+    const [permission, requestPermission] = useCameraPermissions();
 
     const [ visibleAlert , setVisibleAlert ] = useState(false);
     const [ messageAlert , setMessageAlert ] = useState<string>('');
@@ -138,6 +151,10 @@ export const Separacao = ({ navigation, route }: any) => {
     const [ titleAlert, setTitleAlert ] = useState<string>('');
     const [ configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [ isloadingOrderData, setIsLoadingOrderData] = useState(false);
+
+        const [ isVisibleSetores , setIsVisibleSetores ] = useState(false);
+
+    const [selectedProductForSeries, setSelectedProductForSeries] = useState<resultOrderItens | null>(null);
 
     const api = useApi();
 
@@ -257,8 +274,6 @@ export const Separacao = ({ navigation, route }: any) => {
         handleUpdateQuantityByCodeRead(Number(codigo), 1, 9999);
     }
 
-  
-
 
 
 
@@ -294,114 +309,33 @@ export const Separacao = ({ navigation, route }: any) => {
         }
     };
 
-    // --- NOVA LÓGICA DE SALVAMENTO ---
-    async function saveOrderMobile() {
-        let qtdTotalPedida = 0;
-        let qtdTotalSeparada = 0;
-
-        try {
-            // Primeiro salvamos cada item e acumulamos os totais
-            for (const p of listaSeparacao) {
-                const quantity = p.quantidade_separada !== undefined ? p.quantidade_separada : 0;
-                
-                qtdTotalPedida += p.quantidade;
-                qtdTotalSeparada += quantity;
-
-                await useQueryItems.updatByParam({ quantidade_separada: quantity }, p.codigo, codigo_pedido);
-            }
-
-            // Calculamos a situação com base nas somas de forma segura
-            let situacao_separacao: 'I' | 'N' | 'P' = 'N';
-            
-            if (qtdTotalSeparada === 0) {
-                situacao_separacao = 'N'; // Nada separado
-            } else if (qtdTotalSeparada === qtdTotalPedida) {
-                situacao_separacao = 'I'; // Tudo separado
-            } else {
-                situacao_separacao = 'P'; // Algo no meio (Parcial)
-            }
-
-            const resultUpdate = await useQuerypedidos.newUpdate({ enviado: 'N', situacao_separacao: situacao_separacao, data_recadastro: useMoment.dataHoraAtual() }, codigo_pedido);
-            
-            if (resultUpdate && resultUpdate.changes > 0) {
-                  setVisibleAlert(true)
-                    setMessageAlert("Separação salva com sucesso!")
-                    setTypeAlert('success') 
-                    setTitleAlert("Sucesso")
-              //  navigation.goBack();
-            }
-        } catch (e) {
-            console.log("erro ao salvar a separação", e);
-                 setVisibleAlert(true)
-                    setMessageAlert("Ocorreu um problema ao salvar a separação.")
-                    setTypeAlert('error') 
-                    setTitleAlert("Erro")
-                    return
-        }
-    }
-
 
         async function saveOrderApi() {
-            let qtdTotalPedida = 0;
-            let qtdTotalSeparada = 0;
-
             try {
-                const produtosAtualizados = data!.produtos.map(p => {
-                    const itemSeparado = listaSeparacao.find(ls => ls.codigo === p.codigo);
-                    const quantity = Number(itemSeparado?.quantidade_separada) ?? 0;
-                    qtdTotalPedida += Number(p.quantidade);
-                    qtdTotalSeparada += quantity;
-                    return { ...p, quantidade_separada: quantity };
-                });
+                const itens = listaSeparacao.map(item => ({
+                    produto: item.codigo,
+                    quantidade_separada: item.quantidade_separada || 0,
+                    series: (item.series || []).filter(s => s.quantidade > 0)
+                }));
 
-                let situacao_separacao: 'I' | 'N' | 'P' = 'N';
-                if (qtdTotalSeparada === 0) {
-                    situacao_separacao = 'N';
-                } else if (qtdTotalSeparada >= qtdTotalPedida) {
-                    situacao_separacao = 'I';
-                } else {
-                    situacao_separacao = 'P';
-                }
-               const payload = {
-                    ...data,
-                    situacao_separacao,
-                    produtos: produtosAtualizados,
-                    data_recadastro: useMoment.dataHoraAtual(),
-                    observacoes2: '',
-                    just_ipi:'',
-                    just_icms:'',
-                    just_subst:""
-                };
+                const payload = { itens , setor: data.setor};
 
+                 const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
 
-                console.log(payload)
-                const response = await api.post('/pedidos', [payload]);
+                 if (response.status >= 200 && response.status < 300) {
+                     setVisibleAlert(true);
+                     setMessageAlert("Separação salva com sucesso!");
+                     setTypeAlert('success');
+                     setTitleAlert("Sucesso");
+                 } else {
+                     throw new Error('Resposta inválida da API');
+                 }
 
-                if (response.status === 201 && response.data?.results) {
-                    console.log(response.data)
-                   // for (const p of listaSeparacao) {
-                   //     const quantity = p.quantidade_separada ?? 0;
-                   //     await useQueryItems.updatByParam({ quantidade_separada: quantity }, p.codigo, codigo_pedido);
-                   // }
-                    //
-                   // await useQuerypedidos.newUpdate({
-                   //     enviado: 'S',
-                   //     situacao_separacao,
-                   //     data_recadastro: useMoment.dataHoraAtual()
-                   // }, codigo_pedido);
-
-                    setVisibleAlert(true);
-                    setMessageAlert("Separação salva com sucesso!");
-                    setTypeAlert('success');
-                    setTitleAlert("Sucesso");
-                } else {
-                    throw new Error('Resposta inválida da API');
-                } 
-                 
-            } catch (e) {
-                console.log("erro ao salvar a separação na api", e?.response?.data);
+            } catch (e: any) {
+                console.log("erro ao salvar a separação na api", e?.response?.data || e);
                 setVisibleAlert(true);
-                setMessageAlert("Ocorreu um problema ao enviar a separação para a API.");
+                let message = e?.response?.data?.message || "Ocorreu um problema ao enviar a separação para a API." 
+                setMessageAlert(message);
                 setTypeAlert('error');
                 setTitleAlert("Erro");
             }
@@ -410,7 +344,8 @@ export const Separacao = ({ navigation, route }: any) => {
 
     const renderProduto = ({ item }: { item: resultOrderItens }) => {
         const quantidadeSeparada = item.quantidade_separada || 0;
-        const concluido = quantidadeSeparada === item.quantidade; 
+        const concluido = quantidadeSeparada === item.quantidade;
+        const isSerie = item.controle_lote_serie == 'S';
         return (
             <View style={{
                 backgroundColor: '#FFF',
@@ -422,19 +357,6 @@ export const Separacao = ({ navigation, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: concluido ? '#4CAF50' : '#FFC107' 
             }}>
-
-                 <CustomAlert 
-                          visible={visibleAlert}
-                          message={messageAlert}
-                          onConfirm={
-                                ()=>{ 
-                                 setVisibleAlert(false)
-                                    navigation.goBack()
-                            }
-                            }
-                          title={titleAlert}
-                          type={typeAlert}
-                          />
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                        { item.id && 
@@ -467,8 +389,9 @@ export const Separacao = ({ navigation, route }: any) => {
                         <TouchableOpacity
                             style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#E0E0E0", justifyContent: "center", alignItems: "center" }}
                             onPress={() => handleUpdateQuantity(item.codigo, quantidadeSeparada - 1, item.quantidade)}
+                            disabled={isSerie}
                         >
-                            <AntDesign name="minus" size={20} color="#333" />
+                            <AntDesign name="minus" size={20} color={isSerie ? "#ccc" : "#333"} />
                         </TouchableOpacity>
 
                         <View style={{ minWidth: 40, borderBottomWidth: 2, borderBottomColor: concluido ? '#4CAF50' : '#185FED', alignItems: 'center' }}>
@@ -480,28 +403,83 @@ export const Separacao = ({ navigation, route }: any) => {
                                     handleUpdateQuantity(item.codigo, num, item.quantidade);
                                 }}
                                 keyboardType="numeric"
+                                editable={!isSerie}
                             />
                         </View>
 
                         <TouchableOpacity
-                            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: concluido ? '#4CAF50' : "#185FED", justifyContent: "center", alignItems: "center", elevation: 2 }}
+                            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isSerie ? "#ccc" : (concluido ? '#4CAF50' : "#185FED"), justifyContent: "center", alignItems: "center", elevation: isSerie ? 0 : 2 }}
                             onPress={() => handleUpdateQuantity(item.codigo, quantidadeSeparada + 1, item.quantidade)}
+                            disabled={isSerie}
                         >
-                            <AntDesign name="plus" size={20} color="#FFF" />
+                            <AntDesign name="plus" size={20} color={isSerie ? "#999" : "#FFF"} />
                         </TouchableOpacity>
-                        
+ 
                     </View>
                     
+                    
                 </View>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Locais: </Text>
-                     {item.local1_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local1_produto }</Text> }
-                     {item.local2_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local2_produto }</Text> }
-                     {item.local3_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local3_produto }</Text> }
-                     {item.local4_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local4_produto }</Text> }
+                   {
+                       item.controle_lote_serie == 'S' ? (
+                                        <TouchableOpacity
+                                          style={{ 
+                                            backgroundColor: '#FFF', 
+                                            borderRadius: 12, 
+                                            paddingVertical: 15, 
+                                            flexDirection: 'row', 
+                                            justifyContent: 'space-around', 
+                                            alignItems: 'center', 
+                                            gap: 10, 
+                                            marginTop:10,
+                                            elevation:10
+                                        }}    
+                                             onPress={() => setSelectedProductForSeries(item) }
+                                        >
+                                            <Ionicons name="barcode" size={35} color="#185FED" />
+                                            <Text style={{fontWeight: 'bold', color:'#555'}}> Lote Série</Text>
+                                          <MaterialCommunityIcons name="cursor-pointer" size={35} color="#185FED" />
+                                        </TouchableOpacity>
+                                    ):(
+                                        <></>
+                                    )
+                                }
+
+                      <View style={{ marginTop:10 }}>
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Locais: </Text>
+                        {item.local1_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local1_produto }</Text> }
+                        {item.local2_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local2_produto }</Text> }
+                        {item.local3_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local3_produto }</Text> }
+                        {item.local4_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local4_produto }</Text> }
+                      </View>
 
             </View>
         );
     };
+
+       if (!permission) return null;
+    
+        if (modalVisible && !permission.granted) {
+            return (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
+                        Você precisa liberar o acesso a camera para continuar!
+                    </Text>
+                    <Button onPress={requestPermission} title="Liberar acesso" />
+                </View>
+            );
+        }
+    
+        function handleSector(dataSector:any){
+            setData(  prev =>( 
+                {
+                    ...prev,
+                    setor: dataSector.codigo
+                } )
+            )
+
+            setIsVisibleSetores(false)
+            console.log('Novo setor:', dataSector.codigo)
+        }
 
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
@@ -510,8 +488,23 @@ export const Separacao = ({ navigation, route }: any) => {
                 title="Separação" 
                 onBack={() => navigation.goBack()} 
             />
-              
-                              
+
+              <CustomAlert 
+                  visible={visibleAlert}
+                  message={messageAlert}
+                  onConfirm={() => { 
+                      setVisibleAlert(false)
+                      navigation.goBack()
+                  }}
+                  title={titleAlert}
+                  type={typeAlert}
+              />
+
+              <ModalSetores
+              selectSector={handleSector}
+              setVisible={setIsVisibleSetores}
+              visible={isVisibleSetores}
+              />                
 
             {
             isloadingOrderData ? 
@@ -528,19 +521,38 @@ export const Separacao = ({ navigation, route }: any) => {
                         
                             <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
                                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
-                                    Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext:  {data.id_externo ? data.id_externo : '' } </Text> 
+                                    Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext: {data.id_externo ? data.id_externo : '' } </Text> 
                                 </Text>
                         </View>
+
+                   <TouchableOpacity
+                        style={{ 
+                            backgroundColor: '#185FED', 
+                            borderRadius: 12, 
+                            paddingVertical: 5, 
+                            flexDirection: 'row', 
+                            justifyContent: 'space-around',
+                            alignItems: 'center', 
+                            gap: 10 
+                        }}
+                        onPress={ ()=> setIsVisibleSetores(true)} >
+                            <AntDesign name="caret-down" size={35} color="#FFF" />
+
+                        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}> Setor: {data.setor}</Text>
+                         <Entypo name="location" size={30} color="#FFF" />
+                    </TouchableOpacity>
+            
+
                                     
                         {
                             data.tipo == 6 ?
                              <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-                               <Text style={{ fontWeight: 'bold' }}>Fornecedor:</Text> {   data.fornecedor.nome}
+                               <Text style={{ fontWeight: 'bold' }}>Fornecedor:</Text> { data.fornecedor && data.fornecedor?.nome}
                              </Text>
                             
                             :
                              <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-                               <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {  data.cliente.nome}
+                               <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {  data.cliente && data.cliente?.nome}
                              </Text>
                         }                                    
 
@@ -551,7 +563,14 @@ export const Separacao = ({ navigation, route }: any) => {
                                 </View>
                             ) : <View style={{ marginBottom: 8 }} />}
 
+                       
+                    
+                    { data.setor != undefined && 
                         <Text style={{ fontSize: 14, color: '#666' }}>
+                            <Text style={{ fontWeight: 'bold' }}>Setor:</Text> {data.setor}
+                        </Text>
+                    }
+                     <Text style={{ fontSize: 14, color: '#666' }}>
                             <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
                         </Text>
                     </View>
@@ -591,7 +610,7 @@ export const Separacao = ({ navigation, route }: any) => {
                             alignItems: 'center', 
                             gap: 10 
                         }}
-                        onPress={configMobileApi?.offline === 'S' ? saveOrderMobile : saveOrderApi}
+                        onPress={saveOrderApi}
                     >
                         <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
                         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>
@@ -643,7 +662,30 @@ export const Separacao = ({ navigation, route }: any) => {
                     </View>
                 </CameraView>
             </Modal>
- 
+           {
+                 data && data.tipo != 6 &&
+            <ModalSeries
+                codigo_pedido={codigo_pedido}
+                setor={data.setor}
+                visible={!!selectedProductForSeries}
+                codigo_produto={selectedProductForSeries?.codigo ?? 0}
+                series={selectedProductForSeries?.series ?? []}
+                onClose={() => setSelectedProductForSeries(null)}
+                onConfirm={(updatedSeries) => {
+                    if (selectedProductForSeries) {
+                        const total = updatedSeries.reduce((sum, s) => sum + s.quantidade, 0);
+                        setListaSeparacao(prev => prev.map(p =>
+                            p.codigo === selectedProductForSeries.codigo
+                                ? { ...p, series: updatedSeries, quantidade_separada: total }
+                                : p
+                        ));
+                    }
+                    setSelectedProductForSeries(null);
+                }}
+                maxQuantity={selectedProductForSeries?.quantidade}
+            />
+                }
+
         </KeyboardAvoidingView>
     );
 }

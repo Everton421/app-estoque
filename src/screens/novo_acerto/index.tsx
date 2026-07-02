@@ -175,6 +175,7 @@ export const NovoAcerto = ({ navigation }: any) => {
             }
         } catch (e) {
             console.log("Ocorreu um erro ao tentar consultar os produtos no setor");
+            console.log(e);
         } finally {
             setLoadingDataProd(false);
         }

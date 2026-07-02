@@ -252,21 +252,31 @@ async function update ( user:Usuario ){
  
  async function deleteUser(code:number){
     try{
-        let result = await db.execAsync(`DELETE FROM usuarios where codigo = ${code}`)
-        console.log(`log exclusao usuario ${code}`)
+        let result = await db.runAsync(`DELETE FROM usuarios where codigo = ${code}`)
+         return result.changes 
+
+    }catch( e ) { console.log(e) }
+}
+
+ async function deleteUserByEmail(email:string){
+    try{
+        let result = await db.runAsync(`DELETE FROM usuarios where email ='${email}'`)
+         return result.changes 
+
     }catch( e ) { console.log(e) }
 }
 
 async function deleteAll(){
     try{
-        let result = await db.execAsync(`DELETE FROM usuarios `)
-        console.log(`log exclusao usuarios `, result)
+        let result = await db.runAsync(`DELETE FROM usuarios;`)
+
+         return result.changes 
     }catch( e ) { console.log(e) }
 }
 
 
 
 
-return  { insert,deleteAll,partialUpdate, updateRemember,signin ,selectRemember ,createUser, selectAll, create, update, selectByCode, selectByName  } 
+return  { insert,deleteAll,partialUpdate,deleteUser,deleteUserByEmail, updateRemember,signin ,selectRemember ,createUser, selectAll, create, update, selectByCode, selectByName  } 
 
 }
