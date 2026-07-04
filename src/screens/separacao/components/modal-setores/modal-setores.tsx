@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import useApi from '../../../../services/api';
 
@@ -72,9 +72,20 @@ export const ModalSetores = ({ visible, setVisible, selectSector }: props)=>{
     const api = useApi();
 
     const [ dataSetores, setDataSetores  ]= useState<setor[]>();
+    const [searchText, setSearchText] = useState('');
+
+    //const filteredSetores = dataSetores?.filter(s =>
+    //    s.descricao.toLowerCase().includes(searchText.toLowerCase()) ||
+    //    String(s.codigo).includes(searchText)
+    //);
 
     async function findSetores() {
-        const resultDataSector = await api.get('/setores/search');
+        const resultDataSector = await api.get('/setores/search',{
+            params:{
+                limit:1000,
+                search: searchText
+            }
+        });
 
         if (resultDataSector && resultDataSector?.status == 200) {
             setDataSetores(resultDataSector.data);
@@ -83,18 +94,39 @@ export const ModalSetores = ({ visible, setVisible, selectSector }: props)=>{
 
     useEffect(()=>{
         findSetores()
-    },[])
+    },[searchText])
 
 return  ( 
 <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
                     <View style={{ width: '90%', height: '80%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
+                        
                         <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Selecionar Setor</Text>
                             <TouchableOpacity onPress={() => setVisible(false)}>
                                 <Ionicons name="close" size={24} color="#FFF" />
                             </TouchableOpacity>
                         </View>
+
+             
+
+                        <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
+                            <TextInput
+                                style={{
+                                    backgroundColor: '#F5F7FA',
+                                    borderRadius: 8,
+                                    paddingHorizontal: 15,
+                                    paddingVertical: 10,
+                                    fontSize: 14,
+                                    color: '#333',
+                                }}
+                                placeholder="Pesquisar setor..."
+                                placeholderTextColor="#999"
+                                defaultValue={searchText}
+                                onChangeText={setSearchText}
+                            />
+                        </View>
+
                         <FlatList
                             data={dataSetores}
                             renderItem={({ item }) => <RenderSetores setor={item} selectSetor={selectSector} />}

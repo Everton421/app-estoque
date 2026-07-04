@@ -2,7 +2,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { useClients } from "../../database/queryClientes/queryCliente";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
@@ -33,6 +33,8 @@ export function Fornecedores({ navigation }: any) {
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [isloadingDataSupplier, setIsLoadingDataSupplier] = useState(false);
     const api = useApi();
+     const [refreshing, setRefreshing] = useState(false);
+    
 
     const useQueryConfigApi = queryConfig_api();
 
@@ -56,7 +58,7 @@ export function Fornecedores({ navigation }: any) {
     }, [])
  
 
-    async function getRequestClients(){
+    async function getRequestSupplier(){
 
         try{
                     setIsLoadingDataSupplier(true)
@@ -77,8 +79,17 @@ export function Fornecedores({ navigation }: any) {
                 }
     }
 
+
+    
+     const onRefresh = async () => {
+        setRefreshing(true);
+        getRequestSupplier()
+
+        setRefreshing(false);
+    };
+
     useEffect(() => {
-            getRequestClients()
+            getRequestSupplier()
     }, [pesquisa,configMobileApi, limitQuery])
 
 
@@ -201,11 +212,11 @@ export function Fornecedores({ navigation }: any) {
                         </Text>
 
                         <View style={styles.filterOptionsContainer}>
-                            <FilterOption value={10} label="10 Clientes" />
-                            <FilterOption value={25} label="25 Clientes" />
-                            <FilterOption value={50} label="50 Clientes" />
-                            <FilterOption value={100} label="100 Clientes" />
-                            <FilterOption value={250} label="250 Clientes" />
+                            <FilterOption value={10}  label="10 Fornecedores" />
+                            <FilterOption value={25}  label="25 Fornecedores" />
+                            <FilterOption value={50}  label="50 Fornecedores" />
+                            <FilterOption value={100} label="100 Fornecedores" />
+                            <FilterOption value={250} label="250 Fornecedores" />
 
                         </View>
                     </View>
@@ -223,9 +234,19 @@ export function Fornecedores({ navigation }: any) {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={() => (
                         <View style={{ alignItems: 'center', marginTop: 50 }}>
-                            <Text style={{ color: '#999', fontSize: 16 }}>Nenhum cliente encontrado.</Text>
+                            <Text style={{ color: '#999', fontSize: 16 }}>Nenhum fornecedor encontrado.</Text>
                         </View>
                     )}
+
+                        refreshControl={
+                                                         <RefreshControl
+                                                          refreshing={refreshing}
+                                                          onRefresh={onRefresh}
+                                                          colors={['#185FED']}
+                                                          tintColor="#185FED"
+                                                      />
+                                                }
+
                 />
             }
            

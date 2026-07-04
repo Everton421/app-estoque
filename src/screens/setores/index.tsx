@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, TextInput, FlatList, Modal, Alert, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity, TextInput, FlatList, Modal, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -24,6 +24,7 @@ export const Setores = ({ navigation }: any) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [setorSelecionado, setSetorSelecionado] = useState<sector>();
     const [loading, setLoading] = useState(false);
+ const [refreshing, setRefreshing] = useState(false);
 
     const useQuerySetores = useSetores();
     const api = useApi();
@@ -87,6 +88,11 @@ export const Setores = ({ navigation }: any) => {
     });*/
 
 
+  const onRefresh = async () => {
+        setRefreshing(true);
+          busca( );
+        setRefreshing(false);
+    };
  async function busca() {
          if(configMobileApi && configMobileApi.offline === 'N'){
             
@@ -257,6 +263,14 @@ export const Setores = ({ navigation }: any) => {
                 keyExtractor={(i: any) => i.codigo.toString()}
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                   <RefreshControl
+                                                refreshing={refreshing}
+                                                onRefresh={onRefresh}
+                                                colors={['#185FED']}
+                                                tintColor="#185FED"
+                                            />
+                   }
             />
         }
 

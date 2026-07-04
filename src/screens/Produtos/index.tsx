@@ -1,4 +1,4 @@
-import { View, Text, TextInput, FlatList, Modal, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TextInput, FlatList, Modal, Image, TouchableOpacity, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
 import { produto, useProducts } from "../../database/queryProdutos/queryProdutos";
 import { useEffect, useState } from "react";
 
@@ -55,6 +55,7 @@ export function Produtos({ navigation }: any) {
     const [dataProdSector, setDataProdSector] = useState<selectCompleteProdSector[]>([])
     const [loadingItemModalSetor, setLoadingItemModalSetor] = useState(false);
     const [ isLoadingDataProduct , setIsLoadingDataProduct ] = useState(false);
+ const [refreshing, setRefreshing] = useState(false);
 
     const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
     const api = useApi();
@@ -219,6 +220,17 @@ export function Produtos({ navigation }: any) {
             }
     }
 
+     const onRefresh = async () => {
+        setRefreshing(true);
+         if (pesquisa != '' ) {
+                filterByDescription()
+            } else {
+              filterAll()
+            }
+
+        setRefreshing(false);
+    };
+
     function handleSelect(item: any) {
         setpSelecionado(item);
         navigation.navigate('cadastro_produto', {
@@ -365,6 +377,14 @@ export function Produtos({ navigation }: any) {
                 keyExtractor={(i: any) => i.codigo.toString()}
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 showsVerticalScrollIndicator={false}
+                   refreshControl={
+                                   <RefreshControl
+                                                                refreshing={refreshing}
+                                                                onRefresh={onRefresh}
+                                                                colors={['#185FED']}
+                                                                tintColor="#185FED"
+                                                            />
+                                   }
             />
                  
             }

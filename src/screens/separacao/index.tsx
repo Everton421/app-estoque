@@ -319,17 +319,16 @@ export const Separacao = ({ navigation, route }: any) => {
                 }));
 
                 const payload = { itens , setor: data.setor};
-
-                 const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
-
-                 if (response.status >= 200 && response.status < 300) {
-                     setVisibleAlert(true);
-                     setMessageAlert("Separação salva com sucesso!");
-                     setTypeAlert('success');
-                     setTitleAlert("Sucesso");
-                 } else {
-                     throw new Error('Resposta inválida da API');
-                 }
+                   const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
+  
+                   if (response.status >= 200 && response.status < 300) {
+                       setVisibleAlert(true);
+                       setMessageAlert("Separação salva com sucesso!");
+                       setTypeAlert('success');
+                       setTitleAlert("Sucesso");
+                   } else {
+                       throw new Error('Resposta inválida da API');
+                   }
 
             } catch (e: any) {
                 console.log("erro ao salvar a separação na api", e?.response?.data || e);

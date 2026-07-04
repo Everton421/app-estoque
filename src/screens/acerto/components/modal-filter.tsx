@@ -1,56 +1,77 @@
 import { Modal, Text, TouchableOpacity, View, Platform } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Fontisto from '@expo/vector-icons/Fontisto';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { configMoment } from "../../../services/moment";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+  type typeEnt_sai = 'S' | 'E' | '*'
 
 type props = {
     visible: boolean,
     setVisible: React.Dispatch<React.SetStateAction<boolean>>,
-    setTipo: React.Dispatch<React.SetStateAction<'E' | 'S' | '*'>>,
+    setTipo: (ent_sai?: typeEnt_sai | undefined) => Promise<void>,
     setDate: any
+    dateFilter:string
+    tipoMovimento: 'E' | 'S' | '*'
 }
 
-export const ModalFilter = ({ visible, setVisible, setTipo, setDate }: props) => {
+export const ModalFilter = ({ visible, setVisible, setTipo, dateFilter, setDate,tipoMovimento   }: props) => {
     const moment = configMoment();
 
     const [showPicker, setShowPicker] = useState(false);
-    const [auxData, setAuxData] = useState<any>(new Date()); // Usar Date object
-    const [displayData, setDisplayData] = useState<string>(moment.dataAtual()); // String para display
-    const [tipoSelecionado, setTipoSelecionado] = useState<'E' | 'S' | '*'>('*');
 
     async function selectTipo(tipo: 'E' | 'S' | '*') {
-        try {
-            await AsyncStorage.setItem('filtroAcerto', tipo);
-            setTipoSelecionado(tipo);
+      
             setTipo(tipo);
-            // setVisible(false); // Opcional: fechar ao selecionar tipo
-        } catch (e) {
-            console.log("erro ao tentar salvar o filtro", e);
-        }
     }
 
-    const handleEvent = async (event: any, selectedDate?: Date) => {
+
+      const handleEvent = async (event: any, selectedDate?: Date) => {
         setShowPicker(false);
         if (event.type === 'set' && selectedDate) {
-            setAuxData(selectedDate);
-            const dataFormatada = moment.formatarData(selectedDate); // Assumindo que retorna DD/MM/YYYY ou similar
-            setDisplayData(dataFormatada);
-            setDate(dataFormatada);
-
-            try {
-                await AsyncStorage.setItem('dataPedidos', dataFormatada);
-            } catch (e) {
-                console.log("Erro storage data", e);
-            }
+            const dataFormatada = moment.formatarData(selectedDate as any);
+            setDate(dataFormatada); 
+        
         }
     };
 
+ 
+
+     // --- CORREÇÃO DO FUSO HORÁRIO (TIMEZONE) ---
+    const parseDateString = (dateString: string) => {
+        if (!dateString) return new Date();
+
+        try {
+            // Se a data estiver no formato DD/MM/YYYY
+            if (dateString.includes('/')) {
+                const [day, month, year] = dateString.split('/');
+                return new Date(Number(year), Number(month) - 1, Number(day)); 
+                // Obs: Mês em JS começa no 0 (Janeiro = 0, Fevereiro = 1...)
+            }
+            
+            // Se a data estiver no formato YYYY-MM-DD
+            if (dateString.includes('-')) {
+                const[year, month, day] = dateString.split('-');
+                // Pega apenas os dois primeiros caracteres do dia (caso venha com hora junto)
+                const cleanDay = day.substring(0, 2); 
+                return new Date(Number(year), Number(month) - 1, Number(cleanDay));
+            }
+            
+            return new Date(dateString);
+        } catch (error) {
+            return new Date(); // Em caso de erro, retorna data atual
+        }
+    };
+
+    // Usando a função segura para passar a data para o DatePicker
+    const dataParaO_Picker = parseDateString(dateFilter);
+
+       
+   
     // Componente interno para opção de filtro
     const FilterOption = ({ type, label, icon, color }: any) => {
-        const isSelected = tipoSelecionado === type;
+        const isSelected = tipoMovimento === type;
         return (
             <TouchableOpacity
                 style={{
@@ -120,13 +141,14 @@ export const ModalFilter = ({ visible, setVisible, setTipo, setDate }: props) =>
                         >
                             <Fontisto name="date" size={22} color="#185FED" style={{ marginRight: 10 }} />
                             <Text style={{ fontSize: 16, color: '#333', fontWeight: '500' }}>
-                                {displayData}
+                                {dateFilter ? dateFilter : moment.formatarData(new Date() as any)}
+
                             </Text>
                         </TouchableOpacity>
 
                         {showPicker && (
                             <DateTimePicker
-                                value={auxData instanceof Date ? auxData : new Date()}
+                                value={dataParaO_Picker}
                                 display="default"
                                 mode="date"
                                 onChange={handleEvent}

@@ -25,6 +25,15 @@ type type_lote_serie_setor = {
     lote: string | null 
 };
 
+type propsSwitchStockSeries = {
+    situations:typeSituations[],
+ setSituation: ( situation:typeSituations)=>void
+    visible:boolean
+    setVisible: (visible:boolean)=>void
+}
+
+type typeSituations=  'positivo' | 'negativo' | 'zerado' | 'todos'
+
 export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_produto, series, onConfirm, maxQuantity }: ModalProps) => {
 
     const api = useApi();
@@ -33,6 +42,8 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
     const [dataSeries, setDataSeries] = useState<type_lote_serie_setor[]>([]);
     const [selectedQuantities, setSelectedQuantities] = useState<Record<number, number>>({});
     const [exibirNegativo, setExibirNegativo] = useState(false);
+    const [ isVisiblesSwitchStockSeries , setIsVisiblesSwitchStockSeries]  = useState(false);
+    const [ situacao_estoque, setSituacao_estoque] = useState<typeSituations>('positivo');
 
     const [isVisibleCamera, setIsVisibleCamera ] = useState(false);
 
@@ -65,7 +76,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
             setIsloadingDataSeries(true);
             const params: Record<string, any> = {
                 produto: codigo_produto,
-                situacao_estoque: exibirNegativo ? 'negativo' : 'positivo'
+                situacao_estoque: situacao_estoque
             };
             if (setor > 0) {
                 params.setor = setor;
@@ -177,7 +188,31 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
     }
 
 
+    const SwitchStockSeries= ({visible, setVisible,  situations, setSituation }:propsSwitchStockSeries)=>{
 
+        const RenderItem = ({item}: { item: typeSituations})=>{
+                return(
+                        <TouchableOpacity onPress={()=> setSituation(item)}>
+                            <Text>{item}</Text>
+                        </TouchableOpacity>
+                        )
+          }
+
+      return  ( 
+                <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal:200 ,position:'absolute' }}>
+                        <FlatList
+                        data={situations}
+                         renderItem={({ item }) => <RenderItem  item={item} />}
+                              contentContainerStyle={{ paddingVertical: 10 }}
+                        />
+                     <TouchableOpacity onPress={()=>{ setVisible(false) }}>
+                            <Ionicons name="close" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                  </View>
+
+               )
+             
+    }
 
     const renderserie = ({ item }: { item: type_lote_serie_setor }) => {
         const qty = selectedQuantities[item.lote_serie] || 0;
@@ -251,7 +286,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
 
     return (
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-            <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
+             <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
                 <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={onClose} />
 
                 <View style={{
@@ -266,24 +301,89 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Lote Séries:</Text>
+                            {/** 
+
                             <TouchableOpacity
                                 style={{
-                                    backgroundColor: exibirNegativo ? '#FF5252' : '#4CAF50',
+                                    backgroundColor: '#FFF',
                                     borderRadius: 8,
-                                    paddingHorizontal: 10,
-                                    paddingVertical: 4
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 6
                                 }}
-                                onPress={() => setExibirNegativo(!exibirNegativo)}
+                                onPress={() => setIsVisiblesSwitchStockSeries(!isVisiblesSwitchStockSeries)}
                             >
-                                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>
-                                    {exibirNegativo ? 'Negativo' : 'Positivo'}
+                                <Text style={{ color: '#333', fontSize: 13, fontWeight: '600' }}>
+                                    {situacao_estoque.charAt(0).toUpperCase() + situacao_estoque.slice(1)}
                                 </Text>
+                                <Ionicons 
+                                    name={isVisiblesSwitchStockSeries ? "caret-up" : "caret-down"} 
+                                    size={14} 
+                                    color="#185FED" 
+                                />
                             </TouchableOpacity>
+                              
+                             */}
                         </View>
+
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>
+                    { /**
+
+                    {isVisiblesSwitchStockSeries && (
+                        <View style={{
+                            position: 'absolute',
+                            top: 60,
+                            right: 20,
+                            backgroundColor: '#FFF',
+                            borderRadius: 12,
+                            padding: 8,
+                            minWidth: 140,
+                            elevation: 5,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 4,
+                            zIndex: 100
+                        }}>
+                            {["negativo", "positivo", "todos", "zerado"].map((item) => (
+                                <TouchableOpacity
+                                    key={item}
+                                    style={{
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 12,
+                                        borderRadius: 8,
+                                        backgroundColor: situacao_estoque === item ? '#E3F2FD' : 'transparent',
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}
+                                    onPress={() => {
+                                        setSituacao_estoque(item);
+                                        setIsVisiblesSwitchStockSeries(false);
+                                    }}
+                                >
+                                    <Text style={{
+                                        fontWeight: "600",
+                                        color: situacao_estoque === item ? '#185FED' : '#333',
+                                        textTransform: 'capitalize'
+                                    }}>
+                                        {item}
+                                    </Text>
+                                    {situacao_estoque === item && (
+                                        <Ionicons name="checkmark-circle" size={18} color="#185FED" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                          
+                         */
+                    }
 
                     <View style={{ flex: 1, padding: 20 }}>
                         {isloadingDataSeries ? (
@@ -377,8 +477,8 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
                                     </Modal>
 
                     </View>
-                </View>
-            </View>
+             </View>
+             </View>
         </Modal>
     );
 };

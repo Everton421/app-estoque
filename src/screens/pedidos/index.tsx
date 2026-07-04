@@ -126,7 +126,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             const valuePedido: any = await AsyncStorage.getItem('configPedido');
             if (valuePedido !== null) {
                 setConfigLeitorPedido(valuePedido);
-                console.log(valuePedido)
             }
 
         } catch (e) {

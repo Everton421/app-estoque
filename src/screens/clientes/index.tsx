@@ -2,7 +2,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { useClients } from "../../database/queryClientes/queryCliente";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
@@ -33,6 +33,8 @@ export function Clientes({ navigation }: any) {
     const [visibleModalFilter, setVisibleModalFilter] = useState(false);
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [isloadingDataClient, setIsLoadingDataClient] = useState(false);
+     const [refreshing, setRefreshing] = useState(false);
+
     const api = useApi();
 
     const useQueryConfigApi = queryConfig_api();
@@ -56,42 +58,15 @@ export function Clientes({ navigation }: any) {
         getConfigMobileApi();
     }, [])
 
-    async function selecClientsInMobile() {
-            try {
-                setIsLoadingDataClient(true)
-                const responseCategorysproduct = await api.get('/categorias/search',
-                    {
-                        params: {
-                            limit: 25,
-                            search: pesquisa,
-                            ativo: 'S'
-                        }
-                    }
-                );
-                setDados(responseCategorysproduct?.data);
-            } catch (e) {
-                console.log("[X] Erro ao buscar categorias na api ", e)
-            } finally {
-                setIsLoadingDataClient(false)
-            }
 
+     const onRefresh = async () => {
+        setRefreshing(true);
+        getRequestClients()
 
-            if (pesquisa !== '') {
-                let response: any = await useQueryClients.selectByDescription(pesquisa, limitQuery);
-                if (response.length > 0) {
-                    setDados(response)
-                } else {
-                    setDados([]) // Limpa se não achar nada
-                }
-            } else {
-                const response: any = await useQueryClients.selectAllLimit(limitQuery);
-                if (response.length > 0) {
-                    setDados(response)
-                }
-            }
-   
-    }
+        setRefreshing(false);
+    };
 
+  
     async function getRequestClients(){
 
         try{
@@ -114,11 +89,7 @@ export function Clientes({ navigation }: any) {
     }
 
     useEffect(() => {
-        if (configMobileApi && configMobileApi.offline === 'N') {
             getRequestClients()
-        } else {
-            selecClientsInMobile();
-        }
     }, [pesquisa,configMobileApi, limitQuery])
 
 
@@ -267,6 +238,15 @@ export function Clientes({ navigation }: any) {
                             <Text style={{ color: '#999', fontSize: 16 }}>Nenhum cliente encontrado.</Text>
                         </View>
                     )}
+                       refreshControl={
+                                     <RefreshControl
+                                      refreshing={refreshing}
+                                      onRefresh={onRefresh}
+                                      colors={['#185FED']}
+                                      tintColor="#185FED"
+                                  />
+                            }
+                                                       
                 />
             }
            

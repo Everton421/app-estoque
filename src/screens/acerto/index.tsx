@@ -1,13 +1,12 @@
-import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from "react-native";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import React, { useEffect, useState } from "react";
-import { useMovimentos } from "../../database/queryMovimentos/queryMovimentos";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { ModalFilter } from "./components/modal-filter";
-import { configMoment } from "../../services/moment";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 import useApi from "../../services/api";
-import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { configMoment } from "../../services/moment";
+import { ModalFilter } from "./components/modal-filter";
 
 type resultQueryMov = {
     data_recadastro: string
@@ -46,37 +45,43 @@ type resultMovRequest = {
      id_produto : string
   }
 
+  type typeEnt_sai = 'S' | 'E' | '*'
+
 export const Acertos = ({ navigation }: any) => {
     const moment = configMoment();
-    const useQueryMovimentos = useMovimentos();
     const api = useApi();
 
     const [loadingData, setLoadinData] = useState(false);
-    const [dataMovimet, setDataMoviment] = useState<resultQueryMov[] | []>([]);
+    const [dataMovimet, setDataMoviment] = useState<resultMovRequest[] | []>([]);
     const [pesquisa, setPesquisa] = useState<string>('');
     const [visibleFilter, setVisibleFilter] = useState(false);
-    const [tipoMovimento, setTipoMovimento] = useState<'S' | 'E' | '*'>('*');
+    const [tipoMovimento, setTipoMovimento] = useState<typeEnt_sai>('*');
     const [dateFilter, setDateFilter] = useState(moment.dataAtual());
+    const [refreshing, setRefreshing] = useState(false);
 
 
 
-    async function buscaPorDescricao(value: any) {
+    async function buscaPorDescricao() {
         try {
+
+          const dataFiltro =  await getFitroAcertos()
+
             setLoadinData(true);
-                   console.log(tipoMovimento)
+                    
+                    let params:any = { 
+                                ent_sai: dataFiltro?.ent_sai,
+                                data_recadastro: dataFiltro?.data_recadastro
+                    }
+
+                    if(pesquisa){
+                        params.search = pesquisa
+                    }
                 const result = await api.get('/movimentos_produtos/search', 
                         {
-                            params: { 
-                                search: pesquisa,
-                                ent_sai: tipoMovimento,
-                                data_recadastro:dateFilter
-                            }
+                            params 
                         }
                     );
-
-          
                         setDataMoviment(result.data);
-                  
         } catch (e) {
             console.log(e);
         } finally {
@@ -84,15 +89,78 @@ export const Acertos = ({ navigation }: any) => {
         }
     }
 
+     const getFitroAcertos = async () => {
+        try {
+
+            const valueFilterDataCadastro = await AsyncStorage.getItem('dataAcertos');
+            const valueFilterEnt_sai = await AsyncStorage.getItem('ent_sai');
+            
+            let resultFilter = { data_recadastro: moment.dataAtual() , ent_sai: '*'}
+
+            if (valueFilterDataCadastro !== null) {
+                resultFilter.data_recadastro = valueFilterDataCadastro
+            } else {
+                await AsyncStorage.setItem('dataAcertos', moment.dataAtual());
+            }
+
+            if(valueFilterEnt_sai != null){
+                    resultFilter.ent_sai = valueFilterEnt_sai;
+            }else{
+                await AsyncStorage.setItem('ent_sai', '*');
+            }
+            setDateFilter(resultFilter.data_recadastro)
+            setTipoMovimento(resultFilter.ent_sai as any);
+            return resultFilter
+        } catch (e) {
+            console.log("erro ao consultar AsyncStorage",e )
+        }
+    }
+
+
+
+    const saveDateFilter = async ( dataToSave ?:string  )=>{
+        try {
+       
+        if( dataToSave){
+             await AsyncStorage.setItem('dataAcertos', moment.formatarData(dataToSave));
+                setDateFilter(dataToSave);
+        }
+        
+            } catch (e) {
+            console.log("erro ao tentar salvar filtros do acerto no AsyncStorage")
+        }
+
+    }
+
+     const saveFilter = async (  ent_sai?:typeEnt_sai )=>{
+        try {
+       
+        if(ent_sai){
+                await AsyncStorage.setItem('ent_sai', ent_sai);
+            setTipoMovimento(ent_sai)
+            }
+            } catch (e) {
+            console.log("erro ao tentar salvar filtros do acerto no AsyncStorage")
+        }
+
+    }
+
+    
     useFocusEffect(
         React.useCallback(() => {
-            buscaPorDescricao(pesquisa);
+            buscaPorDescricao( );
             return () => { };
         }, [])
     );
 
+  const onRefresh = async () => {
+        setRefreshing(true);
+          buscaPorDescricao( );
+        setRefreshing(false);
+    };
+
     useEffect(() => {
-        buscaPorDescricao(pesquisa);
+        buscaPorDescricao( );
     }, [pesquisa, tipoMovimento, dateFilter]);
 
     const getStatusColor = (tipo: string) => {
@@ -260,7 +328,7 @@ export const Acertos = ({ navigation }: any) => {
                 <FlatList
                     data={dataMovimet}
                     renderItem={(i) => renderItem(i)}
-                    keyExtractor={(i: resultQueryMov) => i.codigo.toString()}
+                    keyExtractor={(i: resultMovRequest) => i.codigo.toString()}
                     contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={() => (
@@ -268,6 +336,15 @@ export const Acertos = ({ navigation }: any) => {
                             <Text style={{ color: '#999', fontSize: 16 }}>Nenhum movimento encontrado.</Text>
                         </View>
                     )}
+                     refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                colors={['#185FED']}
+                                tintColor="#185FED"
+                            />
+                        }
+
                 />
             )}
 
@@ -298,8 +375,10 @@ export const Acertos = ({ navigation }: any) => {
  
 
             <ModalFilter
-                setDate={setDateFilter}
-                setTipo={setTipoMovimento}
+                 dateFilter={dateFilter}
+                 tipoMovimento={tipoMovimento}
+                setDate={saveDateFilter}
+                setTipo={saveFilter}
                 setVisible={setVisibleFilter}
                 visible={visibleFilter}
             />

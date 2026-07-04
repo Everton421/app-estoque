@@ -10,7 +10,8 @@ import { Locais } from "./components/locais";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useApi from "../../services/api";
 import { AuthContext } from "../../contexts/auth";
-import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { CustomAlert, AlertType } from "../../components/custom-alert/custom-alert";
+import {   ModalSeriesAcerto } from "./components/modal-series-acerto/modal-series-acerto";
 
 type filterBarcodeOption = {
     chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
@@ -41,6 +42,8 @@ export const NovoAcerto = ({ navigation }: any) => {
     const [visibleLocais, setVisibleLocais] = useState(false);
                const [visibleAlert, setVisibleAlert ] = useState(false);
     const [messageAlert, setMessageAlert] = useState('');
+    const [titleAlert, setTitleAlert] = useState('');
+    const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
     const [permission, requestPermission] = useCameraPermissions();
     const [prodSeletor, setProdSeletor] = useState<any>();
@@ -52,6 +55,8 @@ export const NovoAcerto = ({ navigation }: any) => {
     const [loadingDataProd, setLoadingDataProd] = useState(false);
     const [ent_sai, setEnt_sai] = useState('E');
     const [novoSaldo, setNovoSaldo] = useState(0);
+    const [ searchTextSector , setSearchTextSector] = useState();
+    const [ isVisibleModalSeries, setIsVisibleModalSeries ] = useState(false);
 
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
 
@@ -98,11 +103,15 @@ export const NovoAcerto = ({ navigation }: any) => {
                 if(responseProduct.data.length > 0 ){
                     handleSelectProduct(responseProduct.data[0]);
                 }else{
+                    setTitleAlert('Produto não encontrado!');
+                    setTypeAlert('warning');
                     setMessageAlert(`Nenhum produto encontrado para o código: ${codeScanned}`);
                     setVisibleAlert(true)
                 }
                 setLoadingDataProd(false);
             } else {
+                setTitleAlert('Produto não encontrado!');
+                setTypeAlert('warning');
                 setMessageAlert(`Produto não encontrado, ${defaultConfigFilter}: ${codeScanned}`);
                 setVisibleAlert(true);
                 setDataProd([]);
@@ -117,11 +126,10 @@ export const NovoAcerto = ({ navigation }: any) => {
     }
 
     const handleUpdateField = (fieldName: keyof dataProdMov, value: string) => {
-        if (!dataProd || dataProd.length === 0) return;
-        const updatedData = dataProd.map((item) => {
-            return { ...item, [fieldName]: value };
+        setDataProd(prev => {
+            if (!prev || prev.length === 0) return prev;
+            return prev.map((item) => ({ ...item, [fieldName]: value }));
         });
-        setDataProd(updatedData);
     };
 
     function handleSetores() {
@@ -152,7 +160,7 @@ export const NovoAcerto = ({ navigation }: any) => {
                 {
                     params: {
                         produto: codigo,
-                        setor: setor
+                        setor: setor,
                     }
                 }
             );
@@ -182,7 +190,12 @@ export const NovoAcerto = ({ navigation }: any) => {
     }
 
     async function findSetores() {
-        const resultDataSector = await api.get('/setores/search');
+        const resultDataSector = await api.get('/setores/search',{
+            params:{
+                    search:searchTextSector
+            }
+        }
+        );
 
         if (resultDataSector && resultDataSector?.status == 200) {
             setDataSetores(resultDataSector.data);
@@ -209,39 +222,44 @@ export const NovoAcerto = ({ navigation }: any) => {
                 estoque: Number(estoque),
                 produto: Number(produto),
                 setor: Number(setor),
-                local1_produto,
-                local2_produto,
-                local3_produto,
-                local4_produto,
-                local_produto
-            }
-             const resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
-
-             if (resultUpdateProdSetor.status === 200 || resultUpdateProdSetor.status == 201) {
-
-                const payloadMovimentos  =  {
-                     unidade_medida: 'und' ,
-                     tipo: 'A',
-                     data_recadastro: moment.dataHoraAtual(),
-                     historico: data[0].historico ? data[0].historico : '',
-                     produto: Number(data[0].produto),
-                     quantidade: novoSaldo,
-                     setor: Number(data[0].setor),
-                     usuario:usuario.codigo,
-                     ent_sai: ent_sai
-                   }
-                const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
+                local1_produto: local1_produto ? local1_produto : '',
+                local2_produto: local2_produto? local2_produto : '',
+                local3_produto: local3_produto ? local3_produto : '',
+                local4_produto: local4_produto ? local4_produto : '',
+                local_produto: local_produto ? local_produto : '' 
             }
 
-            setLoadingInsertItem(false);
-            setDataProd([]);
-            setProdSeletor(undefined);
-            setSetorSelecionado(undefined);
-            return Alert.alert('OK!', `Acerto registrado com sucesso!`);
+              const resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
+ 
+              if (resultUpdateProdSetor.status === 200 || resultUpdateProdSetor.status == 201) {
+ 
+                 const payloadMovimentos  =  {
+                      unidade_medida: 'und' ,
+                      tipo: 'A',
+                      data_recadastro: moment.dataHoraAtual(),
+                      historico: data[0].historico ? data[0].historico : '',
+                      produto: Number(data[0].produto),
+                      quantidade: novoSaldo,
+                      setor: Number(data[0].setor),
+                      usuario:usuario.codigo,
+                      ent_sai: ent_sai
+                    }
+                 const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
+             }
 
-        } catch (e) {
-            console.log("Erro ao registrar produto no setor", e);
-            Alert.alert('Atenção!', 'Ocorreu um erro ao tentar registrar o item no setor!');
+             setLoadingInsertItem(false);
+             setDataProd([]);
+             setProdSeletor(undefined);
+             setSetorSelecionado(undefined);
+             setTitleAlert('Sucesso!');
+             setMessageAlert('Acerto registrado com sucesso!');
+             setTypeAlert('success');
+             setVisibleAlert(true);
+             return;
+
+        } catch (e:any) {
+            console.log("Erro ao registrar produto no setor", e?.response?.data);
+            Alert.alert('Atenção!', `Ocorreu um erro ao tentar registrar o item no setor! `);
             setLoadingInsertItem(false);
         } finally {
             setLoadingInsertItem(false);
@@ -254,7 +272,7 @@ export const NovoAcerto = ({ navigation }: any) => {
         if (prodSeletor && prodSeletor.codigo) {
             findSetores();
         }
-    }, [prodSeletor]);
+    }, [prodSeletor, searchTextSector]);
 
     useEffect(() => {
         if (setorSelecionado && setorSelecionado.codigo > 0 && prodSeletor.codigo > 0) {
@@ -434,6 +452,44 @@ export const NovoAcerto = ({ navigation }: any) => {
                                                 <AntDesign name="plus" size={24} color="#FFF" />
                                             </TouchableOpacity>
                                         </View>
+                                        {
+                                                prodSeletor && prodSeletor.controle_lote_serie == 'S' && novoSaldo > 0 &&  (
+                                                    <>
+                                         
+
+                                       <TouchableOpacity
+                                          style={{ 
+                                            backgroundColor: '#FFF', 
+                                            borderRadius: 12, 
+                                            paddingVertical: 15, 
+                                            flexDirection: 'row', 
+                                            justifyContent: 'space-around', 
+                                            alignItems: 'center', 
+                                            gap: 10, 
+                                            marginTop:10,
+                                            elevation:10
+                                        }}    
+                                             onPress={() => setIsVisibleModalSeries(true) }
+                                        >
+                                            <Ionicons name="barcode" size={35} color="#185FED" />
+                                            <Text style={{fontWeight: 'bold', color:'#555'}}> Registrar Série</Text>
+                                          <MaterialCommunityIcons name="cursor-pointer" size={35} color="#185FED" />
+                                        </TouchableOpacity>
+
+                                                    
+                                                    <ModalSeriesAcerto
+                                                        maxQuantity={novoSaldo}
+                                                        produto={prodSeletor.codigo}
+                                                        setVisible={setIsVisibleModalSeries}
+                                                        setor={setorSelecionado.codigo}
+                                                        visible={isVisibleModalSeries}
+
+                                                    />
+                                                    
+                                                    </>
+                                                    
+                                                )
+                                        }
                                     </View>
 
                                     {/* Card de Informações Adicionais */}
@@ -491,6 +547,7 @@ export const NovoAcerto = ({ navigation }: any) => {
                                         <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Registrar Acerto</Text>
                                     </TouchableOpacity>
 
+                                        {/** componente para ajustar os locais */}
                                     <Locais
                                         item={i}
                                         setVisible={setVisibleLocais}
@@ -545,13 +602,37 @@ export const NovoAcerto = ({ navigation }: any) => {
             {/* --- MODAL SETORES (Padronizado) --- */}
             <Modal visible={visibleModalSetores} transparent={true} animationType="fade" onRequestClose={() => setVisibleModalSetores(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
-                    <View style={{ width: '90%', height: '80%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
-                        <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Selecionar Setor</Text>
+                    <View style={{ width: '95%', height: '90%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
+                        
+                        
+
+             <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#FFF',
+                                borderRadius: 8,
+                                paddingHorizontal: 10,
+                                height: 40,
+                                marginRight: 10
+                            }}>
+                                <Ionicons name="search" size={20} color="#999" style={{ marginRight: 5 }} />
+                                <TextInput
+                                    style={{ flex: 1, color: '#333' }}
+                                    placeholder="Digite para buscar..."
+                                    placeholderTextColor="#999"
+                                onChangeText={(v)=>setSearchTextSector(v)}
+
+                                    autoFocus={true}
+                                />
+                            </View>
                             <TouchableOpacity onPress={() => setVisibleModalSetores(false)}>
                                 <Ionicons name="close" size={24} color="#FFF" />
                             </TouchableOpacity>
-                        </View>
+                  </View>
+
+
                         <FlatList
                             data={dataSetores}
                             renderItem={({ item }) => <Setores setor={item} selectSetor={selectSetor} />}
@@ -564,8 +645,9 @@ export const NovoAcerto = ({ navigation }: any) => {
                   <CustomAlert
                         visible={visibleAlert}
                         onConfirm={ ()=>setVisibleAlert(false)}
-                        title="Produto não foi encontrado!"
+                        title={titleAlert}
                         message={messageAlert}
+                        type={typeAlert}
                         />
 
         </View>
