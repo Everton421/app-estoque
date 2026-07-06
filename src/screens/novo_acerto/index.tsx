@@ -36,6 +36,23 @@ type dataProdMov = {
     historico:string
 }
 
+
+type type_lote_serie_setor = {
+    serie: string | null 
+    quantidade:number 
+    produto:number,
+    setor:number
+    };
+
+type type_lote_serie_setor_api = {
+    serie: string | null 
+    quantidade:number 
+    produto:number,
+    setor:number,
+    estoque:number
+     lote_serie:number
+};
+
 export const NovoAcerto = ({ navigation }: any) => {
     const [modalVisible, setModalvisible] = useState(false);
     const [visibleModalSetores, setVisibleModalSetores] = useState(false);
@@ -53,12 +70,15 @@ export const NovoAcerto = ({ navigation }: any) => {
     const [dataSetores, setDataSetores] = useState<any>();
     const [setorSelecionado, setSetorSelecionado] = useState<any>();
     const [loadingDataProd, setLoadingDataProd] = useState(false);
-    const [ent_sai, setEnt_sai] = useState('E');
+    const [ent_sai, setEnt_sai] = useState<'E' | 'S'>('E');
     const [novoSaldo, setNovoSaldo] = useState(0);
     const [ searchTextSector , setSearchTextSector] = useState();
     const [ isVisibleModalSeries, setIsVisibleModalSeries ] = useState(false);
 
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
+
+    const [ seriesToUpdate, setSeriesToUpdate ] = useState<type_lote_serie_setor[]>();
+
 
     const moment = configMoment();
     const api = useApi();
@@ -68,6 +88,7 @@ export const NovoAcerto = ({ navigation }: any) => {
     useEffect(()=>{
         console.log(usuario.codigo)
     },[])
+
     async function getDefaultConfig() {
         try {
             let value: any = await AsyncStorage.getItem('configProduto');
@@ -203,6 +224,15 @@ export const NovoAcerto = ({ navigation }: any) => {
     }
 
     async function gravar(data: dataProdMov[]) {
+
+
+                 if(prodSeletor.controle_lote_serie == 'S' && !seriesToUpdate || seriesToUpdate?.length == 0 ){
+                        setTitleAlert('Produto controlado por lote/serie');
+                        setMessageAlert('É necessário informar as series referente ao(s) produto(s) !');
+                        setTypeAlert('info');
+                        setVisibleAlert(true);
+                        return;
+                 }
         if (ent_sai === 'E') {
             let aux = Number(data[0].estoque) + novoSaldo;
             data[0].estoque = Number(aux);
@@ -245,6 +275,9 @@ export const NovoAcerto = ({ navigation }: any) => {
                       ent_sai: ent_sai
                     }
                  const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
+                 if(prodSeletor.controle_lote_serie == 'S' && seriesToUpdate ){
+                        await postSeries(seriesToUpdate)
+                 }
              }
 
              setLoadingInsertItem(false);
@@ -266,6 +299,52 @@ export const NovoAcerto = ({ navigation }: any) => {
             setNovoSaldo(0);
             setEnt_sai('E');
         }
+    }
+
+
+    async function postSeries (  series : type_lote_serie_setor[]) {
+        for(const serie of series ){
+        const verifySeries = await api.get(`/lote-serie-setor/search`, {
+                params: { 
+                    produto: prodSeletor.codigo,
+                    setor: setorSelecionado.codigo, 
+                    serie: serie.serie
+                }    
+            })  
+ 
+            if(verifySeries.data.length > 0  ){
+                const [{ lote_serie, estoque }]   = verifySeries.data as type_lote_serie_setor_api[];
+
+               const resultputApiLoteSerieSetor  = await api.put(`/lote-serie-setor`, { 
+                    setor:serie.setor,
+                    produto: serie.produto,
+                    lote_serie: lote_serie,
+                    estoque: ent_sai == "S" ? estoque - serie.quantidade  : serie.quantidade + estoque 
+                })
+                console.log(`[V] Resultado request PUT lote-serie-setor `,resultputApiLoteSerieSetor.data)
+            } else{
+              const resultpostApiLoteSerieSetor  =   await api.post('/lotes-series',{
+                    produto: serie.produto,
+                    lote: null,
+                    serie: serie.serie
+                })
+                    console.log('[V] resultado request POST lote-serie' ,resultpostApiLoteSerieSetor.data );
+
+                if(resultpostApiLoteSerieSetor.status == 201){
+
+                    const lote_serie = resultpostApiLoteSerieSetor.data.codigo;
+                    const resultPutLoteSerieSetor = await api.put('/lote-serie-setor',{
+                        setor: serie.setor,
+                        produto: serie.produto,
+                        lote_serie: lote_serie,
+                        estoque: serie.quantidade
+                    })
+                    console.log('[V] resultado request PUT lote-serie-setor' ,resultPutLoteSerieSetor.data );
+
+                }
+            }
+        }
+                                                     
     }
 
     useEffect(() => {
@@ -470,12 +549,14 @@ export const NovoAcerto = ({ navigation }: any) => {
                                             elevation:10
                                         }}    
                                              onPress={() => setIsVisibleModalSeries(true) }
-                                        >
-                                            <Ionicons name="barcode" size={35} color="#185FED" />
-                                            <Text style={{fontWeight: 'bold', color:'#555'}}> Registrar Série</Text>
-                                          <MaterialCommunityIcons name="cursor-pointer" size={35} color="#185FED" />
+                                        >   
+                                              <Ionicons name="barcode" size={35} color="#185FED" />
+                                                <Text style={{fontWeight: 'bold', color:'#555'}}>{ ent_sai =='E' ? 'Registrar Série' : 'Separar Série'} </Text>
+                                            <MaterialCommunityIcons name="cursor-pointer" size={35} color="#185FED" />
                                         </TouchableOpacity>
-
+                                        { seriesToUpdate && seriesToUpdate?.length > 0 && 
+                                                      <Text style={{fontSize:10, fontWeight: 'bold', top:5,color:'#555'}}> {seriesToUpdate && seriesToUpdate?.length > 1 ? ' Séries separadas' : 'Série  separada'}: {seriesToUpdate?.length}</Text> 
+                                                }
                                                     
                                                     <ModalSeriesAcerto
                                                         maxQuantity={novoSaldo}
@@ -483,7 +564,8 @@ export const NovoAcerto = ({ navigation }: any) => {
                                                         setVisible={setIsVisibleModalSeries}
                                                         setor={setorSelecionado.codigo}
                                                         visible={isVisibleModalSeries}
-
+                                                        ent_sai={ent_sai}
+                                                        setSeriesToUpdate={setSeriesToUpdate}
                                                     />
                                                     
                                                     </>
@@ -546,6 +628,10 @@ export const NovoAcerto = ({ navigation }: any) => {
                                         <MaterialIcons name="save" size={24} color="#FFF" />
                                         <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Registrar Acerto</Text>
                                     </TouchableOpacity>
+
+ 
+
+  {/***************************************  */}
 
                                         {/** componente para ajustar os locais */}
                                     <Locais

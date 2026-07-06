@@ -11,7 +11,8 @@ type ModalProps = {
     produto:number,
      maxQuantity:number,
       visible:boolean
-      ent_sai: 'E'| 'S'  
+      ent_sai: 'E'| 'S' ,
+      setSeriesToUpdate: any
 };
 
 type type_lote_serie_setor = {
@@ -24,7 +25,7 @@ type type_lote_serie_setor = {
  
 
 
-export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,produto, ent_sai}: ModalProps) => {
+export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,produto, ent_sai, setSeriesToUpdate}: ModalProps) => {
 
     const api = useApi();
 
@@ -39,61 +40,85 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
   
   
     async function handleCodeRead(data: string) {
-         setIsVisibleCamera(false);
+        setIsVisibleCamera(false);
 
-            console.log(dataSeries);
-          try {
-            let auxDataSeries = dataSeries ;
+        const totalAtual = dataSeries.reduce((sum, s) => sum + s.quantidade, 0);
+        if (totalAtual >= maxQuantity) {
+            setVisibleAlert(true);
+            setMessageAlert(`A quantidade de series informada deve corresponder a quantidade a ser movimentada no acerto. Quantidade informada no acerto: ${maxQuantity} `);
+            setTypeAlert('warning');
+            return;
+        }
 
-            const payload = { produto:produto , setor: setor , quantidade: 1, serie: data } 
-            
-            if(maxQuantity == auxDataSeries.length){
-                ///console.log( `${maxQuantity} == ${auxDataSeries.length}`)
-                setVisibleAlert(true)
-                const msg =`A quantidade de series informada deve corresponder a quantidade a ser movimentada no acerto. Quantidade informada no acerto: ${maxQuantity} `;
-                setMessageAlert(msg)
-                setTypeAlert('warning')
-                return
-            }else{
-              auxDataSeries.push(payload)
-             setDataSeries(auxDataSeries);
-            console.log(auxDataSeries);
-
+        if (ent_sai == 'E') {
+            try {
+                const payload = { produto, setor, quantidade: 1, serie: data };
+                setDataSeries(prev => [...prev, payload]);
+            } catch (e: any) {
+                console.log("Erro ao tentar consultar lote-serie-setor ", e?.response?.data || e);
+            } finally {
+                setIsloadingDataSeries(false);
             }
+        } else {
+            try {
+                setIsloadingDataSeries(true);
+                const params: Record<string, any> = {
+                    produto: produto,
+                    situacao_estoque: 'positivo',
+                    serie: data
+                };
+                if (setor > 0) {
+                    params.setor = setor;
+                }
+                const resultData = await api.get(`/lote-serie-setor/search`, { params });
 
+                if (resultData.status == 200 && resultData.data.length > 0) {
+                        console.log("[v] series api ",resultData.data[0])
+                    const { serie, estoque   } = resultData.data[0];
 
-        } catch (e: any) {
-            console.log("Erro ao tentar consultar lote-serie-setor ", e?.response?.data || e);
-        } finally {
-            setIsloadingDataSeries(false);
+                    if (estoque <= 0) {
+                        setVisibleAlert(true);
+                        setMessageAlert(`A série informada nao possui estoque suficiente, estoque disponivel: ${estoque} `);
+                        setTypeAlert('warning');
+                        return;
+                    }
+
+                    const updated = [...dataSeries];
+                    const idx = updated.findIndex(s => s.serie === serie);
+                    if (idx >= 0) {
+                        updated[idx] = { ...updated[idx], quantidade: updated[idx].quantidade + 1 };
+                    } else {
+                        updated.push({ produto, quantidade: 1, serie, setor });
+                    }
+                    setDataSeries(updated);
+                } else {
+                    setVisibleAlert(true);
+                    setMessageAlert(`Série ${data} nao encontrada.`);
+                    setTypeAlert('warning');
+                }
+            } catch (e: any) {
+                console.log("Erro ao tentar consultar lote-serie-setor ", e?.response?.data || e);
+            } finally {
+                setIsloadingDataSeries(false);
+            }
         }
     }
 
-
-     
+ 
         const handleConfirm = ()=>{
-            if(dataSeries.length < maxQuantity){
-                setVisibleAlert(true)
-                const msg =`A quantidade de series informada deve corresponder a quantidade a ser movimentada no acerto. Quantidade informada no acerto: ${maxQuantity} `;
-                setMessageAlert(msg)
-                setTypeAlert('warning')
-                return
-            }else{
-                setVisible(false)
-            }
+      
+             setSeriesToUpdate(dataSeries)
+             setVisible(false)
         }
 
         async function initState(){
             if(ent_sai == 'S'){
-
-
 
             }
         }
 
 
     const renderserie = ({ item }: { item: type_lote_serie_setor }) => {
-
 
             function handleDeleteSerie (serie:type_lote_serie_setor) {
                 let auxSeries =  dataSeries.filter ( s => s.serie != serie.serie)
@@ -127,35 +152,38 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd : {item.quantidade}</Text>
 
                                    {
-                                    /** 
+                                  
                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                                        <TouchableOpacity
                                            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#E0E0E0", justifyContent: "center", alignItems: "center" }}
-                                           onPress={() => handleDecrement(item.lote_serie)}
+                                           //onPress={() => handleDecrement(item.lote_serie)}
                                        >
                                            <AntDesign name="minus" size={20} color="#333" />
                                        </TouchableOpacity>
                
-                                       <View style={{ minWidth: 40, borderBottomWidth: 2, borderBottomColor: qty > 0 ? '#4CAF50' : '#185FED', alignItems: 'center' }}>
+                                       <View style={{ minWidth: 40, borderBottomWidth: 2, borderBottomColor: item.quantidade > 0 ? '#4CAF50' : '#185FED', alignItems: 'center' }}>
                                            <TextInput
-                                               style={{ fontSize: 20, fontWeight: 'bold', color: qty > 0 ? '#4CAF50' : '#185FED', textAlign: 'center', paddingVertical: 0 }}
-                                               value={String(parseInt(qty))}
+                                               style={{ fontSize: 20, fontWeight: 'bold', color: item.quantidade > 0 ? '#4CAF50' : '#185FED', textAlign: 'center', paddingVertical: 0 }}
+                                               value={String(parseInt(item.quantidade))}
                                                onChangeText={(text) => {
                                                    const num = Number(text.replace(/[^0-9]/g, ''));
-                                                   handleUpdateQuantity(item.lote_serie, num, item.estoque);
+                                             //      handleUpdateQuantity(item.lote_serie, num, item.estoque);
                                                }}
                                                keyboardType="numeric"
                                            />
                                        </View>
                
                                        <TouchableOpacity
-                                           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: hasStock && !atMax ? '#4CAF50' : "#ccc", justifyContent: "center", alignItems: "center", elevation: 2 }}
-                                           onPress={() => handleIncrement(item.lote_serie, item.estoque)}
+                                           style={{ width: 40, height: 40, borderRadius: 20, 
+                                            backgroundColor:  '#4CAF50' ,
+                                            //backgroundColor: hasStock && !atMax ? '#4CAF50' : "#ccc",
+                                             justifyContent: "center", alignItems: "center", elevation: 2 }}
+                                           // onPress={() => handleIncrement(item.lote_serie, item.estoque)}
                                        >
                                            <AntDesign name="plus" size={20} color="#FFF" />
                                        </TouchableOpacity>
                                    </View>
-                                    */
+                                   
                                    }
 
             </View>
@@ -181,7 +209,7 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                 }}>
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Lote Séries:</Text>
+                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}> {ent_sai == 'E' ? 'Entrada' : 'Saída'} Lote Séries:</Text>
                         </View>
 
                         <TouchableOpacity onPress={()=> setVisible(false)}>
@@ -212,7 +240,7 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                     <View style={{ padding: 15, borderTopWidth: 1, borderTopColor: '#E0E0E0' }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>
-                                Total separado: <Text style={{ color: '#185FED', fontWeight: 'bold' }}>{dataSeries.length }</Text>
+                                Total separado: <Text style={{ color: '#185FED', fontWeight: 'bold' }}>{ent_sai === 'S' ? dataSeries.reduce((sum, s) => sum + s.quantidade, 0) : dataSeries.length}</Text>
                             </Text>
                             {maxQuantity !== undefined && (
                                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>
