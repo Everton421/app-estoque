@@ -148,7 +148,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
             .filter(([_, qty]) => qty > 0)
             .map(([lote, qty]) => ({
                 lote_serie: Number(lote),
-                quantidade: qty
+                quantidade: Number(qty)
             }));
         onConfirm?.(result);
         onClose();
