@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Button, FlatList, Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../contexts/auth";
 import { usePedidos } from "../../database/queryPedido/queryPedido";
@@ -70,11 +70,71 @@ export type servico_pedido = {
     total: number
 }
 
+export type seller = {
+      codigo: 1,
+      nome:  string ,
+      email: string ,
+      cnpj:  string ,
+      responsavel:  string ,
+      ativo:  string 
+}
+
+export type filterOrdersituation = '*' | 'EA' | 'AI' | 'FI' | 'FP' | 'RE'  
+
+export type typefilterOrders = { 
+    tipo: number, 
+    data_inicial: string, 
+    data_final: string, 
+    situacao: filterOrdersituation, 
+    filial: number | null, 
+    limit: number, 
+    search: string 
+    vendedor:number | null
+}
+
+
+export type actionsFilterOrder = 
+    | { type: 'switch_status', paylod: filterOrdersituation }
+    | { type: 'switch_data_init', paylod: string }
+    | { type: 'switch_branch', paylod: number | null }
+    | { type: 'switch_seller', paylod: number | null }
+    
+
+
 export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
+    const useMoment = configMoment();
+
+    const initialStateFilter: typefilterOrders = { 
+        tipo: tipo, 
+        data_inicial: useMoment.dataAtual(), 
+        data_final: useMoment.dataAtual(), 
+        situacao: '*', 
+        filial: null, 
+        limit: 1000000, 
+        search: '', 
+        vendedor: null
+    }   
+    
+    function hadleEditFilter(state: typefilterOrders, action: actionsFilterOrder) {
+        switch (action.type) {
+            case 'switch_branch':
+                return { ...state, filial: action.paylod }
+            case 'switch_data_init':
+                return { ...state, data_inicial: action.paylod }
+            case 'switch_status':
+                return { ...state, situacao: action.paylod }
+            case 'switch_seller':
+                return { ...state, vendedor: action.paylod }
+
+                default:
+                return state
+        }
+    }
+
+
     const [permission, requestPermission] = useCameraPermissions();
 
     const useQuerypedidos = usePedidos();
-    const useMoment = configMoment();
     const { usuario }: any = useContext(AuthContext);
 
     const [orcamentosRegistrados, setOrcamentosRegistrados] = useState([]);
@@ -84,9 +144,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const [visiblePostPedido, setVisiblePostPedido] = useState(false);
     const [loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
-
-    const [data_cadastro, setData_cadastro] = useState(useMoment.dataAtual())
-    const [statusPedido, setStatusPedido] = useState<string>('*');
 
     const [orcamentoModal, setOrcamentoModal] = useState();
     const usePostPedidos = enviaPedidos();
@@ -99,7 +156,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [refreshing, setRefreshing] = useState(false);
- 
+    
+    const [ filterSearchOrders , dispatch] = useReducer( hadleEditFilter, initialStateFilter )
 
     const [isloadingOrderData, setIsLoadingOrderData] = useState(false);
 
@@ -137,8 +195,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         getConfigMobileApi();
     }, [])
 
-    async function fyndOrderByBarcode(codeScanned: string) {
 
+    async function fyndOrderByBarcode(codeScanned: string) {
         if (!configLeitorPedido) {
             setMessageAlert(`É necessario configurar o leitor de busca dos pedidos.`)
             setVisibleAlert(true)
@@ -214,8 +272,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     }
 
     async function fyndOrderBycode(code: number) {
-
-        if (configMobileApi && configMobileApi.offline === 'N') {
             try {
                 setIsLoadingOrderData(true)
                 const responseApiOrder = await api.get(`/pedidos/${code}`,
@@ -233,27 +289,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             } finally {
                 setIsLoadingOrderData(false)
             }
-        }else{
-
-        try {
-            setIsLoadingOrderData(true)
-            const resultOrder = await useQuerypedidos.findByParam({ chave: 'codigo', value: code })
-            if (resultOrder && resultOrder?.length > 0) {
-                navigation.navigate('separacao', {
-                    codigo_pedido: resultOrder[0].codigo,
-                });
-
-            } else {
-                return Alert.alert("Erro", `Não foi possivel localizar o pedido codigo: ${code}.`)
-            }
-            setIsLoadingOrderData(false)
-        } catch (e) {
-
-        } finally {
-            setIsLoadingOrderData(false)
-        }
-        }
-
     }
 
     function handleCodeRead(data: string) {
@@ -261,82 +296,42 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         fyndOrderByBarcode(data);
     }
 
-    const getFitroPedidos = async () => {
-        try {
-
-            const value = await AsyncStorage.getItem('filtroPedidos');
-            if (value !== null) {
-                setStatusPedido(value);
-            } else {
-                await AsyncStorage.setItem('filtroPedidos', statusPedido)
+    useEffect(() => {
+        const carregarFiltros = async () => {
+            try {
+                const status = await AsyncStorage.getItem('filtroPedidos');
+                const data = await AsyncStorage.getItem('dataPedidos');
+                if (status) dispatch({ type: 'switch_status', paylod: status as filterOrdersituation });
+                if (data) dispatch({ type: 'switch_data_init', paylod: data });
+            } catch (e) {
+                console.log("Erro ao carregar filtros do AsyncStorage", e)
             }
+        };
+        carregarFiltros();
+    }, [])
 
-            const valueDataCadastro = await AsyncStorage.getItem('dataPedidos');
-            if (valueDataCadastro !== null) {
-                setData_cadastro(valueDataCadastro);
-            } else {
-                await AsyncStorage.setItem('dataPedidos', data_cadastro);
-            }
-            return { data_cadastro: data_cadastro, filtoStatus: statusPedido }
-        } catch (e) {
-            console.log("erro ao consultar AsyncStorage")
-        }
-    }
-
-
+    useEffect(() => {
+        AsyncStorage.setItem('filtroPedidos', filterSearchOrders.situacao);
+        AsyncStorage.setItem('dataPedidos', filterSearchOrders.data_inicial);
+    }, [filterSearchOrders.situacao, filterSearchOrders.data_inicial])
 
     async function busca() {
-        let filtroStatus = await getFitroPedidos();
-          if (configMobileApi && configMobileApi.offline === 'N') {
-          
-                    setIsLoadingOrderData(true)
-                    let situacao = statusPedido;
-                    let data = data_cadastro;
-                    if (filtroStatus) {
-                        situacao = filtroStatus.filtoStatus;
-                        data = filtroStatus.data_cadastro;
-                    }
-                    
-                let queryOrder = { tipo: tipo ,  data_inicial: data, data_final:useMoment.dataAtual(),  situacao: situacao, limit:1000000 , search:'' }
-                if (pesquisa !== null && pesquisa !== '') queryOrder.search = pesquisa
-                    console.log(queryOrder)
-                try {
-                    setIsLoadingOrderData(true)
-                    const responseApiOrder = await api.get('/pedidos',
-                        {
-                            params:   queryOrder
-                        }
-                    );
-                           setOrcamentosRegistrados(responseApiOrder.data);
-                          setVisiblePostPedido(false);
-             
-                   // console.log(responseApiOrder.data)
-                } catch (e) {
-                    console.log("[X] Erro ao buscar pedidos na api ", e)
-                } finally {
-                    setIsLoadingOrderData(false)
-                }
-            }else{
-                    try {
-                                setIsLoadingOrderData(true)
-                                let situacao = statusPedido;
-                                let data = data_cadastro;
-                                if (filtroStatus) {
-                                    situacao = filtroStatus.filtoStatus;
-                                    data = filtroStatus.data_cadastro;
-                                }
-                                let queryOrder = { tipo: tipo, data: data, situacao: situacao, input: '' }
-                                if (pesquisa !== null && pesquisa !== '') queryOrder.input = pesquisa
-                                let aux: any = await useQuerypedidos.newSelect(queryOrder);
-                                setOrcamentosRegistrados(aux);
-                                setVisiblePostPedido(false);
-                            } catch (e) {
-                            } finally {
-                                setIsLoadingOrderData(false)
-                            }
+        setIsLoadingOrderData(true)
+        try {
+            let queryOrder = { 
+                ...filterSearchOrders, 
+                data_final: useMoment.dataAtual() 
             }
+            if (pesquisa) queryOrder.search = pesquisa
 
-      
+            const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
+            setOrcamentosRegistrados(responseApiOrder.data);
+            setVisiblePostPedido(false);
+        } catch (e) {
+            console.log("[X] Erro ao buscar pedidos na api ", e)
+        } finally {
+            setIsLoadingOrderData(false)
+        }
     }
 
     const onRefresh = async () => {
@@ -345,9 +340,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setRefreshing(false);
     };
 
+    const { data_inicial, situacao } = filterSearchOrders;
     useEffect(() => {
         busca()
-    }, [data_cadastro, statusPedido, pesquisa, navigation, configMobileApi])
+    }, [data_inicial, situacao, pesquisa, navigation, configMobileApi])
 
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
@@ -368,10 +364,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
               try {
                      setIsLoadingOrderData(true)
                     const responseApiOrder = await api.get(`/pedidos/${item.codigo}`,
-                      
                     );
                  
-            console.log(responseApiOrder.data)
                        setOrcamentoModal(responseApiOrder.data);
              
                 } catch (e) {
@@ -604,13 +598,13 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
 
             <ModalFilter
+                setFilter={dispatch}
+                filter={filterSearchOrders}
                 visible={visible}
                 setVisible={setVisible}
-                statusAtual={statusPedido}
-                setStatus={setStatusPedido}
-                dataAtual={data_cadastro}
-                setDate={setData_cadastro}
+            
             />
+
             <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
             {
                 isloadingOrderData ?
