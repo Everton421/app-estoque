@@ -79,6 +79,16 @@ export type seller = {
       ativo:  string 
 }
 
+export type branch = {
+     codigo: number,
+     nome_fantasia:  string ,
+     razao_social:  string ,
+     cnpj:  string ,
+     ativo: 'S' | 'N'
+}
+
+
+
 export type filterOrdersituation = '*' | 'EA' | 'AI' | 'FI' | 'FP' | 'RE'  
 
 export type typefilterOrders = { 
@@ -86,18 +96,20 @@ export type typefilterOrders = {
     data_inicial: string, 
     data_final: string, 
     situacao: filterOrdersituation, 
-    filial: number | null, 
+    filial: branch | null, 
     limit: number, 
     search: string 
-    vendedor:number | null
+    vendedor:seller | null
 }
 
 
 export type actionsFilterOrder = 
     | { type: 'switch_status', paylod: filterOrdersituation }
     | { type: 'switch_data_init', paylod: string }
-    | { type: 'switch_branch', paylod: number | null }
-    | { type: 'switch_seller', paylod: number | null }
+    | { type: 'switch_branch', paylod: branch | null }
+    | { type: 'switch_seller', paylod: seller | null }
+    | { type: 'switch_all', paylod: typefilterOrders }
+    | { type: 'switch_search', paylod: string }
     
 
 
@@ -119,13 +131,16 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         switch (action.type) {
             case 'switch_branch':
                 return { ...state, filial: action.paylod }
+            case 'switch_search':
+                return { ...state, search: action.paylod }
             case 'switch_data_init':
                 return { ...state, data_inicial: action.paylod }
             case 'switch_status':
                 return { ...state, situacao: action.paylod }
             case 'switch_seller':
                 return { ...state, vendedor: action.paylod }
-
+            case 'switch_all': 
+            return action.paylod
                 default:
                 return state
         }
@@ -289,31 +304,44 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             } finally {
                 setIsLoadingOrderData(false)
             }
-    }
+    } 
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
         fyndOrderByBarcode(data);
     }
-
-    useEffect(() => {
-        const carregarFiltros = async () => {
+        
+    
+    
+    const carregarFiltros = async () => {
             try {
-                const status = await AsyncStorage.getItem('filtroPedidos');
-                const data = await AsyncStorage.getItem('dataPedidos');
-                if (status) dispatch({ type: 'switch_status', paylod: status as filterOrdersituation });
-                if (data) dispatch({ type: 'switch_data_init', paylod: data });
+                const filtro = await AsyncStorage.getItem('filtroPedidos');
+                if(filtro){
+
+                let aux = JSON.parse(filtro);
+                console.log("filtro: ", aux)
+
+                dispatch({type:'switch_all',paylod: aux })
+                }
+
             } catch (e) {
                 console.log("Erro ao carregar filtros do AsyncStorage", e)
             }
         };
+
+    useEffect(() => {
         carregarFiltros();
     }, [])
 
-    useEffect(() => {
-        AsyncStorage.setItem('filtroPedidos', filterSearchOrders.situacao);
-        AsyncStorage.setItem('dataPedidos', filterSearchOrders.data_inicial);
-    }, [filterSearchOrders.situacao, filterSearchOrders.data_inicial])
+ 
+     useEffect(() => {
+        AsyncStorage.setItem('filtroPedidos', JSON.stringify(filterSearchOrders));
+    }, [ filterSearchOrders ])
+
+   useEffect(() => {
+        console.log(filterSearchOrders)
+    }, [ filterSearchOrders ])
+
 
     async function busca() {
         setIsLoadingOrderData(true)
@@ -340,10 +368,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setRefreshing(false);
     };
 
-    const { data_inicial, situacao } = filterSearchOrders;
     useEffect(() => {
         busca()
-    }, [data_inicial, situacao, pesquisa, navigation, configMobileApi])
+    }, [filterSearchOrders, navigation, configMobileApi])
 
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
@@ -588,8 +615,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 title={switchTipoOrder(tipo)}
                 onBack={() => navigation.goBack()}
                 showSearch={true}
-                searchValue={pesquisa}
-                onSearchChange={(value) => setPesquisa(value)}
+                searchValue={filterSearchOrders.search}
+                onSearchChange={(value) => dispatch({ type:'switch_search', paylod: value})}
                 searchPlaceholder="Pesquisar..."
                 showFilter={true}
                 onFilterPress={() => setVisible(true)}

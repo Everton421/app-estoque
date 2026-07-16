@@ -190,7 +190,7 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                              <MaterialIcons name="store" size={24} color={ '#185FED'} />
 
                             <Text style={{ fontSize: 16, color: '#333', fontWeight: '500' }}>
-                                Filial: { filter.filial &&  filter.filial   }
+                                Filial: { filter.filial &&  filter.filial.nome_fantasia   }
                             </Text>
                         </View>
                         <Ionicons name={isVisibleModalBranch ? "chevron-up" : "chevron-down"} size={20} color="#666" />
@@ -203,26 +203,25 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                              <MaterialIcons name="people-alt" size={24} color={ '#185FED'} />
 
                             <Text style={{ fontSize: 16, color: '#333', fontWeight: '500' }}>
-                                Vendedor: { filter.vendedor &&  filter.vendedor   }
+                                Vendedor: { filter.vendedor &&(  filter.vendedor.codigo +' '+filter.vendedor.nome)   }
                             </Text>
                         </View>
                         <Ionicons name={isVisibleModalSeller ? "chevron-up" : "chevron-down"} size={20} color="#666" />
                     </TouchableOpacity>
 
                     <ModalBranches
-                        selectBranch={(branch) => setFilter( { type: 'switch_branch', paylod:branch.codigo} )}
+                        selectBranch={(branch) => setFilter( { type: 'switch_branch', paylod:branch} )}
                         setVisible={setIsVisibleModalBranch}
                         visible={isVisibleModalBranch}
-                        branchSelected={filter.filial}
+                        branchSelected={filter.filial?.codigo || null}
                     />
 
                     <ModalSeller
-                    selectSeller={(seller)=>setFilter({ type: 'switch_seller', paylod: seller.codigo})}
-                    sellerSelected={filter.vendedor}
+                    selectSeller={(seller)=>setFilter({ type: 'switch_seller', paylod: seller})}
+                    sellerSelected={filter.vendedor?.codigo || null}
                     setVisible={setIsVisibleModalSeller}
                     visible={isVisibleModalSeller}
                     />
-
 
                     </View>
                 </View>

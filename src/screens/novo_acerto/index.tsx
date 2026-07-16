@@ -259,8 +259,14 @@ export const NovoAcerto = ({ navigation }: any) => {
                 local_produto: local_produto ? local_produto : '' 
             }
 
-              const resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
- 
+              let resultUpdateProdSetor  
+           
+                 try{
+                 resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
+                }catch(e:any){
+                    console.log(e.response.data)
+                 }
+
               if (resultUpdateProdSetor.status === 200 || resultUpdateProdSetor.status == 201) {
  
                  const payloadMovimentos  =  {
@@ -274,10 +280,16 @@ export const NovoAcerto = ({ navigation }: any) => {
                       usuario:usuario.codigo,
                       ent_sai: ent_sai
                     }
-                 const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
-                 if(prodSeletor.controle_lote_serie == 'S' && seriesToUpdate ){
-                        await postSeries(seriesToUpdate)
+                 try{
+
+                    const resultUpdateMoviment = await api.post('movimentos_produtos',payloadMovimentos   )
+                        if(prodSeletor.controle_lote_serie == 'S' && seriesToUpdate ){
+                                await postSeries(seriesToUpdate)
+                        }
+                 }catch(e:any){
+                    console.log(e.response.data)
                  }
+
              }
 
              setLoadingInsertItem(false);
@@ -631,14 +643,14 @@ export const NovoAcerto = ({ navigation }: any) => {
 
  
 
-  {/***************************************  */}
+                                {/***************************************  */}
 
-                                        {/** componente para ajustar os locais */}
+                                 {/** componente para ajustar os locais */}
                                     <Locais
                                         item={i}
                                         setVisible={setVisibleLocais}
                                         visible={visibleLocais}
-                                        onUpdateField={handleUpdateField}
+                                        onUpdateField={handleUpdateField as any}
                                     />
                                 </View>
                             )) : (
@@ -708,7 +720,7 @@ export const NovoAcerto = ({ navigation }: any) => {
                                     style={{ flex: 1, color: '#333' }}
                                     placeholder="Digite para buscar..."
                                     placeholderTextColor="#999"
-                                onChangeText={(v)=>setSearchTextSector(v)}
+                                onChangeText={(v:any)=>setSearchTextSector(v)}
 
                                     autoFocus={true}
                                 />

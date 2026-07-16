@@ -218,6 +218,9 @@ export const Home = ({ navigation }: any) => {
       "nome": "compras",
       "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
     },
+
+ 
+    
     {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
@@ -230,11 +233,12 @@ export const Home = ({ navigation }: any) => {
       "nome": "ajustes",
       "icon": <FontAwesome5 name="sync-alt" size={24} color="#185FED" />
     },
+    
     {
       "nome": "usuarios",
       "icon": <FontAwesome name="users" size={24} color="#185FED" />
     },
-    
+   
   ];
 
   const Item = ({ value }: any) => {
@@ -349,6 +353,21 @@ export const Home = ({ navigation }: any) => {
                 <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Fornecedores</Text>
                 <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
             </TouchableOpacity>
+
+
+          <TouchableOpacity style={{ backgroundColor: '#FFF', marginTop: 15, width: '80%', padding: 15, borderRadius: 10, elevation: 2, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+              onPress={() => { navigation.navigate('requerimentos') }}
+                >
+                  <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
+                <AntDesign name="interaction" size={25} color={defaultColors.darkBlue} />
+
+                  </View>
+                <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Requerimentos</Text>
+                <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
+            </TouchableOpacity>
+
+        
+
         </View>
       </ScrollView>
 

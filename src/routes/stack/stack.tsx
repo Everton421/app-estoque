@@ -12,6 +12,8 @@ import { Clientes } from "../../screens/clientes";
 import { Lista_pedidos } from "../../screens/pedidos";
 import { Separacao } from "../../screens/separacao";
 import { Fornecedores } from "../../screens/fornecedores";
+import { Lista_requerimentos } from "../../screens/requerimentos";
+import { NovoRequerimento } from "../../screens/novo_requerimento";
 
 const StackConfig = createStackNavigator();
 
@@ -43,6 +45,8 @@ export const  Stack=()=>{
                     <StackConfig.Screen name="compras"    component={PedidosDeCompra}  options={{headerShown:false}}  />
                     
                     <StackConfig.Screen name="separacao"                component={Separacao}  options={{headerShown:false}}  />
+                    <StackConfig.Screen name="requerimentos"                component={Lista_requerimentos}  options={{headerShown:false}}  />
+                    <StackConfig.Screen name="novoRequerimento"                component={NovoRequerimento}  options={{headerShown:false}}  />
 
             </StackConfig.Navigator>
     )

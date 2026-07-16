@@ -228,7 +228,7 @@ export const Separacao = ({ navigation, route }: any) => {
 
                   setData(responseApiOrder.data);
                        if (orderData.produtos) {
-                            const produtosIniciais = orderData.produtos.map(p => ({
+                            const produtosIniciais = orderData.produtos.map((p:any) => ({
                                 ...p,
                                 quantidade: Number(p.quantidade) || 0,
                                 quantidade_separada: Math.round(Number(p.quantidade_separada) || 0)
@@ -318,7 +318,7 @@ export const Separacao = ({ navigation, route }: any) => {
                     series: (item.series || []).filter(s => s.quantidade > 0)
                 }));
 
-                const payload = { itens , setor: data.setor};
+                const payload = { itens , setor: data!.setor};
                    const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
   
                    if (response.status >= 200 && response.status < 300) {
@@ -469,7 +469,7 @@ export const Separacao = ({ navigation, route }: any) => {
         }
     
         function handleSector(dataSector:any){
-            setData(  prev =>( 
+            setData(  (prev:any) =>( 
                 {
                     ...prev,
                     setor: dataSector.codigo
