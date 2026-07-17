@@ -359,7 +359,7 @@ export const Home = ({ navigation }: any) => {
               onPress={() => { navigation.navigate('requerimentos') }}
                 >
                   <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
-                <AntDesign name="interaction" size={25} color={defaultColors.darkBlue} />
+                <Entypo name="shuffle" size={24} color={defaultColors.darkBlue} />
 
                   </View>
                 <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Requerimentos</Text>

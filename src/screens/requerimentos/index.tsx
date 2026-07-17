@@ -55,10 +55,10 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
         setIsLoadingOrderData(true)
         try {
     
-            const responseApiOrder = await api.get('/requirements',  );
+            const responseApiOrder = await api.get('/requirements');
             setRequeriments(responseApiOrder.data);
-        } catch (e) {
-            console.log("[X] Erro ao buscar pedidos na api ", e)
+        } catch (e:any) {
+            console.log("[X] Erro ao buscar requerimentos na api ", e.response.data)
         } finally {
             setIsLoadingOrderData(false)
         }

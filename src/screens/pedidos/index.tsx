@@ -227,6 +227,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         params: {
                             [configLeitorPedido]: configLeitorPedido == 'codigo' ? Number(codeScanned) : codeScanned ,
                             tipo,
+                            situacao: filterSearchOrders.situacao,
                             orderBy:'id'
                         }
                     }
@@ -317,11 +318,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             try {
                 const filtro = await AsyncStorage.getItem('filtroPedidos');
                 if(filtro){
-
-                let aux = JSON.parse(filtro);
-                console.log("filtro: ", aux)
-
-                dispatch({type:'switch_all',paylod: aux })
+                    let aux = JSON.parse(filtro);
+                    aux.tipo = tipo;
+                    dispatch({type:'switch_all',paylod: aux })
                 }
 
             } catch (e) {
@@ -337,10 +336,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
      useEffect(() => {
         AsyncStorage.setItem('filtroPedidos', JSON.stringify(filterSearchOrders));
     }, [ filterSearchOrders ])
-
-   useEffect(() => {
-        console.log(filterSearchOrders)
-    }, [ filterSearchOrders ])
+ 
 
 
     async function busca() {
@@ -351,7 +347,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 data_final: useMoment.dataAtual() 
             }
             if (pesquisa) queryOrder.search = pesquisa
-
             const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
             setOrcamentosRegistrados(responseApiOrder.data);
             setVisiblePostPedido(false);

@@ -19,7 +19,8 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
             padding: 15,
             elevation: 3,
             borderLeftWidth: 3,
-            borderLeftColor: '#185FED'
+            borderLeftColor: '#185FED',
+            width: 250 
         }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                 <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.produto}</Text>
@@ -43,7 +44,7 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
 
             </View>
 
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }} numberOfLines={2}>
                 {item.descricao || "Produto sem descrição"}
             </Text>
 
@@ -56,7 +57,6 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
                 borderRadius: 8
             }}>
                 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                     <TouchableOpacity
                         onPress={()=> dispatch({type: 'update_item_qtd', payload:{ codigo: item.produto, 
                             quantidade: item.quantidade > 0 ? item.quantidade - 1 : 0
@@ -84,7 +84,6 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
                     >
                             <AntDesign name="plus" size={20} color={"#FFF"} />
                     </TouchableOpacity>
-                </View>
             </View>
 
             {item.controle_lote_serie == 'S' && (
