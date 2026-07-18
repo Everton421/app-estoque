@@ -15,7 +15,6 @@ type ModalProps = {
     setVisible: (visible: boolean) => void;
     produto: number;
     setor_origem: number;
-    maxQuantity: number;
     lotes_series: LoteSerieItem[];
     onConfirm: (lotes_series: LoteSerieItem[]) => void;
 };
@@ -29,7 +28,7 @@ type type_lote_serie_setor = {
     lote: string | null;
 };
 
-export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, setor_origem, maxQuantity, lotes_series, onConfirm }: ModalProps) => {
+export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, setor_origem,   lotes_series, onConfirm }: ModalProps) => {
 
     const api = useApi();
 
@@ -71,13 +70,6 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
     async function handleCodeRead(data: string) {
         setIsVisibleCamera(false);
 
-        const totalAtual = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
-        if (totalAtual >= maxQuantity) {
-            setVisibleAlert(true);
-            setMessageAlert(`A quantidade de séries deve corresponder à quantidade do produto. Máximo: ${maxQuantity}`);
-            setTypeAlert('warning');
-            return;
-        }
 
         try {
             setIsloadingDataSeries(true);
@@ -85,6 +77,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
                 produto: produto,
                 situacao_estoque: 'positivo',
                 serie: data,
+                setor: setor_origem
             };
             if (setor_origem > 0) {
                 params.setor = setor_origem;
@@ -123,12 +116,12 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
 
     function handleIncrement(lote_serie: number, estoque: number) {
         const totalAtual = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
-        if (totalAtual >= maxQuantity) {
-            setVisibleAlert(true);
-            setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
-            setTypeAlert('warning');
-            return;
-        }
+     //   if (totalAtual >= maxQuantity) {
+     //       setVisibleAlert(true);
+     //       setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
+     //       setTypeAlert('warning');
+     //       return;
+     //   }
         setSelectedSeries(prev => {
             const idx = prev.findIndex(s => s.lote_serie === lote_serie);
             if (idx >= 0) {
@@ -176,12 +169,12 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
             return;
         }
         const totalAtual = selectedSeries.reduce((sum, s) => s.lote_serie !== lote_serie ? sum + s.quantidade : sum, 0);
-        if (totalAtual + value > maxQuantity) {
-            setVisibleAlert(true);
-            setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
-            setTypeAlert('warning');
-            return;
-        }
+        //if (totalAtual + value > maxQuantity) {
+        //    setVisibleAlert(true);
+        //    setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
+        //    setTypeAlert('warning');
+        //    return;
+        //}
         setSelectedSeries(prev => {
             const idx = prev.findIndex(s => s.lote_serie === lote_serie);
             if (idx < 0) return prev;
@@ -202,13 +195,13 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
     }
 
     const handleConfirm = () => {
-        const total = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
-        if (total !== maxQuantity) {
-            setVisibleAlert(true);
-            setMessageAlert(`A soma das séries (${total}) deve ser igual à quantidade do produto (${maxQuantity}).`);
-            setTypeAlert('warning');
-            return;
-        }
+       // const total = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
+       // if (total !== maxQuantity) {
+       //     setVisibleAlert(true);
+       //     setMessageAlert(`A soma das séries (${total}) deve ser igual à quantidade do produto (${maxQuantity}).`);
+       //     setTypeAlert('warning');
+       //     return;
+       // }
         onConfirm(selectedSeries);
         setVisible(false);
     };
@@ -217,7 +210,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
         const selected = selectedSeries.find(s => s.lote_serie === item.lote_serie);
         const qtd = selected?.quantidade ?? 0;
         const hasStock = item.estoque > 0;
-        const atMax = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0) >= maxQuantity;
+    //    const atMax = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0) >= maxQuantity;
 
         return (
             <View style={{
@@ -267,11 +260,11 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
                     <TouchableOpacity
                         style={{
                             width: 36, height: 36, borderRadius: 18,
-                            backgroundColor: hasStock && !atMax ? '#1E9C43' : "#ccc",
+                            backgroundColor:  '#1E9C43' ,
                             justifyContent: "center", alignItems: "center", elevation: 2
                         }}
                         onPress={() => handleIncrement(item.lote_serie, item.estoque)}
-                        disabled={!hasStock || atMax}
+                        disabled={!hasStock }
                     >
                         <AntDesign name="plus" size={18} color="#FFF" />
                     </TouchableOpacity>
@@ -284,9 +277,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={() => setVisible(false)}>
             <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
 
-                <View style={{ maxHeight:'93%', flex: 1,marginTop: 45,backgroundColor: "#FFF", borderRadius: 20,overflow: 'hidden',elevation: 10 }}
-
-                >
+                <View style={{ maxHeight:'93%', flex: 1, marginTop: 45,backgroundColor: "#FFF", borderRadius: 20,overflow: 'hidden',elevation: 10 }} >
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Selecionar Séries</Text>
@@ -326,9 +317,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
                             <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>
                                 Total separado: <Text style={{ color: '#185FED', fontWeight: 'bold' }}>{selectedSeries.reduce((sum, s) => sum + s.quantidade, 0)}</Text>
                             </Text>
-                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>
-                                Máx: <Text style={{ color: '#185FED', fontWeight: 'bold' }}>{maxQuantity}</Text>
-                            </Text>
+                       
                         </View>
                         <TouchableOpacity
                             style={{

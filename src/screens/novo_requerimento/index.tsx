@@ -9,7 +9,7 @@ import useApi from "../../services/api";
 import { configMoment } from '../../services/moment';
 import { ModalSeletorSeriesRequerimento } from './components/modal-seletor-series-requerimento/modal-seletor-series-requerimento';
 import { ModalSetoresRequerimento } from './components/modal-setores-requerimento/modal-setores-requerimento';
-import { ListaProdutosRequerimento } from './components/produtos_requerimento';
+import { ListaProdutosRequerimento, prodSectorGroupedRequest } from './components/produtos_requerimento';
 import { RenderProduto } from './components/render-produto';
 
 
@@ -40,6 +40,7 @@ export type itensPayloadRequirement = {
     quantidade: number,
     custo: null | number,
     lotes_series: loteSerieRequirement[]
+    quantidade_disponivel:number
 }
 
 type loteSerieRequirement = {
@@ -166,31 +167,49 @@ export const NovoRequerimento = ({ navigation }: any) => {
     async function fyndBarcode(codeScanned: string) {
         try {
             setLoadingDataProd(true);
-
-            const responseProduct = await api.get('/produtos/search',
-                {
-                    params: {
-                        [defaultConfigFilter]: defaultConfigFilter == "codigo" ? Number(codeScanned) : codeScanned,
-                        limit: 1,
-                        ativo: 'S'
-                    }
-                }
-            );
+             const responseProduct = await api.get('/produtos-setor/search-grouped', 
+                                    {
+                                        params: { 
+                                            setor: requirement.setor_origem,
+                                            [defaultConfigFilter]: defaultConfigFilter == "codigo" ? Number(codeScanned) : codeScanned,
+                                            limit: 1
+                                        }
+                                    }
+                                );
+           
 
             if (responseProduct.status == 200) {
                 if (responseProduct.data.length > 0) {
+                    const dataProductApi = responseProduct.data[0] as prodSectorGroupedRequest; 
 
-                    const dataProductApi = responseProduct.data[0];
+                    const verifyProduct = requirement.itens.filter((i)=>{ i.produto == dataProductApi.produto.codigo })
+                    for( const i of requirement.itens ){
+                        if(i.produto == dataProductApi.produto.codigo){
+                            setTitleAlert(`Atenção!`);
+                            setTypeAlert('warning');
+                            setMessageAlert(`Produto ${dataProductApi.produto.descricao} já foi adicionado!`);
+                            setVisibleAlert(true)
+                            return;
+                        }  
+                    }
                     dispatch({
                         type: 'add_item', payload: {
-                            produto: dataProductApi.codigo,
-                            descricao: dataProductApi.descricao,
-                            controle_lote_serie: dataProductApi.controle_lote_serie || 'N',
+                            produto: dataProductApi.produto.codigo,
+                            descricao: dataProductApi.produto.descricao,
+                            controle_lote_serie: dataProductApi.produto.controle_lote_serie,
                             quantidade: 1,
+                            quantidade_disponivel: dataProductApi.setor[0].estoque,    
                             custo: 0,
                             lotes_series: []
                         }
                     })
+
+                    if (dataProductApi.produto.controle_lote_serie === 'S') {
+                        setTitleAlert('Atenção');
+                        setTypeAlert('info');
+                        setMessageAlert(`Produto controlado por série. Selecione as séries no card do produto.`);
+                        setVisibleAlert(true);
+                    }
 
                 } else {
                     setTitleAlert('Produto não encontrado!');
@@ -272,8 +291,8 @@ export const NovoRequerimento = ({ navigation }: any) => {
             }
         })
         payload.itens = itens;
-        console.log( JSON.stringify(payload) )
-         try {
+        //console.log( JSON.stringify(payload) )
+          try {
             const response = await api.post('/requirements', payload);
             if (response.status === 200 || response.status === 201) {
                 setTitleAlert('Sucesso');
@@ -292,6 +311,7 @@ export const NovoRequerimento = ({ navigation }: any) => {
             setMessageAlert(`Erro ao criar requerimento. ${e.response.data}`);
             setVisibleAlert(true);
         } 
+         
     }   
 
     if (!permission) return null;
@@ -396,17 +416,20 @@ export const NovoRequerimento = ({ navigation }: any) => {
 
             {/* --- SEÇÃO DE BUSCA E SCAN --- */}
             <View style={{ flexDirection: "row", marginHorizontal: 15, marginBottom: 15, gap: 10 }}>
-
-                <View style={{ flex: 1 }}>
-                    { /** SELETOR PRODUTOS  */}
-                    <ListaProdutosRequerimento produtos={requirement.itens} dispatch={dispatch} />
-                </View>
+                
+                { /** SELETOR PRODUTOS  */}
+                { requirement.setor_origem &&  
+                  <View style={{ flex: 1 }}>
+                    <ListaProdutosRequerimento requirement={requirement} dispatch={dispatch} />
+                </View> }
 
                 {/** ABRE A CAMERA PARA LEITURA */}
-                <TouchableOpacity
+             {requirement.setor_origem &&   
+                 <TouchableOpacity
                     style={{
                         backgroundColor: "#185FED",
                         width: 50,
+                        height:40,
                         justifyContent: "center",
                         alignItems: "center",
                         borderRadius: 8,
@@ -415,24 +438,26 @@ export const NovoRequerimento = ({ navigation }: any) => {
                     onPress={() => { setModalvisible(true) }}
                 >
                     <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-                </TouchableOpacity>
+                </TouchableOpacity> 
+                }
 
             </View>
 
             {/* --- LISTA DE ITENS --- */}
-            <View style={{ backgroundColor: '#FFF', marginTop: 20, borderRadius: 5, padding: 4 }}>
-                <View style={{ backgroundColor: '#e8eff5', marginTop: 6, marginBottom: 5, width: 70, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }} >
-                    <Text style={{ color: '#185FED', fontSize: 12, marginBottom: 10, fontWeight: 'bold', }}>
+            <View style={{ backgroundColor: '#FFF', marginTop: 20, borderRadius: 5, padding: 4 , margin:2}}>
+                <View style={{ backgroundColor: '#e8eff5', marginTop: 6, marginBottom: 5, width: 70, borderRadius: 10, alignItems: 'center',     marginLeft:10 }} >
+                    <Text style={{ color: '#185FED', fontSize: 12, textAlign:'center', marginBottom: 10, fontWeight: 'bold'  }}>
                         Qtd Itens: {requirement.itens.length}
                     </Text>
                 </View>
                 <FlatList
                     data={requirement.itens}
-                    renderItem={({ item, index }) => <RenderProduto 
-                                            item={item} indexItem={index} 
-                                            onOpenSeries={(idx) => setSelectedItemForSeries({ index: idx, item: requirement.itens[idx] })}
-                                            dispatch={dispatch}
-                                            />}
+                    renderItem={ ({ item, index }) => <RenderProduto 
+                                                        item={item} indexItem={index} 
+                                                        onOpenSeries={(idx) => setSelectedItemForSeries({ index: idx, item: requirement.itens[idx] })}
+                                                        dispatch={dispatch}
+                                                        />
+                                                    }
                     horizontal={true}
                 />
             </View>
@@ -523,11 +548,12 @@ export const NovoRequerimento = ({ navigation }: any) => {
                 setVisible={() => setSelectedItemForSeries(null)}
                 produto={selectedItemForSeries?.item.produto ?? 0}
                 setor_origem={requirement.setor_origem}
-                maxQuantity={selectedItemForSeries?.item.quantidade ?? 0}
                 lotes_series={selectedItemForSeries?.item.lotes_series ?? []}
                 onConfirm={(lotes) => {
                     if (selectedItemForSeries) {
                         dispatch({ type: 'update_lotes', payload: { indexItem: selectedItemForSeries.index, lotes_series: lotes } });
+                        const totalSeries = lotes.reduce((sum, s) => sum + s.quantidade, 0);
+                        dispatch({ type: 'update_item_qtd', payload: { codigo: selectedItemForSeries.item.produto, quantidade: totalSeries } });
                     }
                     setSelectedItemForSeries(null);
                 }}

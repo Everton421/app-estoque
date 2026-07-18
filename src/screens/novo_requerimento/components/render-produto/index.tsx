@@ -23,8 +23,12 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
             width: 250 
         }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.produto}</Text>
-
+                        <View>
+                           <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.produto}</Text>
+                           <Text style={{ fontWeight: 'bold', color: '#555', fontSize:12 }}>
+                             Qtd disponivel :{ item.quantidade_disponivel}
+                          </Text>
+                        </View>
                   <TouchableOpacity
                         style={{ width: 20, height: 20,   justifyContent: "center", alignItems: "center",  }}
                         onPress={()=>{ dispatch({type: 'remove_item', payload: item.produto}) }}
@@ -55,12 +59,14 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
                 backgroundColor: '#e8eff5',
                 padding: 10,
                 borderRadius: 8
-            }}>
+            }}> 
                 
+                    
                     <TouchableOpacity
-                        onPress={()=> dispatch({type: 'update_item_qtd', payload:{ codigo: item.produto, 
+                        onPress={()=> { item.controle_lote_serie == 'N' && dispatch({type: 'update_item_qtd', payload:{ codigo: item.produto, 
                             quantidade: item.quantidade > 0 ? item.quantidade - 1 : 0
-                         }})}
+                         } }) }
+                        }
                         style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.controle_lote_serie =='S' ?  '#CCC' : "#b10909", justifyContent: "center", alignItems: "center" }}
                     >
 
@@ -78,31 +84,21 @@ export const RenderProduto = ({ item, indexItem, onOpenSeries, dispatch }: {
                         />
                     </View>
 
-                    <TouchableOpacity
-                        onPress={()=> dispatch({type: 'update_item_qtd', payload:{ codigo: item.produto, quantidade: item.quantidade + 1 }})}
-                       style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.controle_lote_serie =='S' ?  '#CCC' : "#4CAF50", justifyContent: "center", alignItems: "center", elevation: 0 }}
-                    >
+                        <TouchableOpacity
+                            onPress={()=>{  item.controle_lote_serie == 'N' && dispatch({type: 'update_item_qtd', 
+                                    payload:{ codigo: item.produto, quantidade: item.quantidade == item.quantidade_disponivel ? item.quantidade : item.quantidade + 1 }}) } }
+                        style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.controle_lote_serie =='S' ?  '#CCC' : "#4CAF50", justifyContent: "center", alignItems: "center", elevation: 0 }}
+                        >
                             <AntDesign name="plus" size={20} color={"#FFF"} />
                     </TouchableOpacity>
+                    
             </View>
 
             {item.controle_lote_serie == 'S' && (
                 <TouchableOpacity
                     onPress={() => onOpenSeries(indexItem)}
                     style={{
-                        backgroundColor: seriesCount > 0 ? '#E8F5E9' : '#FFF',
-                        borderRadius: 12,
-                        paddingVertical: 15,
-                        flexDirection: 'row',
-                        justifyContent: 'space-around',
-                        alignItems: 'center',
-                        gap: 10,
-                        marginTop: 10,
-                        elevation: 3,
-                        borderWidth: 1,
-                        borderColor: seriesCount > 0 ? '#1E9C43' : '#E0E0E0'
-                    }}
-                >
+                        backgroundColor: seriesCount > 0 ? '#E8F5E9' : '#FFF',borderRadius: 12,paddingVertical: 15,flexDirection: 'row',justifyContent: 'space-around',alignItems: 'center',gap: 10,marginTop: 10,elevation: 3,borderWidth: 1,borderColor: seriesCount > 0 ? '#1E9C43' : '#E0E0E0'}}>
                     <Ionicons name="barcode" size={35} color="#185FED" />
                     <View style={{ alignItems: 'center' }}>
                         <Text style={{ fontWeight: 'bold', color: '#555' }}>

@@ -3,14 +3,42 @@ import {
     View, FlatList, Text, TouchableOpacity, TextInput, Modal, ActivityIndicator, Image,
 } from "react-native";
 
-import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome, Entypo } from "@expo/vector-icons";
 import useApi from "../../../../services/api";
-import { actionsRequirement, itensPayloadRequirement } from "../..";
+import { actionsRequirement, itensPayloadRequirement, payloadRequirement } from "../..";
 
-export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: itensPayloadRequirement[], dispatch: React.ActionDispatch<[action: actionsRequirement]> }) => {
+
+
+type sectorProdSectorGroupedRequest =   {
+         codigo: number,
+         descricao: string,
+         ativo: string,
+         id: string,
+         estoque: number,
+         local_produto:  string,
+         local1_produto: string,
+         local2_produto: string,
+         local3_produto: string,
+         local4_produto: string
+      }
+
+type productProdSectorGroupedRequest =   {
+    codigo : number,
+       descricao :  string,
+        id : string
+        controle_lote_serie: 'S' | 'N'
+}
+
+  export  type prodSectorGroupedRequest = {
+     produto :  productProdSectorGroupedRequest,
+     setor :   sectorProdSectorGroupedRequest[]
+  }
+
+
+export const ListaProdutosRequerimento = ({ requirement, dispatch }: { requirement: payloadRequirement, dispatch: React.ActionDispatch<[action: actionsRequirement]> }) => {
 
     const [pesquisa, setPesquisa] = useState<any>("a"); // Inicia vazio para não buscar tudo de cara se não quiser
-    const [data, setData] = useState([]);
+    const [data, setData] = useState<prodSectorGroupedRequest[]>([]);
     const [loading, setLoading] = useState(false);
     const [visibleProdutos, setVisibleProdutos] = useState(false);
     const api = useApi();
@@ -22,16 +50,17 @@ export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: it
             setLoading(true); // Ativar loading
             try {
                 
-          const responseProduct = await api.get('/produtos/search', 
+          const responseProduct = await api.get('/produtos-setor/search-grouped', 
                         {
                             params: { 
                                 limit: 20,
+                                setor: requirement.setor_origem,
                                 search: pesquisa,
                                 ativo: 'S'
                             }
                         }
                     );
-                      setData(responseProduct?.data);
+                      setData(responseProduct?.data as prodSectorGroupedRequest[]);
 
            
             } catch (e) {
@@ -51,14 +80,13 @@ export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: it
     }, [pesquisa]);
 
 
-    const renderItem = ({ item }: any) => {
-        const hasImage = item.fotos && item.fotos.length > 0 && item.fotos[0].link;
-        const isSelected = produtos && produtos.some( ( i )=> i.produto == item.codigo);
-        const index =  produtos && produtos.findIndex( ( i )=> i.produto == item.codigo);
+    const renderItem = ({ item }: {item: prodSectorGroupedRequest}) => {
+        const isSelected = requirement && requirement.itens.some( ( i )=> i.produto == item.produto.codigo );
+        const index =  requirement.itens && requirement.itens.findIndex( ( i )=> i.produto == item.produto.codigo);
         return (
             <TouchableOpacity
                 style={{
-                    backgroundColor: isSelected ? "#f9fff9" : "#FFF",
+                    backgroundColor: isSelected ? "#f9fff9e8" : "#FFF",
                     borderRadius: 12,
                     marginHorizontal: 15,
                     marginVertical: 6,
@@ -76,13 +104,13 @@ export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: it
                 onPress={() =>{
                     if( isSelected){
                          dispatch({ type:'remove_item', payload:  index })
-                         console.log(item.codigo)
                     }else{
                         dispatch({ type:'add_item', payload:{ 
                             custo: 0,
-                            descricao: item.descricao,
-                            controle_lote_serie: item.controle_lote_serie,
-                            produto: item.codigo,
+                            descricao: item.produto.descricao,
+                           controle_lote_serie: item.produto.controle_lote_serie   , 
+                            produto: item.produto.codigo,
+                            quantidade_disponivel: item.setor[0].estoque,
                             quantidade: 0,
                             lotes_series:[]
                         }})
@@ -90,28 +118,31 @@ export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: it
 
                 }  }
             >
-                {/* Imagem */}
-                <View style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginRight: 12, overflow: 'hidden' }}>
-                    {hasImage ? (
-                        <Image source={{ uri: `${item.fotos[0].link}` }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                    ) : (
-                        <MaterialIcons name="image-not-supported" size={24} color="#BDBDBD" />
-                    )}
-                </View>
-
+         
                 {/* Dados */}
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.id}</Text>
-                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4CAF50' }}>R$ { item.preco }</Text>
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.produto.codigo}</Text>
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.produto.id}</Text>
                     </View>
                     
                     <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
-                        {item.descricao}
+                        {item.produto.descricao}
                     </Text>
+                    {
+                        item.setor.map( (i)=>(
+                           <>  
+                            <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
+                                    <Entypo name="location" size={15} color="#185FED" /> Setor: {i.codigo} - { i.descricao}  
+                            </Text>
+                            <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
+                                    Qtd disponivel: {i.estoque}
+                            </Text>
+                          </>
+                        ) )
+                    }
                     
-                    <Text style={{ fontSize: 12, color: '#757575' }}>Estoque: {item.estoque}</Text>
+                    { /**   <Text style={{ fontSize: 12, color: '#757575' }}>Estoque: {item.estoque}</Text>*/ } 
                 </View>
             </TouchableOpacity>
         );
@@ -175,7 +206,7 @@ export const ListaProdutosRequerimento = ({ produtos, dispatch }: { produtos: it
                                 <FlatList
                                     data={data}
                                     renderItem={renderItem}
-                                    keyExtractor={(item:any) => item.codigo.toString()}
+                                    keyExtractor={(item:any) => item.produto.codigo.toString()}
                                     contentContainerStyle={{ paddingBottom: 20 }}
                                     ListEmptyComponent={() => (
                                         <View style={{ alignItems: 'center', marginTop: 50 }}>
