@@ -81,7 +81,6 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     }, [])
 
     async function carregarProduto() {
-        if (configMobileApi && configMobileApi.offline === 'N') {
             try {
                 setLoading(true)
                 const responseProduct = await api.get(`/produtos/${codigo_produto}`);
@@ -105,41 +104,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
             } finally {
                 setLoading(false)
             }
-        } else {
-
-            try {
-                setLoading(true)
-
-                if (codigo_produto && codigo_produto > 0) {
-                    let dataProd: any = await useQueryProdutos.selectByCode(codigo_produto);
-
-                    let dadosFoto: any = await useQueryFotos.selectByCode(codigo_produto)
-                    dataProd[0].fotos = dadosFoto;
-
-                    setDados(dataProd);
-
-                    setImgs(dadosFoto)
-                    let prod: produtoBancoLocal = dataProd[0]
-                    setProduto(prod)
-                    if (dataProd.length > 0) {
-                        setUnidade(prod.unidade_medida)
-                        setCategoriaSelecionada(prod.grupo);
-                        setMarcaSelecionada(prod.marca as any);
-                        setReferencia(prod.num_original)
-                        setEstoque(prod.estoque);
-                        setPreco(Number(prod.preco));
-                        setSku(prod.sku);
-                        setDescricao(prod.descricao)
-                        setGtim(prod.num_fabricante)
-                        setId(prod.id);
-                    }
-                }
-            } catch (e) {
-            } finally {
-                setLoading(false)
-            }
-        }
-
+       
 
     }
     useEffect(() => {
@@ -198,12 +163,6 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
                 let responseProdutoApi = await api.put('/produto', data);
                 if (responseProdutoApi.status === 200 && responseProdutoApi.data.codigo > 0) {
-                    let dataRecad = responseProdutoApi.data.data_recadastro
-                    let dadosUpdateLocal = {
-                        "unidade_medida": unidade, "codigo": codigo_produto, "preco": preco, "estoque": estoque, "descricao": descricao,
-                        "sku": sku, "num_original ": referencia, "num_fabricante": gtim, "marca": marcaSelecionada.codigo, "grupo": categoriaSelecionada, data_recadastro: dataRecad
-                    };
-                    await useQueryProdutos.update(dadosUpdateLocal, data.codigo)
                     navigation.goBack();
                     return Alert.alert('', `Produto ${responseProdutoApi.data.codigo} Alterado Com Sucesso! `)
                 }
@@ -243,8 +202,6 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                         "tipo": '0',
                     };
 
-                    await useQueryProdutos.createByCode(dadosInsertLocal, response.data.codigo)
-                    Alert.alert('', `Produto ${descricao} registrado com sucesso!`);
                     navigation.goBack();
                 }
             } catch (e: any) {
