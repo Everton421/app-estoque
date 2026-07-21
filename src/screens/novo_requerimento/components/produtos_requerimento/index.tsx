@@ -3,7 +3,7 @@ import {
     View, FlatList, Text, TouchableOpacity, TextInput, Modal, ActivityIndicator, Image,
 } from "react-native";
 
-import { Ionicons, MaterialIcons, FontAwesome, Entypo } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome, Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import useApi from "../../../../services/api";
 import { actionsRequirement, itensPayloadRequirement, payloadRequirement } from "../..";
 
@@ -82,68 +82,110 @@ export const ListaProdutosRequerimento = ({ requirement, dispatch }: { requireme
 
     const renderItem = ({ item }: {item: prodSectorGroupedRequest}) => {
         const isSelected = requirement && requirement.itens.some( ( i )=> i.produto == item.produto.codigo );
-        const index =  requirement.itens && requirement.itens.findIndex( ( i )=> i.produto == item.produto.codigo);
         return (
             <TouchableOpacity
                 style={{
-                    backgroundColor: isSelected ? "#f9fff9e8" : "#FFF",
+                    backgroundColor: isSelected ? '#f8fff9' : '#FFF',
                     borderRadius: 12,
-                    marginHorizontal: 15,
+                    marginHorizontal: 10,
                     marginVertical: 6,
-                    padding: 10,
+                    padding: 15,
                     elevation: 3,
-                    shadowColor: "#000",
+                    shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.1,
                     shadowRadius: 3,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderStartWidth: 3,
-                    borderStartColor: isSelected ? "#4CAF50" : "#185FED"
+                    borderLeftWidth: 5,
+                    borderLeftColor: isSelected ? '#4CAF50' : '#185FED'
                 }}
                 onPress={() =>{
                     if( isSelected){
-                         dispatch({ type:'remove_item', payload:  index })
+                         dispatch({ type:'remove_item', payload:  item.produto.codigo })
                     }else{
                         dispatch({ type:'add_item', payload:{ 
                             custo: 0,
                             descricao: item.produto.descricao,
-                           controle_lote_serie: item.produto.controle_lote_serie   , 
+                            controle_lote_serie: item.produto.controle_lote_serie,
                             produto: item.produto.codigo,
                             quantidade_disponivel: item.setor[0].estoque,
                             quantidade: 0,
                             lotes_series:[]
                         }})
                     }
-
-                }  }
+                }}
             >
-         
-                {/* Dados */}
+                <View style={{
+                    width: 50, height: 50, borderRadius: 25,
+                    backgroundColor: '#E3F2FD',
+                    justifyContent: 'center', alignItems: 'center',
+                    marginRight: 15
+                }}>
+                    <MaterialCommunityIcons name="package-variant" size={22} color="#185FED" />
+                </View>
+
                 <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.produto.codigo}</Text>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Id: {item.produto.id}</Text>
-                    </View>
                     
-                    <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
+                      <View  style={{ flexDirection: 'row', justifyContent:'space-between', alignItems: 'center', }} >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                                <Text style={{
+                                    fontSize: 12, color: '#185FED', fontWeight: 'bold',
+                                    backgroundColor: '#E3F2FD', paddingHorizontal: 6,
+                                    paddingVertical: 2, borderRadius: 4
+                                }}>
+                                    Cód: {item.produto.codigo}
+                                </Text>
+                                <Text style={{
+                                    fontSize: 12, color: '#185FED', fontWeight: 'bold',
+                                    backgroundColor: '#E3F2FD', paddingHorizontal: 6,
+                                    paddingVertical: 2, borderRadius: 4, marginLeft: 6
+                                }}>
+                                    Id: {item.produto.id}
+                                </Text>
+                            </View>
+                              <View  style={{ alignSelf:'flex-end'}}>
+                                        { isSelected  ? <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />  : null }
+                            </View>
+
+                        </View>
+                        
+                      
+
+                 
+                    
+                    
+                    <Text numberOfLines={2} style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 }}>
                         {item.produto.descricao}
                     </Text>
-                    {
-                        item.setor.map( (i)=>(
-                           <>  
-                            <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
-                                    <Entypo name="location" size={15} color="#185FED" /> Setor: {i.codigo} - { i.descricao}  
-                            </Text>
-                            <Text numberOfLines={2} style={{ fontSize: 14, fontWeight: '600', color: '#333', marginVertical: 2 }}>
-                                    Qtd disponivel: {i.estoque}
-                            </Text>
-                          </>
-                        ) )
-                    }
-                    
-                    { /**   <Text style={{ fontSize: 12, color: '#757575' }}>Estoque: {item.estoque}</Text>*/ } 
+
+                    {item.setor.map((i) => (
+                        <View key={i.codigo} style={{
+                            flexDirection: 'row', alignItems: 'center',
+                            backgroundColor: '#F5F7FA', borderRadius: 6,
+                            padding: 6, marginTop: 4
+                        }}>
+                            <View style={{
+                                width: 28, height: 28, borderRadius: 14,
+                                backgroundColor: '#E3F2FD',
+                                justifyContent: 'center', alignItems: 'center',
+                                marginRight: 8
+                            }}>
+                                <Entypo name="location" size={14} color="#185FED" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '600', color: '#555' }}>
+                                    {i.codigo} - {i.descricao}
+                                </Text>
+                                <Text style={{ fontSize: 11, color: '#666', marginTop: 1 }}>
+                                    Qtd disponível: {i.estoque}
+                                </Text>
+                            </View>
+                        </View>
+                    ))}
                 </View>
+
+                <MaterialIcons name="chevron-right" size={24} color="#BDBDBD" style={{ marginLeft: 5 }} />
             </TouchableOpacity>
         );
     };
@@ -153,8 +195,7 @@ export const ListaProdutosRequerimento = ({ requirement, dispatch }: { requireme
             {/* Botão de abrir modal estilizado como Input Search */}
             <TouchableOpacity
                 onPress={() => setVisibleProdutos(true)}
-                style={{flexDirection: "row",alignItems: "center",backgroundColor: "#FFF",borderRadius: 8,borderWidth: 1,borderColor: '#E0E0E0',paddingHorizontal: 15,height: 47,elevation: 2
-                }}
+                style={{flexDirection: "row",alignItems: "center",backgroundColor: "#FFF",borderRadius: 8,borderWidth: 1,borderColor: '#E0E0E0',paddingHorizontal: 15,height: 47,elevation: 2 }}
             >
                 <FontAwesome name="search" size={18} color="#185FED" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#757575", fontSize: 16 }}>
@@ -165,25 +206,11 @@ export const ListaProdutosRequerimento = ({ requirement, dispatch }: { requireme
             <Modal visible={visibleProdutos} animationType="fade" transparent={true} onRequestClose={() => setVisibleProdutos(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
                     <View style={{
-                        width: "95%",
-                        height: "90%",
-                        backgroundColor: "#F5F7FA",
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                        elevation: 10
-                    }}>
+                        width: "95%",height: "90%",backgroundColor: "#F5F7FA",borderRadius: 16,overflow: 'hidden',elevation: 10 }}>
                         {/* Header Modal */}
                         <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', alignItems: 'center' }}>
                             <View style={{
-                                flex: 1,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: '#FFF',
-                                borderRadius: 8,
-                                paddingHorizontal: 10,
-                                height: 40,
-                                marginRight: 10
-                            }}>
+                                flex: 1,flexDirection: 'row',alignItems: 'center',backgroundColor: '#FFF',borderRadius: 8,paddingHorizontal: 10,height: 40,marginRight: 10  }}>
                                 <Ionicons name="search" size={20} color="#999" style={{ marginRight: 5 }} />
                                 <TextInput
                                     style={{ flex: 1, color: '#333' }}

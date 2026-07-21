@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -71,7 +71,7 @@ export type servico_pedido = {
 }
 
 export type seller = {
-      codigo: 1,
+      codigo: number,
       nome:  string ,
       email: string ,
       cnpj:  string ,
@@ -527,15 +527,27 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     Total: R$ {Number(item?.total_geral).toFixed(2)}
                 </Text>
 
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Criado: {new Date(item?.data_cadastro).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
                     </Text>
+             
 
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Modificado: {new Date(item?.data_recadastro).toLocaleTimeString("pt-br", { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                 </View>
+                   {
+                    item.tipo == 3 ?
+                    <Text style={{ fontSize: 10, color: '#185FED' }}>
+                      Os <FontAwesome5 name="tools" size={20} color="#185FED" />
+                    </Text>
+                  
+                    :
+                    <Text style={{ fontSize: 10, fontWeight:"bold",color: '#185FED' }}>
+                     Venda <MaterialCommunityIcons name="cart-check" size={20} color="#185FED" />
+                    </Text>
+                }
 
                 {/* --- RODAPÉ DE AÇÕES --- */}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 12 }}>

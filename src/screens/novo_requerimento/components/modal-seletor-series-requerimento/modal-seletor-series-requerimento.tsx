@@ -116,12 +116,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
 
     function handleIncrement(lote_serie: number, estoque: number) {
         const totalAtual = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
-     //   if (totalAtual >= maxQuantity) {
-     //       setVisibleAlert(true);
-     //       setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
-     //       setTypeAlert('warning');
-     //       return;
-     //   }
+   
         setSelectedSeries(prev => {
             const idx = prev.findIndex(s => s.lote_serie === lote_serie);
             if (idx >= 0) {
@@ -168,13 +163,6 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
             setTypeAlert('warning');
             return;
         }
-        const totalAtual = selectedSeries.reduce((sum, s) => s.lote_serie !== lote_serie ? sum + s.quantidade : sum, 0);
-        //if (totalAtual + value > maxQuantity) {
-        //    setVisibleAlert(true);
-        //    setMessageAlert(`Quantidade máxima de ${maxQuantity} atingida.`);
-        //    setTypeAlert('warning');
-        //    return;
-        //}
         setSelectedSeries(prev => {
             const idx = prev.findIndex(s => s.lote_serie === lote_serie);
             if (idx < 0) return prev;
@@ -195,13 +183,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
     }
 
     const handleConfirm = () => {
-       // const total = selectedSeries.reduce((sum, s) => sum + s.quantidade, 0);
-       // if (total !== maxQuantity) {
-       //     setVisibleAlert(true);
-       //     setMessageAlert(`A soma das séries (${total}) deve ser igual à quantidade do produto (${maxQuantity}).`);
-       //     setTypeAlert('warning');
-       //     return;
-       // }
+    
         onConfirm(selectedSeries);
         setVisible(false);
     };

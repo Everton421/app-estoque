@@ -86,7 +86,8 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                     backgroundColor: "#FFF",
                     borderRadius: 16,
                     overflow: 'hidden',
-                    elevation: 10 
+                    elevation: 10, 
+                    height:'80%'
                 }}>
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Filtros</Text>

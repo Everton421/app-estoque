@@ -29,39 +29,16 @@ type propsSetor = {
     return (
         <TouchableOpacity
             style={{
-                backgroundColor: isSelected && isSelected == setor.codigo ? '#f9fff9' : '#FFF',
-                marginHorizontal: 10,
-                marginVertical: 5,
-                borderRadius: 12,
-                padding: 15,
-                elevation: 3,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderLeftWidth: 4,
-                borderLeftColor: isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED' 
-            }}
-            onPress={() => { selectSetor(setor) }}
-        >
-            <View style={{
-                width: 40, height: 40, borderRadius: 20,
-                backgroundColor:   '#E3F2FD'   , 
-                justifyContent: 'center', alignItems: 'center', marginRight: 15
-            }}>
+                backgroundColor: isSelected && isSelected == setor.codigo ? '#f9fff9' : '#FFF',marginHorizontal: 10,marginVertical: 5,borderRadius: 12,padding: 15,elevation: 3,shadowColor: '#000',shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.1,shadowRadius: 3,flexDirection: 'row',alignItems: 'center',borderLeftWidth: 4,borderLeftColor: isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'   }}
+              onPress={() => { selectSetor(setor) }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor:  '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
                 <MaterialIcons name="store" size={24} color={isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'} />
             </View>
 
             <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>
-                    {setor.descricao}
-                </Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>  {setor.descricao} </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <Text style={{ fontSize: 12, 
-                        color:  isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED',
-                         fontWeight: 'bold', backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 }}>
+                    <Text style={{ fontSize: 12, color:  isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED',   fontWeight: 'bold', backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 }}>
                         Cód: {setor.codigo}
                     </Text>
                     <Text style={{ fontSize: 11, color: '#999' }}>
@@ -119,14 +96,7 @@ return  (
 
                         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
                             <TextInput
-                                style={{
-                                    backgroundColor: '#F5F7FA',
-                                    borderRadius: 8,
-                                    paddingHorizontal: 15,
-                                    paddingVertical: 10,
-                                    fontSize: 14,
-                                    color: '#333',
-                                }}
+                                style={{backgroundColor: '#F5F7FA',borderRadius: 8,paddingHorizontal: 15,paddingVertical: 10,fontSize: 14,color: '#333'  }}
                                 placeholder="Pesquisar setor..."
                                 placeholderTextColor="#999"
                                 defaultValue={searchText}
@@ -138,6 +108,7 @@ return  (
                             data={dataSetores}
                             renderItem={({ item }) => <RenderSetores setor={item} selectSetor={selectSector} isSelected={isSelected} />}
                             contentContainerStyle={{ paddingVertical: 10 }}
+                            keyExtractor={(item)=>item.codigo.toString()}
                         />
                     </View>
                 </View>

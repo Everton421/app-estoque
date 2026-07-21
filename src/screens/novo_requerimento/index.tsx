@@ -56,12 +56,17 @@ export type actionsRequirement =
     | { type: 'remove_item', payload: number }
     | { type: 'update_item_qtd', payload: { codigo: number, quantidade: number } }
     | { type: 'update_lotes', payload: { indexItem: number, lotes_series: loteSerieRequirement[] } }
+    | { type: 'load_requirement', payload: payloadRequirement }
     | { type: 'reset' }
 
 
-export const NovoRequerimento = ({ navigation }: any) => {
+export const NovoRequerimento = ({ navigation, route }: any) => {
     const useMoment = configMoment();
     const { usuario }: any = useContext(AuthContext);
+
+    const codigoEdicao = route?.params?.codigo || null;
+    const isEdicao = !!codigoEdicao;
+    const [loadingEdicao, setLoadingEdicao] = useState(false);
 
 
     function handleEditRequirement(state: payloadRequirement, action: actionsRequirement) {
@@ -99,6 +104,8 @@ export const NovoRequerimento = ({ navigation }: any) => {
                             : item
                     )
                 }
+            case 'load_requirement':
+                return { ...action.payload }
             case 'reset':
                 return { ...initialState }
             default:
@@ -257,6 +264,91 @@ export const NovoRequerimento = ({ navigation }: any) => {
         getDefaultConfig();
     }, []);
 
+    useEffect(() => {
+        if (isEdicao) {
+            carregarRequerimento();
+        }
+    }, [codigoEdicao]);
+
+    async function carregarRequerimento() {
+        setLoadingEdicao(true);
+        try {
+            const response = await api.get(`/requirements/${codigoEdicao}`);
+            if (response.status === 200) {
+                const data = response.data;
+
+                if (data.setor_origem) {
+                    const respSetorOrigem = await api.get('/setores/search', { params: { search: data.setor_origem } });
+                    if (respSetorOrigem.status === 200 && respSetorOrigem.data.length > 0) {
+                        setSectorOrigin(respSetorOrigem.data[0]);
+                    }
+                }
+                if (data.setor_destino) {
+                    const respSetorDestino = await api.get('/setores/search', { params: { search: data.setor_destino } });
+                    if (respSetorDestino.status === 200 && respSetorDestino.data.length > 0) {
+                        setSectorDestinattion(respSetorDestino.data[0]);
+                    }
+                }
+
+                const itensMapeados: itensPayloadRequirement[] = [];
+                for (const item of (data.itens || [])) {
+                    let descricao = '';
+                    let controle_lote_serie: 'S' | 'N' = 'N';
+                    let quantidade_disponivel = 0;
+                    try {
+                        const respProduto = await api.get(`/produtos/${item.produto}`);
+                        if (respProduto.status === 200 && respProduto.data) {
+                            descricao = respProduto.data.descricao || '';
+                            controle_lote_serie = respProduto.data.controle_lote_serie || 'N';
+                        }
+                    } catch (_) {}
+                    try {
+                        const respEstoque = await api.get('/produtos-setor/search-grouped', {
+                            params: { setor: data.setor_origem, codigo: item.produto, limit: 1 }
+                        });
+                        if (respEstoque.status === 200 && respEstoque.data.length > 0) {
+                            quantidade_disponivel = respEstoque.data[0].setor[0]?.estoque || 0;
+                        }
+                    } catch (_) {}
+
+                    itensMapeados.push({
+                        produto: item.produto,
+                        descricao,
+                        controle_lote_serie,
+                        quantidade: item.quantidade,
+                        custo: item.custo || null,
+                        lotes_series: item.lotes_series || [],
+                        quantidade_disponivel
+                    });
+                }
+
+                dispatch({
+                    type: 'load_requirement',
+                    payload: {
+                        data_requerimento: data.data_requerimento,
+                        requerente: data.requerente,
+                        data_efetuacao: data.data_efetuacao || '0000-00-00',
+                        responsavel: data.responsavel,
+                        pedido: data.pedido,
+                        setor_origem: data.setor_origem,
+                        setor_destino: data.setor_destino,
+                        historico: data.historico || '',
+                        situacao: data.situacao,
+                        itens: itensMapeados
+                    }
+                });
+            }
+        } catch (e: any) {
+            console.log('[X] Erro ao carregar requerimento:', e?.response?.data || e);
+            setTitleAlert('Erro');
+            setTypeAlert('error');
+            setMessageAlert('Erro ao carregar dados do requerimento.');
+            setVisibleAlert(true);
+        } finally {
+            setLoadingEdicao(false);
+        }
+    }
+
     async function handleSubmit() {
         if (!requirement.setor_origem || !requirement.setor_destino) {
             setTitleAlert('Atenção');
@@ -279,7 +371,6 @@ export const NovoRequerimento = ({ navigation }: any) => {
             setVisibleAlert(true);
             return;
         }
-        /** */
 
         let payload = requirement as any;
 
@@ -291,13 +382,20 @@ export const NovoRequerimento = ({ navigation }: any) => {
             }
         })
         payload.itens = itens;
-        //console.log( JSON.stringify(payload) )
-          try {
-            const response = await api.post('/requirements', payload);
+
+        try {
+            let response;
+            if (isEdicao) {
+                payload.codigo = codigoEdicao;
+                response = await api.put(`/requirements/${payload.codigo}`, payload);
+            } else {
+                response = await api.post(`/requirements`, payload);
+            }
+
             if (response.status === 200 || response.status === 201) {
                 setTitleAlert('Sucesso');
                 setTypeAlert('success');
-                setMessageAlert('Requerimento criado com sucesso.');
+                setMessageAlert(isEdicao ? 'Requerimento atualizado com sucesso.' : 'Requerimento criado com sucesso.');
                 setVisibleAlert(true);
                 dispatch({ type: 'reset' });
                 setSectorOrigin(undefined);
@@ -305,13 +403,12 @@ export const NovoRequerimento = ({ navigation }: any) => {
                 navigation.goBack();
             }
         } catch (e: any) {
-            console.log('[X] Erro ao criar requerimento:', e.response.data);
+            console.log(`[X] Erro ao ${isEdicao ? 'atualizar' : 'criar'} requerimento:`, e.response.data);
             setTitleAlert('Erro');
             setTypeAlert('error');
-            setMessageAlert(`Erro ao criar requerimento. ${e.response.data}`);
+            setMessageAlert(`Erro ao ${isEdicao ? 'atualizar' : 'criar'} requerimento. ${e.response.data}`);
             setVisibleAlert(true);
         } 
-         
     }   
 
     if (!permission) return null;
@@ -333,169 +430,144 @@ export const NovoRequerimento = ({ navigation }: any) => {
 
             {/* --- HEADER --- */}
             <View style={{
-                backgroundColor: '#185FED',
-                paddingTop: 10,
-                paddingBottom: 20,
-                paddingHorizontal: 15,
-                borderBottomLeftRadius: 20,
-                borderBottomRightRadius: 20,
-                elevation: 5,
-                marginBottom: 10
+                backgroundColor: '#185FED',paddingTop: 10,paddingBottom: 20,paddingHorizontal: 15,borderBottomLeftRadius: 20,borderBottomRightRadius: 20,elevation: 5,marginBottom: 10
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
-                    <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>Novo Requerimento</Text>
-                </View>
-            </View>
-
-            {/** SELETOR SETORES */}
-            <View style={{ flexDirection: 'row', gap: 12, marginHorizontal: 10 }} >
-
-                {/** SELETOR SETOR DE ORIGEM */}
-                <TouchableOpacity
-                    style={{
-                        flex: 1, backgroundColor: "#FFF", borderRadius: 12, padding: 15, justifyContent: "center", alignItems: "center", elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, borderLeftWidth: 5, borderLeftColor: sectorOrigin ? '#1E9C43' : '#185FED', minHeight: 90
-                    }}
-                    onPress={() => setIsVisibleSectorOrigin(true)}
-                >
-                    <Text style={{ color: sectorOrigin ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
-                        {sectorOrigin ? sectorOrigin.descricao : 'Selecionar'}
-                    </Text>
-                    <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
-                        Setor de Origem
-                    </Text>
-                    <Entypo name="location" size={28} color={sectorOrigin ? '#1E9C43' : '#185FED'} />
-                    {sectorOrigin && (
-                        <View style={{ position: 'absolute', top: 8, right: 8 }}>
-                            <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                {/** SELETOR SETOR DE DESTINO */}
-                <TouchableOpacity
-                    style={{
-                        flex: 1,
-                        backgroundColor: "#FFF",
-                        borderRadius: 12,
-                        padding: 15,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        elevation: 3,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 3,
-                        borderLeftWidth: 5,
-                        borderLeftColor: sectorDestinattion ? '#1E9C43' : '#185FED',
-                        minHeight: 90
-                    }}
-                    onPress={() => setIsVisibleSectorDestinattion(true)}
-                >
-                    <Text style={{ color: sectorDestinattion ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
-                        {sectorDestinattion ? sectorDestinattion.descricao : 'Selecionar'}
-                    </Text>
-                    <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
-                        Setor de Destino
-                    </Text>
-
-                    {sectorDestinattion && (
-                        <View style={{ position: 'absolute', top: 8, right: 8 }}>
-                            <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
-                        </View>
-                    )}
-
-                    <Entypo name="location" size={28} color={sectorDestinattion ? '#1E9C43' : '#185FED'} />
-
-                </TouchableOpacity>
-            </View>
-
-            <View style={{ height: 1, backgroundColor: '#E0E0E0', marginVertical: 15 }} />
-
-            {/* --- SEÇÃO DE BUSCA E SCAN --- */}
-            <View style={{ flexDirection: "row", marginHorizontal: 15, marginBottom: 15, gap: 10 }}>
-                
-                { /** SELETOR PRODUTOS  */}
-                { requirement.setor_origem &&  
-                  <View style={{ flex: 1 }}>
-                    <ListaProdutosRequerimento requirement={requirement} dispatch={dispatch} />
-                </View> }
-
-                {/** ABRE A CAMERA PARA LEITURA */}
-             {requirement.setor_origem &&   
-                 <TouchableOpacity
-                    style={{
-                        backgroundColor: "#185FED",
-                        width: 50,
-                        height:40,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        borderRadius: 8,
-                        elevation: 2
-                    }}
-                    onPress={() => { setModalvisible(true) }}
-                >
-                    <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-                </TouchableOpacity> 
-                }
-
-            </View>
-
-            {/* --- LISTA DE ITENS --- */}
-            <View style={{ backgroundColor: '#FFF', marginTop: 20, borderRadius: 5, padding: 4 , margin:2}}>
-                <View style={{ backgroundColor: '#e8eff5', marginTop: 6, marginBottom: 5, width: 70, borderRadius: 10, alignItems: 'center',     marginLeft:10 }} >
-                    <Text style={{ color: '#185FED', fontSize: 12, textAlign:'center', marginBottom: 10, fontWeight: 'bold'  }}>
-                        Qtd Itens: {requirement.itens.length}
+                    <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>
+                        {isEdicao ? `Editar Requerimento #${codigoEdicao}` : 'Novo Requerimento'}
                     </Text>
                 </View>
-                <FlatList
-                    data={requirement.itens}
-                    renderItem={ ({ item, index }) => <RenderProduto 
-                                                        item={item} indexItem={index} 
-                                                        onOpenSeries={(idx) => setSelectedItemForSeries({ index: idx, item: requirement.itens[idx] })}
-                                                        dispatch={dispatch}
-                                                        />
-                                                    }
-                    horizontal={true}
-                />
             </View>
 
+                {/** SELETOR SETORES */}
+                <View style={{ flexDirection: 'row', gap: 12, marginHorizontal: 10 }} >
 
-            {/* --- HISTÓRICO --- */}
-            <View style={{ marginHorizontal: 15, marginBottom: 15 }}>
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 6 }}>Histórico</Text>
-                <TextInput
-                    style={{
-                        backgroundColor: '#FFF',
-                        borderRadius: 8,
-                        padding: 12,
-                        fontSize: 14,
-                        borderWidth: 1,
-                        borderColor: '#E0E0E0',
-                        minHeight: 60,
-                        textAlignVertical: 'top'
-                    }}
-                    placeholder="Descrição do requerimento..."
-                    multiline
-                    value={requirement.historico}
-                    onChangeText={(text) => dispatch({ type: 'switch_history', payload: text })}
-                />
-            </View>
+                    {/** SELETOR SETOR DE ORIGEM */}
+                    <TouchableOpacity
+                        style={{
+                            flex: 1, backgroundColor: "#FFF", borderRadius: 12, padding: 15, justifyContent: "center", alignItems: "center", elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, borderLeftWidth: 5, borderLeftColor: sectorOrigin ? '#1E9C43' : '#185FED', minHeight: 90
+                        }}
+                        onPress={() => setIsVisibleSectorOrigin(true)} >
 
-            { /** ----- BOTAO GRAVAR ----- */}
-            <View style={{ marginHorizontal: 15, marginBottom: 15 }}>
+                        <Text style={{ color: sectorOrigin ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
+                            {sectorOrigin ? sectorOrigin.descricao : 'Selecionar'}
+                        </Text>
+                        <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
+                            Setor de Origem
+                        </Text>
+                        <Entypo name="location" size={28} color={sectorOrigin ? '#1E9C43' : '#185FED'} />
+                        {sectorOrigin && (
+                            <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                                <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
+                            </View>
+                        )}
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={{ backgroundColor: "#185FED", borderRadius: 12, paddingVertical: 15, alignItems: "center", elevation: 4, marginBottom: 30, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
-                    onPress={handleSubmit}
-                >
+                    {/** SELETOR SETOR DE DESTINO */}
+                    <TouchableOpacity
+                        style={{
+                            flex: 1,backgroundColor: "#FFF",borderRadius: 12,padding: 15,justifyContent: "center",alignItems: "center",elevation: 3,shadowColor: '#000',shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.1,shadowRadius: 3,borderLeftWidth: 5,borderLeftColor: sectorDestinattion ? '#1E9C43' : '#185FED',minHeight: 90 }}
+                        onPress={() => setIsVisibleSectorDestinattion(true)}>
+                        <Text style={{ color: sectorDestinattion ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
+                            {sectorDestinattion ? sectorDestinattion.descricao : 'Selecionar'}
+                        </Text>
+                        <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
+                            Setor de Destino
+                        </Text>
 
-                    <MaterialIcons name="save" size={24} color="#FFF" />
-                    <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Gravar</Text>
-                </TouchableOpacity>
-            </View>
+                        {sectorDestinattion && (
+                            <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                                <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
+                            </View>
+                        )}
+                        <Entypo name="location" size={28} color={sectorDestinattion ? '#1E9C43' : '#185FED'} />
+                    </TouchableOpacity>
+                </View>
+
+                {/** SEPARADOR */}
+             <View style={{ height: 1, backgroundColor: '#E0E0E0', marginVertical: 15 }} />
+
+                {/* --- SEÇÃO DE BUSCA E SCAN --- */}
+                <View style={{ flexDirection: "row", marginHorizontal: 15, marginBottom: 15, gap: 10 }}>
+                    
+                    { /** SELETOR PRODUTOS */}
+                    { !!requirement.setor_origem &&  
+                    <View style={{ flex: 1 }}>
+                        <ListaProdutosRequerimento requirement={requirement} dispatch={dispatch} />
+                    </View> } 
+
+                    {/** ABRE A CAMERA PARA LEITURA */}
+                {!!requirement.setor_origem &&   
+                    <TouchableOpacity
+                        style={{backgroundColor: "#185FED",width: 50,height:40,justifyContent: "center",alignItems: "center",borderRadius: 8,elevation: 2
+                        }}
+                        onPress={() => { setModalvisible(true) }}
+                    >
+                        <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
+                    </TouchableOpacity> 
+                    }
+
+                </View>
+
+                {/* --- LISTA DE ITENS --- */}
+                <View style={{ backgroundColor: '#FFF', marginTop: 20, borderRadius: 5, padding: 4 , margin:2}}>
+                    <View style={{ backgroundColor: '#e8eff5', marginTop: 6, marginBottom: 5, width: 70, borderRadius: 10, alignItems: 'center',     marginLeft:10 }} >
+                        <Text style={{ color: '#185FED', fontSize: 12, textAlign:'center', marginBottom: 10, fontWeight: 'bold'  }}>
+                            Qtd Itens: {requirement.itens.length}
+                        </Text>
+                    </View>
+                    <FlatList
+                        data={requirement.itens}
+                        renderItem={ ({ item, index }) => <RenderProduto 
+                                                            item={item} indexItem={index} 
+                                                            onOpenSeries={(idx) => setSelectedItemForSeries({ index: idx, item: requirement.itens[idx] })}
+                                                            dispatch={dispatch}
+                                                            />
+                                                        }
+                        keyExtractor={ item=> item.produto.toString()}                                                        
+                        horizontal={true}
+                    />
+                </View>
+
+
+                {/* --- HISTÓRICO --- */}
+                <View style={{ marginHorizontal: 15, marginBottom: 15 }}>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 6 }}>Histórico</Text>
+                    <TextInput
+                        style={{
+                            backgroundColor: '#FFF',
+                            borderRadius: 8,
+                            padding: 12,
+                            fontSize: 14,
+                            borderWidth: 1,
+                            borderColor: '#E0E0E0',
+                            minHeight: 60,
+                            textAlignVertical: 'top'
+                        }}
+                        placeholder="Descrição do requerimento..."
+                        multiline
+                        value={requirement.historico}
+                        onChangeText={(text) => dispatch({ type: 'switch_history', payload: text })}
+                    />
+                </View> 
+
+                { /** ----- BOTAO GRAVAR ----- */}
+                <View style={{ marginHorizontal: 15, marginBottom: 15 }}>
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: "#185FED", borderRadius: 12, paddingVertical: 15, alignItems: "center", elevation: 4, marginBottom: 30, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+                        onPress={handleSubmit}
+                    >
+
+                        <MaterialIcons name="save" size={24} color="#FFF" />
+                        <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>
+                            {isEdicao ? 'Atualizar' : 'Gravar'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
 
 
             {/* --- MODAL CÂMERA PARA LER CODIGO DE BARRAS DO PRODUTO--- */}
