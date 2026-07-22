@@ -1,18 +1,18 @@
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import NetInfo from '@react-native-community/netinfo';
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useReducer, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { ConnectedContext } from "../../contexts/conectedContext";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
-import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosProdutos";
-import { useProducts } from "../../database/queryProdutos/queryProdutos";
 import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
 import { RenderModalCategorias } from "./_components/modal-categorias";
 import { RenderModalMarcas } from "./_components/modal-marcas";
 import { typeFotoProduto } from "./types/fotos";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { isAxiosError } from "axios";
 
 
 type ApiConfig = {
@@ -25,40 +25,170 @@ type ApiConfig = {
     offline: 'S' | 'N'
 }
 
+  export   type typePayloadProduct = {
+             codigo?: number,
+             id?: string,
+             estoque: number,
+             preco:  string ,
+             unidade_medida:  string ,
+             grupo:  number,
+             origem:   string,
+             descricao: string,
+             num_fabricante: string,
+             num_original: string,
+             sku:  string,
+             marca: number,
+             ativo: "S" | "N",
+             class_fiscal: string,
+             cst:  string,
+             caracteristica:   number,
+             data_cadastro: string,
+             data_recadastro: string,
+             observacoes1: string,
+             observacoes2: string,
+             observacoes3: string,
+             tipo: number,
+             controle_lote_serie: "N" | "S",
+             fotos:  photoPayloadProduct[]
+        }
+ 
+        type photoPayloadProduct = {
+                 produto: number,
+                 sequencia: number,
+                 descricao: string,
+                 link: string,
+                 foto: string,
+                 data_cadastro: string,
+                 data_recadastro: string
+        }
 
-type produtoBancoLocal = {
-    id: string, unidade_medida: string, ativo: string, class_fiscal: string, codigo: number, cst: string, data_cadastro: string, data_recadastro: string, descricao: string, estoque: number, grupo: number, marca: number, num_fabricante: string, num_original: string, observacoes1: string, observacoes2: string, observacoes3: string, origem: string, preco: number, sku: string, tipo: string
-};
+        export    type actionEditPayloadProduct = 
+        { type:'switch_codigo', payload: number | undefined} 
+        | { type: 'switch_id', payload: string }
+        | { type: 'switch_estoque', payload: number}
+        | { type: 'switch_preco', payload: string}
+        | { type: 'switch_unidade_medida', payload: string}
+        | { type: 'switch_grupo', payload: number}
+        | { type: 'switch_origem', payload:   string}
+        | { type: 'switch_descricao', payload: string}
+        | { type: 'switch_num_fabricante', payload: string}
+        | { type: 'switch_num_original', payload: string}
+        | { type: 'switch_sku', payload:   string}
+        | { type: 'switch_marca', payload: number}
+        | { type: 'switch_ativo', payload: "S" | "N"}
+        | { type: 'switch_class_fiscal', payload: string}
+        | { type: 'switch_cst', payload:  string}
+        | { type: 'switch_caracteristica', payload:  number}
+        | { type: 'switch_data_cadastro', payload: string}
+        | { type: 'switch_data_recadastro', payload: string}
+        | { type: 'switch_observacoes1', payload:  string}
+        | { type: 'switch_observacoes2', payload:  string}
+        | { type: 'switch_observacoes3', payload:   string }
+        | { type: 'switch_tipo', payload: number}
+        | { type: 'switch_controle_lote_serie', payload: "S" | "N"}
+        | { type: 'switch_all_fields' , payload: typePayloadProduct}
+        ;
 
 export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
+    const [visibleAlert, setVisibleAlert] = useState(false);
+    const [messageAlert, setMessageAlert] = useState('');
+    const [titleAlert, setTitleAlert] = useState('');
+    const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
     const useQueryConfigApi = queryConfig_api();
-    const [marcaSelecionada, setMarcaSelecionada] = useState<{ codigo: number }>();
-    const [categoriaSelecionada, setCategoriaSelecionada] = useState(0);
-    const [estoque, setEstoque] = useState<any>(0);
-    const [preco, setPreco] = useState<any>(0);
-    const [unidade, setUnidade] = useState('UND')
-
-    const [sku, setSku] = useState<string>('');
-    const [descricao, setDescricao] = useState<string>('');
-    const [gtim, setGtim] = useState<string>('');
-    const [referencia, setReferencia] = useState<string>('');
-    const [id, setId] = useState<string>();
 
     const [visible, setVisible] = useState<Boolean>(false);
     const [link, setLink] = useState("");
-    const [fotos, setFotos] = useState<typeFotoProduto[]>([]);
-
-    const [produto, setProduto] = useState<produtoBancoLocal>();
     const [imgs, setImgs] = useState<typeFotoProduto[]>();
     const [loading, setLoading] = useState<boolean>(false);
-    const [dados, setDados] = useState('');
     const api = useApi();
     const { connected, setConnected } = useContext<any>(ConnectedContext)
-    const useQueryFotos = useFotosProdutos();
-    const useQueryProdutos = useProducts();
-    const useMoment = configMoment();
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
+
+    const useMoment = configMoment();
+    
+    
+        function handleEditPayloadProduct(state:typePayloadProduct, action:actionEditPayloadProduct ){
+             switch (action.type) {
+
+                    case  'switch_codigo' :
+                        return { ...state, codigo:action.payload }  
+                    case  'switch_id' :
+                        return { ...state, id:action.payload }   
+                    case  'switch_estoque' :
+                        return { ...state, estoque:action.payload }   
+                    case  'switch_preco' :
+                        return { ...state, preco:action.payload }   
+                    case  'switch_unidade_medida' :
+                        return { ...state, unidade_medida:action.payload }   
+                    case  'switch_grupo' :
+                        return { ...state, grupo:action.payload }   
+                    case  'switch_origem' :
+                        return { ...state, origem:action.payload }   
+                    case  'switch_descricao' :
+                        return { ...state, descricao:action.payload }   
+                    case  'switch_num_fabricante' :
+                        return { ...state, num_fabricante:action.payload }  
+                    case  'switch_num_original' :
+                        return { ...state, num_original:action.payload }   
+                    case  'switch_sku' :
+                        return { ...state, sku:action.payload }   
+                    case  'switch_marca' :
+                        return { ...state, marca:action.payload }   
+                    case  'switch_ativo' :
+                        return { ...state, ativo:action.payload }   
+                    case  'switch_class_fiscal' :
+                        return { ...state, class_fiscal:action.payload }   
+                    case  'switch_cst' :
+                        return { ...state, cst:action.payload }   
+                    case  'switch_caracteristica' :
+                        return { ...state, caracteristica:action.payload }  
+                    case  'switch_data_cadastro' :
+                        return { ...state, data_cadastro:action.payload }   
+                    case  'switch_data_recadastro' :
+                        return { ...state, data_recadastro:action.payload }   
+                    case  'switch_observacoes1' :
+                        return { ...state, observacoes1:action.payload }   
+                    case  'switch_observacoes2' :
+                        return { ...state, observacoes2:action.payload } 
+                    case  'switch_observacoes3' :
+                        return { ...state, observacoes3:action.payload }   
+                    case  'switch_tipo' :
+                        return { ...state, tipo:action.payload }; 
+                    case  'switch_controle_lote_serie' :
+                        return { ...state, controle_lote_serie:action.payload } ; 
+                    case  'switch_all_fields' :
+                        return   state = action.payload  
+
+            }
+        }
+
+            const initialState:typePayloadProduct ={
+                    estoque: 0,
+                    preco:  '0.00' ,
+                    unidade_medida: 'UND' ,
+                    grupo:  0,
+                    origem:  '' ,
+                    descricao: '',
+                    num_fabricante:  '',
+                    num_original:  '',
+                    sku:  ''  ,
+                    marca: 0,
+                    ativo: "S"  ,
+                    class_fiscal: '',
+                    cst: ''  ,
+                    caracteristica: 0  ,
+                    data_cadastro: useMoment.dataAtual(),
+                    data_recadastro: useMoment.dataHoraAtual(),
+                    observacoes1: '',
+                    observacoes2: '' ,
+                    observacoes3: '' ,
+                    tipo: 1,
+                    controle_lote_serie: "N"   ,
+                    fotos: []
+            } 
+
+    const [ payloadProduct , dispatch ] = useReducer(handleEditPayloadProduct, initialState);
 
 
     let { codigo_produto } = route.params || { codigo_produto: 0 };
@@ -81,30 +211,25 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     }, [])
 
     async function carregarProduto() {
+        if(codigo_produto){
             try {
                 setLoading(true)
                 const responseProduct = await api.get(`/produtos/${codigo_produto}`);
                 const productRequest = responseProduct.data;
-                setDados(responseProduct?.data);
-
-                setUnidade(productRequest.unidade_medida)
-                setCategoriaSelecionada(productRequest.grupo);
-                setMarcaSelecionada(productRequest.marca as any);
-                setReferencia(productRequest.num_original)
-                setEstoque(productRequest.estoque);
-                setPreco(Number(productRequest.preco));
-                setSku(productRequest.sku);
-                setDescricao(productRequest.descricao)
-                setGtim(productRequest.num_fabricante)
-                setId(productRequest.id);
-                setImgs(productRequest.fotos)
+                console.log(productRequest)
+                dispatch({ type: 'switch_all_fields', payload: productRequest})
+                dispatch({ type: 'switch_descricao', payload:productRequest.descricao })
 
             } catch (e) {
                 console.log(`[X] Erro ao buscar ${codigo_produto} na api `, e)
             } finally {
                 setLoading(false)
             }
-       
+       }else{
+                const responseLastCodeProduct = await api.get(`/produtos/last-codigo`);
+                const ObjectlastCode = responseLastCodeProduct.data as { codigo:number};
+                dispatch({ type:'switch_id', payload:  `#${ObjectlastCode.codigo + 1}` })
+       }
 
     }
     useEffect(() => {
@@ -126,96 +251,58 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
     }, [configMobileApi]);
 
-
-    async function gravar() {
+    async function gravar(){
         if (connected === false) return Alert.alert('Erro', 'É necessario estabelecer conexão com a internet para efetuar o cadastro !');
-        if (!preco) setPreco(0);
-        if (!estoque) setEstoque(0);
-        if (!sku) setSku('');
-        if (!referencia) setReferencia('');
-        if (!marcaSelecionada) return Alert.alert('É necessario informar uma marca para gravar o produto!');
-        if (!categoriaSelecionada) return Alert.alert('É necessario informar uma categoria para gravar o produto!');
+        if(codigo_produto){
+            try{
+                const resultPutProduct = await api.put(`/produtos`,payloadProduct )
+                        if(resultPutProduct.status == 200 ){
+                            setTitleAlert(`Sucesso!`);
+                            setTypeAlert('success');
+                            setMessageAlert(`Produto ${payloadProduct.descricao} atualizado com sucesso !`);
+                            setVisibleAlert(true)
+                            return;
+                        }
+                        
+                    }catch(e){
+                        if(isAxiosError(e)){
+                            setTitleAlert(`Erro`);
+                                setTypeAlert('error');
+                                setMessageAlert(`Não foi possivel cadastrar o produto ${payloadProduct.descricao} ${e.response?.data?.message} `);
+                                setVisibleAlert(true)
+                                return;
+                        }
+                    }
+        }else{
+            console.log("[V] Gravando novo produto ", payloadProduct);
+            try{
 
-        setLoading(true);
-        if (codigo_produto && codigo_produto > 0) {
-            let data = {
-                "unidade_medida": unidade, "codigo": codigo_produto, "preco": preco, "estoque": estoque, "descricao": descricao,
-                "sku": sku, "num_original ": referencia, "num_fabricante": gtim, "marca": { codigo: marcaSelecionada.codigo }, "grupo": { codigo: categoriaSelecionada }
-            };
-            console.log(data)
-
-            try {
-
-                if (imgs && imgs.length > 0) {
-                    let obj = { produto: codigo_produto, fotos: imgs };
-                    imgs.forEach(async (f: typeFotoProduto) => {
-                        f.data_cadastro = useMoment.dataAtual();
-                        f.data_recadastro = useMoment.dataHoraAtual()
-                    });
-                    console.log(obj)
-                    await api.post('/offline/fotos', obj);
-                    await useQueryFotos.deleteByCodeProduct(codigo_produto);
-
-                    imgs.forEach(async (f: typeFotoProduto) => {
-                        await useQueryFotos.create(f)
-                    });
+            const resultPutProduct = await api.post(`/produtos`,payloadProduct )
+                if(resultPutProduct.status == 201 ){
+                    setTitleAlert(`Sucesso!`);
+                    setTypeAlert('success');
+                    setMessageAlert(`Produto ${payloadProduct.descricao} cadastrado com sucesso !`);
+                    setVisibleAlert(true)
                 }
 
-                let responseProdutoApi = await api.put('/produto', data);
-                if (responseProdutoApi.status === 200 && responseProdutoApi.data.codigo > 0) {
-                    navigation.goBack();
-                    return Alert.alert('', `Produto ${responseProdutoApi.data.codigo} Alterado Com Sucesso! `)
+            }catch(e){
+                if(isAxiosError(e)){
+                       setTitleAlert(`Erro`);
+                        setTypeAlert('error');
+                        setMessageAlert(`Não foi possivel cadastrar o produto ${payloadProduct.descricao} ${e.response?.data?.message} `);
+                        setVisibleAlert(true)
                 }
-
-            } catch (e: any) {
-                if (e.status === 400) { Alert.alert("Erro!", e.response.data.msg); }
-            } finally { setLoading(false) }
-
-        } else {
-            let data = { "preco": preco, "estoque": estoque, "descricao": descricao, "sku": sku, "num_fabricante": gtim, "num_original ": referencia, "marca": { codigo: marcaSelecionada.codigo }, "grupo": { codigo: categoriaSelecionada } };
-
-
-            try {
-                let response = await api.post('/produto', data)
-                if (response.status === 200 && response.data.codigo > 0) {
-                    // ... seu código de sucesso de criação
-                    let dadosInsertLocal =
-                    {
-                        "codigo": codigo_produto,
-                        "preco": preco,
-                        "estoque": estoque,
-                        "descricao": descricao,
-                        "sku": sku,
-                        "num_original": referencia,
-                        "marca": marcaSelecionada.codigo,
-                        "grupo": categoriaSelecionada,
-                        "origem": '0',
-                        "ativo": 'S',
-                        "class_fiscal": '0000.00.00',
-                        "cst": '00',
-                        "num_fabricante": gtim,
-                        "data_cadastro": useMoment.dataAtual(),
-                        "data_recadastro": useMoment.dataHoraAtual(),
-                        "observacoes1": '',
-                        "observacoes2": '',
-                        "observacoes3": '',
-                        "tipo": '0',
-                    };
-
-                    navigation.goBack();
-                }
-            } catch (e: any) {
-                if (e.status === 400) { Alert.alert('Erro!', ` ${e.response.data.msg}`) }
-            } finally { setLoading(false) }
+            }
+          
 
         }
     }
-
+ 
     const renderImgs = ({ item }: { item: typeFotoProduto }) => {
         return (
             <View style={styles.modalImageItem}>
                 <TouchableOpacity style={styles.modalDeleteButton} onPress={() => deleteItemListImgs(item)}>
-                    <AntDesign name="closecircle" size={24} color="#E53935" />
+                    <AntDesign name="close-circle" size={20} color="#E53935" />
                 </TouchableOpacity>
                 {item.foto && item.link && (
                     <Image
@@ -231,26 +318,216 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     const deleteItemListImgs = (item: typeFotoProduto) => {
         const updatedImgs = imgs?.filter((i: typeFotoProduto) => i.sequencia !== item.sequencia) || [];
         setImgs(updatedImgs);
-        setFotos(updatedImgs);
     };
 
-    const gravarImgs = () => {
-        if (link === "") return;
-        const maxSequencia = imgs && imgs.length > 0 ? Math.max(...imgs.map((i) => i.sequencia)) : 0;
-        const newImage: typeFotoProduto = {
-            produto: codigo_produto,
-            data_cadastro: "0000-00-00",
-            data_recadastro: "0000-00-00 00:00:00",
-            descricao: link, foto: link, link: link,
-            sequencia: maxSequencia + 1,
-        };
-        const updatedImgs = [...(imgs || []), newImage];
-        setImgs(updatedImgs);
-        setFotos(updatedImgs);
-        setLink('');
-    };
 
-    // ===================================================================================
+   
+    return (
+        <View style={styles.mainContainer}>
+            {
+                loading ?
+                    <View style={{ flex: 1, justifyContent: "center" }}>
+                        <ActivityIndicator size={50} color="#185FED" />
+                    </View>
+
+                    :
+                    <ScrollView contentContainerStyle={styles.scrollView}>
+                        {/* --- CARD CABEÇALHO: IMAGEM E INFOS BÁSICAS --- */}
+                        <View style={styles.headerCard}>
+                            <TouchableOpacity onPress={() => setVisible(true)}>
+                                <View style={styles.imagePicker}>
+                                    {payloadProduct.fotos && payloadProduct.fotos.length > 0 ? (
+                                        <Image
+                                            source={{ uri: `${payloadProduct.fotos[0].link}` }}
+                                            style={styles.productImage}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <MaterialIcons name="add-a-photo" size={40} color={colors.textSecondary} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            <View style={styles.headerInfoContainer}>
+                               
+                                {
+                                    codigo_produto ? (
+                                         <View style={styles.infoBox}>
+                                            <Text style={styles.infoBoxLabel}>Código:</Text>
+                                            <Text style={styles.infoBoxValue}>{codigo_produto || 'Novo'}</Text>
+                                        </View>
+                                    ) : null
+                                }
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoBoxLabel}>id:</Text>
+                                    <Text style={styles.infoBoxValue} numberOfLines={1}>{payloadProduct.id || null}</Text>
+                                </View>
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoBoxLabel}>R$</Text>
+                                    <TextInput
+                                        onChangeText={(v) => dispatch({ type:'switch_preco' ,payload: v} ) }
+                                        style={styles.numericInput}
+                                        keyboardType="numeric"
+                                        defaultValue={ payloadProduct.preco || "0.00" }
+                                        placeholder="0,00"
+                                        placeholderTextColor={colors.placeholder}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* --- CARD FORMULÁRIO: DEMAIS CAMPOS --- */}
+                        <View style={styles.formCard}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Descrição do Produto</Text>
+                                <TextInput
+                                    onChangeText={(value) => dispatch  ({type:'switch_descricao', payload:value})}
+                                    style={styles.textInput}
+                                    placeholder="Ex: Roda de Liga Leve Aro 15"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(payloadProduct.descricao)}
+                                />
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Unidade de medida</Text>
+                                <TextInput
+                                    onChangeText={(value) => dispatch({ payload:value, type:'switch_unidade_medida'}) }
+                                    style={styles.textInput}
+                                    placeholder="Unidade de medida do produto"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={String(payloadProduct.unidade_medida)}
+                                />
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>SKU</Text>
+                                <TextInput
+                                    onChangeText={(value) => dispatch({ type:'switch_sku', payload: value})}
+                                    style={styles.textInput}
+                                    placeholder="Código SKU do produto"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={ payloadProduct.sku  || ''}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Código de Barras (GTIN)</Text>
+                                <TextInput
+                                    onChangeText={(value) => dispatch({ type: 'switch_num_fabricante', payload: value} )}
+                                    style={styles.textInput}
+                                    placeholder="789..."
+                                    placeholderTextColor={colors.placeholder}
+                                    value={ payloadProduct.num_fabricante || ''}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Referência</Text>
+                                <TextInput
+
+                                    onChangeText={(value) => dispatch({type:'switch_num_original', payload: value}) }
+                                    style={styles.textInput}
+                                    placeholder="Código do fabricante"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={payloadProduct.num_original || ''}
+                                />
+                            </View>
+                        </View>
+
+                        {/* --- SELETORES DE MARCA E CATEGORIA --- */}
+                        <View style={styles.formCard}>
+                            <View>
+                                <Text style={styles.inputLabel}>Marca</Text>
+                                <RenderModalMarcas
+                                    dispatch={dispatch}
+                                    payloadProduct={payloadProduct}
+                                />
+                            </View>
+                            <View>
+                                <Text style={styles.inputLabel}>Categoria</Text>
+                                <RenderModalCategorias 
+                                  dispatch={dispatch}
+                                  payloadProduct={payloadProduct} 
+                                />
+                            </View>
+                        </View>
+
+                        {/* --- BOTÃO DE GRAVAR --- */}
+                        <TouchableOpacity
+                            style={styles.saveButton}
+                         onPress={() => gravar()}
+                        >
+                            <Text style={styles.saveButtonText}>Gravar Produto</Text>
+                        </TouchableOpacity>
+
+                    </ScrollView>
+            }
+
+
+
+            {/* --- MODAL DE IMAGENS --- */}
+            <Modal visible={visible} transparent={true} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalHeader}>
+                            <TouchableOpacity onPress={() => setVisible(false)} style={styles.modalBackButton}>
+                                <Text style={styles.modalBackButtonText}>Voltar</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalImageListContainer}>
+                            {payloadProduct.fotos && payloadProduct.fotos.length > 0 ? (
+                                <FlatList
+                                    data={payloadProduct.fotos}
+                                    keyExtractor={(item) => String(item.sequencia)}
+                                    renderItem={renderImgs}
+                                    horizontal={true}
+                                    showsHorizontalScrollIndicator={false}
+                                />
+                            ) : (
+                                <Text style={{ color: colors.textSecondary }}>Nenhuma imagem adicionada.</Text>
+                            )}
+                        </View>
+
+                        <View style={styles.modalAddImageContainer}>
+                            {link !== "" ? (
+                                <Image style={styles.modalImagePreview} source={{ uri: link }} />
+                            ) : (
+                                <Entypo name="image" size={54} color={colors.primary} />
+                            )}
+                            <TextInput
+                                style={[styles.textInput, { width: '100%' }]}
+                                placeholder="Cole o link da imagem aqui"
+                                placeholderTextColor={colors.placeholder}
+                                onChangeText={(v) => setLink(v)}
+                                value={link}
+                            />
+                            <TouchableOpacity style={styles.modalAddButton}
+                            //onPress={gravarImgs}
+                            >
+                                <Entypo name="arrow-with-circle-up" size={40} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+                 {/** --- Alerta -- */}
+                        <CustomAlert
+                            visible={visibleAlert}
+                            onConfirm={() => { 
+                                setVisibleAlert(false)
+                                navigation.goBack()
+                             }}
+                            title={titleAlert}
+                            message={messageAlert}
+                            type={typeAlert}
+                        />
+
+        </View>
+    );
+}
+ // ===================================================================================
     // ESTILOS CENTRALIZADOS - AQUI FICA TODA A ESTILIZAÇÃO
     // ===================================================================================
     const colors = {
@@ -375,192 +652,10 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
         modalBackButtonText: { color: colors.card, fontWeight: 'bold' },
         modalImageListContainer: { alignItems: 'center', paddingVertical: 15, minHeight: 150 },
         modalImageItem: { margin: 5, padding: 4, borderRadius: 10, backgroundColor: "#FFF", elevation: 3, alignItems: 'center' },
-        modalDeleteButton: { position: 'absolute', top: -5, right: -5, zIndex: 1 },
+        modalDeleteButton: { position: 'absolute', top: 1, right: 1, zIndex: 1 },
         modalImageThumbnail: { width: 120, height: 120, borderRadius: 5 },
         modalAddImageContainer: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 15, marginTop: 10, gap: 10 },
         modalImagePreview: { width: 100, height: 100, borderWidth: 1, borderColor: colors.border, borderRadius: 8 },
         modalAddButton: { alignItems: 'center' },
     };
     // ===================================================================================
-
-    return (
-        <View style={styles.mainContainer}>
-            {
-                loading ?
-                    <View style={{ flex: 1, justifyContent: "center" }}>
-                        <ActivityIndicator size={50} color="#185FED" />
-                    </View>
-
-                    :
-                    <ScrollView contentContainerStyle={styles.scrollView}>
-                        {/* --- CARD CABEÇALHO: IMAGEM E INFOS BÁSICAS --- */}
-                        <View style={styles.headerCard}>
-                            <TouchableOpacity onPress={() => setVisible(true)}>
-                                <View style={styles.imagePicker}>
-                                    {imgs && imgs.length > 0 ? (
-                                        <Image
-                                            source={{ uri: `${imgs[0].link}` }}
-                                            style={styles.productImage}
-                                            resizeMode="cover"
-                                        />
-                                    ) : (
-                                        <MaterialIcons name="add-a-photo" size={40} color={colors.textSecondary} />
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-
-                            <View style={styles.headerInfoContainer}>
-                                <View style={styles.infoBox}>
-                                    <Text style={styles.infoBoxLabel}>Código:</Text>
-                                    <Text style={styles.infoBoxValue}>{codigo_produto || 'Novo'}</Text>
-                                </View>
-                                <View style={styles.infoBox}>
-                                    <Text style={styles.infoBoxLabel}>id:</Text>
-                                    <Text style={styles.infoBoxValue} numberOfLines={1}>{id && id}</Text>
-                                </View>
-                                <View style={styles.infoBox}>
-                                    <Text style={styles.infoBoxLabel}>R$</Text>
-                                    <TextInput
-                                        onChangeText={(v) => setPreco(v.replace(/[^0-9,.]/g, ''))}
-                                        style={styles.numericInput}
-                                        keyboardType="numeric"
-                                        defaultValue={String(preco)}
-                                        placeholder="0,00"
-                                        placeholderTextColor={colors.placeholder}
-                                    />
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* --- CARD FORMULÁRIO: DEMAIS CAMPOS --- */}
-                        <View style={styles.formCard}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Descrição do Produto</Text>
-                                <TextInput
-                                    onChangeText={(value) => setDescricao(value)}
-                                    style={styles.textInput}
-                                    placeholder="Ex: Roda de Liga Leve Aro 15"
-                                    placeholderTextColor={colors.placeholder}
-                                    value={String(descricao)}
-                                />
-                            </View>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Unidade de medida</Text>
-                                <TextInput
-                                    onChangeText={(value) => setUnidade(value)}
-                                    style={styles.textInput}
-                                    placeholder="Unidade de medida do produto"
-                                    placeholderTextColor={colors.placeholder}
-                                    value={String(unidade)}
-                                />
-                            </View>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>SKU</Text>
-                                <TextInput
-                                    onChangeText={(value) => setSku(value)}
-                                    style={styles.textInput}
-                                    placeholder="Código SKU do produto"
-                                    placeholderTextColor={colors.placeholder}
-                                    value={String(sku)}
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Código de Barras (GTIN)</Text>
-                                <TextInput
-                                    onChangeText={(value) => setGtim(value)}
-                                    style={styles.textInput}
-                                    placeholder="789..."
-                                    placeholderTextColor={colors.placeholder}
-                                    value={String(gtim)}
-                                    keyboardType="numeric"
-                                />
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Referência</Text>
-                                <TextInput
-
-                                    onChangeText={(value) => setReferencia(value)}
-                                    style={styles.textInput}
-                                    placeholder="Código do fabricante"
-                                    placeholderTextColor={colors.placeholder}
-                                    value={referencia ? String(referencia) : ''}
-                                />
-                            </View>
-                        </View>
-
-                        {/* --- SELETORES DE MARCA E CATEGORIA --- */}
-                        <View style={styles.formCard}>
-                            <View>
-                                <Text style={styles.inputLabel}>Marca</Text>
-                                <RenderModalMarcas codigoMarca={marcaSelecionada} setMarca={setMarcaSelecionada} />
-                            </View>
-                            <View>
-                                <Text style={styles.inputLabel}>Categoria</Text>
-                                <RenderModalCategorias codigoCategoria={categoriaSelecionada} setCategoria={setCategoriaSelecionada} />
-                            </View>
-                        </View>
-
-                        {/* --- BOTÃO DE GRAVAR --- */}
-                        <TouchableOpacity
-                            style={styles.saveButton}
-                        //   onPress={() => gravar()}
-                        >
-                            <Text style={styles.saveButtonText}>Gravar Produto</Text>
-                        </TouchableOpacity>
-
-                    </ScrollView>
-            }
-
-
-
-            {/* --- MODAL DE IMAGENS --- */}
-            <Modal visible={visible} transparent={true} animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setVisible(false)} style={styles.modalBackButton}>
-                                <Text style={styles.modalBackButtonText}>Voltar</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.modalImageListContainer}>
-                            {imgs && imgs.length > 0 ? (
-                                <FlatList
-                                    data={imgs}
-                                    keyExtractor={(item) => String(item.sequencia)}
-                                    renderItem={renderImgs}
-                                    horizontal={true}
-                                    showsHorizontalScrollIndicator={false}
-                                />
-                            ) : (
-                                <Text style={{ color: colors.textSecondary }}>Nenhuma imagem adicionada.</Text>
-                            )}
-                        </View>
-
-                        <View style={styles.modalAddImageContainer}>
-                            {link !== "" ? (
-                                <Image style={styles.modalImagePreview} source={{ uri: link }} />
-                            ) : (
-                                <Entypo name="image" size={54} color={colors.primary} />
-                            )}
-                            <TextInput
-                                style={[styles.textInput, { width: '100%' }]}
-                                placeholder="Cole o link da imagem aqui"
-                                placeholderTextColor={colors.placeholder}
-                                onChangeText={(v) => setLink(v)}
-                                value={link}
-                            />
-                            <TouchableOpacity style={styles.modalAddButton}
-                            //onPress={gravarImgs}
-                            >
-                                <Entypo name="arrow-with-circle-up" size={40} color={colors.primary} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-        </View>
-    );
-}

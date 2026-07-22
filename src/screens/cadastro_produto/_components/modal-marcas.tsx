@@ -12,6 +12,7 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useMarcas } from "../../../database/queryMarcas/queryMarcas"
 import useApi from "../../../services/api";
 import { queryConfig_api } from "../../../database/queryConfig_Api/queryConfig_api";
+import { actionEditPayloadProduct, typePayloadProduct } from "..";
 type ApiConfig = {
     codigo?: number
     url: string,
@@ -22,7 +23,12 @@ type ApiConfig = {
     offline: 'S' | 'N'
 }
 
-export const RenderModalMarcas = ({ setMarca, codigoMarca }: any) => {
+type props = {
+ dispatch: React.ActionDispatch<[action: actionEditPayloadProduct]>
+ payloadProduct: typePayloadProduct
+}
+
+export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
 
     const useQueryMarcas = useMarcas();
 
@@ -99,23 +105,10 @@ export const RenderModalMarcas = ({ setMarca, codigoMarca }: any) => {
         }
     }, [active,pesquisa, configMobileApi ]);
 
-    useEffect(() => {
-        async function buscaMarca() {
-            let dados: any = await useQueryMarcas.selectByCode(codigoMarca);
-            if (dados?.length > 0) {
-                selecionaMarca(dados[0])
-            }
-        }
-
-        if (codigoMarca > 0) {
-            buscaMarca()
-        }
-    }, [codigoMarca])
-
-
+  
     function selecionaMarca(item: any) {
         setMarcaSelecionada(item);
-        setMarca(item)
+        dispatch({ type: 'switch_marca', payload: item.codigo})
         setActive(false)
     }
 
@@ -136,18 +129,17 @@ export const RenderModalMarcas = ({ setMarca, codigoMarca }: any) => {
                     shadowRadius: 3,
                     flexDirection: 'row',
                     alignItems: 'center'},
-                     codigoMarca && codigoMarca == item.codigo &&    {backgroundColor:'#185FED' }
+                     payloadProduct.marca == item.codigo &&    {backgroundColor:'#185FED' }
                 ]}
             >
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={[{ fontSize: 14, color: '#185FED', fontWeight: 'bold' },
-                             codigoMarca && codigoMarca == item.codigo &&  {color:'#FFF' }
+                              payloadProduct.marca == item.codigo &&  {color:'#FFF' }
                         ]}>Cód: {item.codigo}</Text>
                     </View>
                     <Text numberOfLines={2} style={[{ fontSize: 14, fontWeight: '600', color: '#333', marginTop: 4 },
-                     codigoMarca && codigoMarca == item.codigo &&    {color:'#FFF' }
-                        
+                       payloadProduct.marca == item.codigo &&    {color:'#FFF' }
                     ]}>
                         {item.descricao}
                     </Text>
@@ -175,7 +167,7 @@ export const RenderModalMarcas = ({ setMarca, codigoMarca }: any) => {
             >
                 <FontAwesome name="tag" size={18} color="#185FED" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#757575", fontSize: 16 }}>
-                    {marcaSelecionada ? marcaSelecionada.descricao : "Selecionar marca..."}
+                    {payloadProduct.marca ? payloadProduct.marca : "Selecionar marca..."}
                 </Text>
             </TouchableOpacity>
 

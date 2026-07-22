@@ -8,17 +8,21 @@ import {
     Modal,
     ActivityIndicator,
 } from "react-native";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useCategoria } from "../../../database/queryCategorias/queryCategorias";
 import { queryConfig_api } from "../../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../../services/api";
 import { ApiConfig } from "../../../types/type-config-api";
+import { actionEditPayloadProduct, typePayloadProduct } from "..";
 
-export const RenderModalCategorias = ({ setCategoria, codigoCategoria }: any) => {
+type props = { 
+ dispatch: React.ActionDispatch<[action: actionEditPayloadProduct]>
+ payloadProduct: typePayloadProduct
+}
+export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
 
     type categoria = {
-        codigo: Number,
+        codigo: number,
         descricao: string
     }
 
@@ -55,8 +59,6 @@ export const RenderModalCategorias = ({ setCategoria, codigoCategoria }: any) =>
     }, [])
 
  const buscarCategorias = async () => {
-         if(configMobileApi && configMobileApi.offline === 'N'){
-
                try{
                     setLoading(true)
                     const responseCategorysproduct = await api.get('/categorias/search', 
@@ -74,20 +76,6 @@ export const RenderModalCategorias = ({ setCategoria, codigoCategoria }: any) =>
                 }finally{
                     setLoading(false)
                 }
-        } else{
-            setLoading(true);
-            try {
-                let dados: any = await useQuerCategorias.selectAll();
-                if (dados?.length > 0) {
-                    setData(dados);
-                }
-            } catch (e) {
-                console.log(e);
-            } finally {
-                setLoading(false);
-            }
-        }
-
         };
 
 
@@ -99,23 +87,12 @@ export const RenderModalCategorias = ({ setCategoria, codigoCategoria }: any) =>
         }
     }, [active, pesquisa,configMobileApi]);
 
-    useEffect(() => {
-        async function buscacategoria() {
-            let dados: any = await useQuerCategorias.selectByCode(codigoCategoria);
-            if (dados?.length > 0) {
-                setCategoriaSelecionada(dados[0])
-            }
-        }
-
-        if (codigoCategoria > 0) {
-            buscacategoria();
-        }
-    }, [codigoCategoria,  configMobileApi ])
+ 
 
 
     function selecionaCategoria(item: any) {
+        dispatch({ type: 'switch_grupo', payload: item.codigo})
         setCategoriaSelecionada(item);
-        setCategoria(item.codigo)
         setActive(false)
     }
 
@@ -136,19 +113,18 @@ export const RenderModalCategorias = ({ setCategoria, codigoCategoria }: any) =>
                     shadowRadius: 3,
                     flexDirection: 'row',
                     alignItems: 'center'},
-                     codigoCategoria && codigoCategoria == item.codigo &&  {backgroundColor:'#185FED' }
+                     payloadProduct.grupo  == item.codigo &&  {backgroundColor:'#185FED' }
                  ] }
             >
                 <View style={[{ flex: 1 }  ]} 
                 >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={[{ fontSize: 14, color: '#185FED', fontWeight: 'bold' },
-                            codigoCategoria && codigoCategoria == item.codigo &&  {color:'#FFF' }
+                           payloadProduct.grupo== item.codigo &&  {color:'#FFF' }
                         ]}>Cód: {item.codigo}</Text>
                     </View>
                     <Text numberOfLines={2} style={[{ fontSize: 14, fontWeight: '600', color: '#333', marginTop: 4 },
-                            codigoCategoria && codigoCategoria == item.codigo &&  {color:'#FFF' }
-
+                           payloadProduct.grupo == item.codigo &&  {color:'#FFF' }
                     ]}>
                         {item.descricao}
                     </Text>
