@@ -86,6 +86,7 @@ type ApiConfig = {
         | { type: 'switch_observacoes3', payload:   string }
         | { type: 'switch_tipo', payload: number}
         | { type: 'switch_controle_lote_serie', payload: "S" | "N"}
+        | { type: 'switch_fotos', payload: photoPayloadProduct[]}
         | { type: 'switch_all_fields' , payload: typePayloadProduct}
         ;
 
@@ -99,7 +100,6 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
     const [visible, setVisible] = useState<Boolean>(false);
     const [link, setLink] = useState("");
-    const [imgs, setImgs] = useState<typeFotoProduto[]>();
     const [loading, setLoading] = useState<boolean>(false);
     const api = useApi();
     const { connected, setConnected } = useContext<any>(ConnectedContext)
@@ -157,6 +157,8 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                         return { ...state, tipo:action.payload }; 
                     case  'switch_controle_lote_serie' :
                         return { ...state, controle_lote_serie:action.payload } ; 
+                    case  'switch_fotos' :
+                        return { ...state, fotos:action.payload } ;
                     case  'switch_all_fields' :
                         return   state = action.payload  
 
@@ -300,9 +302,9 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
  
     const renderImgs = ({ item }: { item: typeFotoProduto }) => {
         return (
-            <View style={styles.modalImageItem}>
-                <TouchableOpacity style={styles.modalDeleteButton} onPress={() => deleteItemListImgs(item)}>
-                    <AntDesign name="close-circle" size={20} color="#E53935" />
+            <View style={ styles.modalImageItem  }>
+                <TouchableOpacity style={ styles.modalDeleteButton  } onPress={() => deleteItemListImgs(item)}>
+                    <AntDesign name="close-circle" size={22} color="#E53935" />
                 </TouchableOpacity>
                 {item.foto && item.link && (
                     <Image
@@ -316,8 +318,29 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     };
 
     const deleteItemListImgs = (item: typeFotoProduto) => {
-        const updatedImgs = imgs?.filter((i: typeFotoProduto) => i.sequencia !== item.sequencia) || [];
-        setImgs(updatedImgs);
+        const updatedImgs = payloadProduct.fotos.filter((i) => i.sequencia !== item.sequencia);
+        dispatch({ type: 'switch_fotos', payload: updatedImgs });
+    };
+
+    const gravarImgs = () => {
+        if (link === "") return;
+
+        const sequencia = payloadProduct.fotos.length > 0
+            ? Math.max(...payloadProduct.fotos.map((i) => i.sequencia)) + 1
+            : 1;
+
+        const newImage: photoPayloadProduct = {
+            produto: codigo_produto || 0,
+            sequencia,
+            descricao: link,
+            link,
+            foto: link,
+            data_cadastro: useMoment.dataAtual(),
+            data_recadastro: useMoment.dataHoraAtual(),
+        };
+
+        dispatch({ type: 'switch_fotos', payload: [...payloadProduct.fotos, newImage] });
+        setLink('');
     };
 
 
@@ -466,15 +489,18 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
 
             {/* --- MODAL DE IMAGENS --- */}
-            <Modal visible={visible} transparent={true} animationType="fade">
+            <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
+                        {/* Header */}
                         <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setVisible(false)} style={styles.modalBackButton}>
-                                <Text style={styles.modalBackButtonText}>Voltar</Text>
+                            <Text style={styles.modalHeaderText}>Fotos do Produto</Text>
+                            <TouchableOpacity onPress={() => setVisible(false)}>
+                                <MaterialIcons name="close" size={24} color="#FFF" />
                             </TouchableOpacity>
                         </View>
 
+                        {/* Lista de fotos */}
                         <View style={styles.modalImageListContainer}>
                             {payloadProduct.fotos && payloadProduct.fotos.length > 0 ? (
                                 <FlatList
@@ -483,29 +509,41 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                     renderItem={renderImgs}
                                     horizontal={true}
                                     showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.modalImageListContent}
                                 />
                             ) : (
-                                <Text style={{ color: colors.textSecondary }}>Nenhuma imagem adicionada.</Text>
+                                <View style={styles.modalEmptyContainer}>
+                                    <MaterialIcons name="photo-library" size={48} color={colors.textSecondary} />
+                                    <Text style={styles.modalEmptyText}>Nenhuma imagem adicionada.</Text>
+                                </View>
                             )}
                         </View>
 
+                        {/* Adicionar imagem */}
                         <View style={styles.modalAddImageContainer}>
-                            {link !== "" ? (
-                                <Image style={styles.modalImagePreview} source={{ uri: link }} />
-                            ) : (
-                                <Entypo name="image" size={54} color={colors.primary} />
-                            )}
+                            <View style={styles.modalPreviewContainer}>
+                                {link !== "" ? (
+                                    <Image style={styles.modalImagePreview} source={{ uri: link }} resizeMode="cover" />
+                                ) : (
+                                    <Entypo name="image" size={54} color={colors.primary} />
+                                )}
+                            </View>
                             <TextInput
-                                style={[styles.textInput, { width: '100%' }]}
+                                style={styles.modalTextInput}
                                 placeholder="Cole o link da imagem aqui"
                                 placeholderTextColor={colors.placeholder}
                                 onChangeText={(v) => setLink(v)}
                                 value={link}
+                                autoCapitalize="none"
+                                keyboardType="url"
                             />
-                            <TouchableOpacity style={styles.modalAddButton}
-                            //onPress={gravarImgs}
+                            <TouchableOpacity
+                                style={[styles.modalAddButton, link === "" && styles.modalAddButtonDisabled]}
+                                onPress={gravarImgs}
+                                disabled={link === ""}
                             >
-                                <Entypo name="arrow-with-circle-up" size={40} color={colors.primary} />
+                                <MaterialIcons name="add-circle" size={24} color="#FFF" />
+                                <Text style={styles.modalAddButtonText}>Adicionar</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -645,17 +683,129 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
         },
 
         // --- Estilos do Modal de Imagens ---
-        modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' },
-        modalContainer: { width: '90%', height: '80%', backgroundColor: colors.card, borderRadius: 15, padding: 15 },
-        modalHeader: { flexDirection: 'row', justifyContent: 'flex-start' },
-        modalBackButton: { backgroundColor: colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, elevation: 2 },
-        modalBackButtonText: { color: colors.card, fontWeight: 'bold' },
-        modalImageListContainer: { alignItems: 'center', paddingVertical: 15, minHeight: 150 },
-        modalImageItem: { margin: 5, padding: 4, borderRadius: 10, backgroundColor: "#FFF", elevation: 3, alignItems: 'center' },
-        modalDeleteButton: { position: 'absolute', top: 1, right: 1, zIndex: 1 },
-        modalImageThumbnail: { width: 120, height: 120, borderRadius: 5 },
-        modalAddImageContainer: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 15, marginTop: 10, gap: 10 },
-        modalImagePreview: { width: 100, height: 100, borderWidth: 1, borderColor: colors.border, borderRadius: 8 },
-        modalAddButton: { alignItems: 'center' },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+        },
+        modalContainer: {
+            width: '90%',
+            height: '80%',
+            backgroundColor: '#F5F7FA',
+            borderRadius: 16,
+            overflow: 'hidden',
+            elevation: 10
+        },
+        modalHeader: {
+            backgroundColor: colors.primary,
+            padding: 15,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+        },
+        modalHeaderText: {
+            color: '#FFF',
+            fontSize: 18,
+            fontWeight: 'bold'
+        },
+        modalImageListContainer: {
+            paddingVertical: 20,
+        },
+        modalImageListContent: {
+            paddingHorizontal: 15,
+            gap: 12
+        },
+        modalEmptyContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8
+        },
+        modalEmptyText: {
+            color: colors.textSecondary,
+            fontSize: 14
+        },
+        modalImageItem: {
+            padding: 4,
+            marginVertical: 4,
+            borderRadius: 12,
+            backgroundColor: '#FFF',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            alignItems: 'center',
+            maxHeight:150
+        },
+        modalDeleteButton: {
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            zIndex: 1,
+            backgroundColor: '#FFF',
+            borderRadius: 12
+        },
+        modalImageThumbnail: {
+            width: 120,
+            height: 120,
+            borderRadius: 8
+        },
+        modalAddImageContainer: {
+            backgroundColor: '#FFF',
+            padding: 15,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            alignItems: 'center',
+            gap: 12
+        },
+        modalPreviewContainer: {
+            width: 100,
+            height: 100,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderStyle: 'dashed',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#F9F9F9'
+        },
+        modalImagePreview: {
+            width: '100%',
+            height: '100%',
+            borderRadius: 8
+        },
+        modalTextInput: {
+            width: '100%',
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            fontSize: 14,
+            color: colors.text,
+            backgroundColor: '#F9F9F9'
+        },
+        modalAddButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.primary,
+            borderRadius: 8,
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            gap: 8,
+            elevation: 2
+        },
+        modalAddButtonDisabled: {
+            backgroundColor: colors.textSecondary,
+            elevation: 0
+        },
+        modalAddButtonText: {
+            color: '#FFF',
+            fontSize: 14,
+            fontWeight: 'bold'
+        },
     };
     // ===================================================================================
