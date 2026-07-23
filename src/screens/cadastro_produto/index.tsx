@@ -254,7 +254,14 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
     }, [configMobileApi]);
 
     async function gravar(){
-        if (connected === false) return Alert.alert('Erro', 'É necessario estabelecer conexão com a internet para efetuar o cadastro !');
+        if (connected === false)  {
+           setTitleAlert(`Erro`);
+          setTypeAlert('error');
+          setMessageAlert('É necessario estabelecer conexão com a internet para efetuar o cadastro !');
+          setVisibleAlert(true)
+            return
+        }
+     
         if(codigo_produto){
             try{
                 const resultPutProduct = await api.put(`/produtos`,payloadProduct )

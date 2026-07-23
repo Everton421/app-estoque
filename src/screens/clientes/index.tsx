@@ -9,6 +9,7 @@ import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api"
 import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
 import { RenderItensClients } from "./components/renderItemsClients/RenderItensClients";
+import { delay } from "../../utils/delay";
 // import { defaultColors } from "../../styles/global"; // Pode remover se não for usar em outros lugares
 
 export type client = {
@@ -71,6 +72,7 @@ export function Clientes({ navigation }: any) {
 
         try{
                     setIsLoadingDataClient(true)
+                    await delay(700)
                     const responseCategorysproduct = await api.get('/clientes/search', 
                         {
                             params: { 
@@ -225,7 +227,10 @@ export function Clientes({ navigation }: any) {
             {/* --- LISTA DE CLIENTES --- */}
             {
                 isloadingDataClient ? 
-                <ActivityIndicator  size={50} color="#185FED" />
+                <View style={{ flex:1, alignItems: "center", justifyContent:'center'}}>
+                  <ActivityIndicator  size={50} color="#185FED" />
+                </View>
+            
             :
                 <FlatList
                     data={dados}
@@ -269,9 +274,9 @@ export function Clientes({ navigation }: any) {
                     shadowOffset: { width: 0, height: 3 },
                     zIndex: 999
                 }}
-            //   onPress={() => {
-            //       navigation.navigate('cadastro_cliente')
-            //   }}
+                onPress={() => {
+                    navigation.navigate('cadastro_cliente')
+                }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />
             </TouchableOpacity>

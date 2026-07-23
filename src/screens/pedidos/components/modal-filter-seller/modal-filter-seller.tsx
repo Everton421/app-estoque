@@ -8,7 +8,7 @@ import { seller } from '../..';
 type props = {
         visible: boolean,
         setVisible: ( visible:boolean)=>void;
-        selectSeller: ( seller: seller)=>void;
+        selectSeller: ( seller: seller | null )=>void;
         sellerSelected: number | null
     }
 
@@ -16,7 +16,7 @@ type props = {
 
 type propsSeller = {
     seller: seller,
-    selectSeller:(seller: seller)=>void
+    selectSeller:(seller: seller | null )=>void
      sellerSelected: number | null
      setVisible: (visible:boolean)=>void
 }
@@ -41,7 +41,7 @@ type propsSeller = {
                 borderLeftColor:    seller.codigo == sellerSelected ? '#1ea902f0' : '#185FED'  
             }}
             onPress={() => {
-                 selectSeller(seller)
+                sellerSelected && sellerSelected == seller.codigo ?  selectSeller(null) : selectSeller(seller)  
                  setVisible(false)
                 }}
         >
@@ -88,10 +88,10 @@ export const ModalSeller = ({ visible, setVisible,  selectSeller,  sellerSelecte
 
         let params = { ativo:'S' } as any 
         if(searchText){
-                params.nome = searchText
+                params.search = searchText
         }
         const resultDataSector = await api.get('/usuarios/search',{
-            params 
+             params
         });
         if (resultDataSector && resultDataSector?.status == 200) {
             setDataBranches(resultDataSector.data);

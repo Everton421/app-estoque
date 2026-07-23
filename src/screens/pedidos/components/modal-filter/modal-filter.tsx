@@ -18,7 +18,8 @@ type ModalFilterProps = {
 export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: ModalFilterProps) => {
     
     const moment = configMoment();
-    const [showPicker, setShowPicker] = useState(false);
+    const [showPickerInitalDate, setShowPickerInitalDate] = useState(false);
+    const [showPickerFinalDate, setShowPickerFinalDate] = useState(false);
     const [showStatusPicker, setShowStatusPicker] = useState(false);
     const [isVisibleModalBranch, setIsVisibleModalBranch] = useState(false);
     const [ isVisibleModalSeller, setIsVisibleModalSeller] = useState(false);
@@ -38,14 +39,21 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
         setShowStatusPicker(false);
     };
 
-    const handleDateChange = (event: any, selectedDate?: Date) => {
-        setShowPicker(false);
+    const handleDateInitialChange = (event: any, selectedDate?: Date) => {
+        setShowPickerInitalDate(false);
         if (event.type === 'set' && selectedDate) {
             const dataFormatada = moment.formatarData(selectedDate as any);
             setFilter({ type: "switch_data_init", paylod:dataFormatada })
         }
     };
 
+      const handleDateFinalChange = (event: any, selectedDate?: Date) => {
+        setShowPickerFinalDate(false);
+        if (event.type === 'set' && selectedDate) {
+            const dataFormatada = moment.formatarData(selectedDate as any);
+            setFilter({ type: "switch_data_final", paylod:dataFormatada })
+        }
+    };
     // --- CORREÇÃO DO FUSO HORÁRIO (TIMEZONE) ---
     const parseDateString = (dateString: string) => {
         if (!dateString) return new Date();
@@ -73,7 +81,8 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
     };
 
     // Usando a função segura para passar a data para o DatePicker
-    const dataParaO_Picker = parseDateString(filter.data_inicial);
+    const dataInicialPicker = parseDateString(filter.data_inicial);
+    const dataFinalPicker = parseDateString(filter.data_final);
 
     return (
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={() => setVisible(false)}>
@@ -97,11 +106,12 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                     </View>
 
                     <View style={{ padding: 20 }}>
-                        
+
+                        { /** PICKER SELETOR DATA INICIAL */}
                         <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Filtrar a partir de:</Text>
                         
                         <TouchableOpacity
-                            onPress={() => setShowPicker(true)}
+                            onPress={() => setShowPickerInitalDate(true)}
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -119,12 +129,43 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                             </Text>
                         </TouchableOpacity>
 
-                        {showPicker && (
+                        {showPickerInitalDate && (
                             <DateTimePicker
-                                value={dataParaO_Picker}
+                                value={dataInicialPicker}
                                 display="default"
                                 mode="date"
-                                onChange={handleDateChange}
+                                onChange={handleDateInitialChange}
+                            />
+                        )}
+
+                        { /** PICKER SELETOR DATA FINAL */}
+                        <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Até:</Text>
+
+                            <TouchableOpacity
+                            onPress={() => setShowPickerFinalDate(true)}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F5F7FA',
+                                padding: 12,
+                                borderRadius: 8,
+                                borderWidth: 1,
+                                borderColor: '#E0E0E0',
+                                marginBottom: 20
+                            }}
+                        >
+                            <Fontisto name="date" size={20} color="#185FED" style={{ marginRight: 10 }} />
+                            <Text style={{ fontSize: 16, color: '#333', fontWeight: '500' }}>
+                                {filter.data_final ? filter.data_final : moment.formatarData(new Date() as any)}
+                            </Text>
+                        </TouchableOpacity>
+
+                         {showPickerFinalDate && (
+                            <DateTimePicker
+                                value={dataFinalPicker}
+                                display="default"
+                                mode="date"
+                                onChange={handleDateFinalChange}
                             />
                         )}
 
@@ -151,38 +192,41 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                             </View>
                             <Ionicons name={showStatusPicker ? "chevron-up" : "chevron-down"} size={20} color="#666" />
                         </TouchableOpacity>
-
-                        {showStatusPicker && (
-                            <View style={{ marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
-                                {statusOptions.map((opt:any) => {
-                                    const isSelected = filter.situacao === opt.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={opt.id}
-                                            style={{
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                paddingVertical: 12,
-                                                paddingHorizontal: 15,
-                                                backgroundColor: isSelected ? '#E3F2FD' : '#FFF',
-                                                borderBottomWidth: opt.id !== statusOptions[statusOptions.length - 1].id ? 1 : 0,
-                                                borderBottomColor: '#E0E0E0',
-                                            }}
-                                            onPress={() => handleSelectStatus(opt.id)}
-                                        >
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: opt.color }} />
-                                                <Text style={{ fontSize: 15, fontWeight: isSelected ? 'bold' : '500', color: isSelected ? '#185FED' : '#555' }}>
-                                                    {opt.label}
-                                                </Text>
-                                            </View>
-                                            {isSelected && <Ionicons name="checkmark-circle" size={20} color="#185FED" />}
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        )}
+                               
+                            {/**Modal filtro do status do pedido */}
+                              <Modal visible={showStatusPicker} transparent={true} animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>  
+                                  <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+                                     <View style={{  width:'80%', marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
+                                    {statusOptions.map((opt:any) => {
+                                        const isSelected = filter.situacao === opt.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={opt.id}
+                                                style={{
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    paddingVertical: 12,
+                                                    paddingHorizontal: 15,
+                                                    backgroundColor: isSelected ? '#E3F2FD' : '#FFF',
+                                                    borderBottomWidth: opt.id !== statusOptions[statusOptions.length - 1].id ? 1 : 0,
+                                                    borderBottomColor: '#E0E0E0',
+                                                }}
+                                                onPress={() => handleSelectStatus(opt.id)}
+                                            >
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                                    <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: opt.color }} />
+                                                    <Text style={{ fontSize: 15, fontWeight: isSelected ? 'bold' : '500', color: isSelected ? '#185FED' : '#555' }}>
+                                                        {opt.label}
+                                                    </Text>
+                                                </View>
+                                                {isSelected && <Ionicons name="checkmark-circle" size={20} color="#185FED" />}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                  </View>
+                                </View>
+                            </Modal>
 
                     <TouchableOpacity
                         onPress={() => setIsVisibleModalBranch(true)}

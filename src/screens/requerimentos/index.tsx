@@ -9,6 +9,7 @@ import { ModalPrintRequirement } from "./components/modal-print-requirement";
 import { useFocusEffect } from "@react-navigation/native";
 import { ModalFilterRequirement } from "./components/modal-filter-requeriment/modal-filter-requirement";
 import { configMoment } from "../../services/moment";
+import { delay } from "../../utils/delay";
  
 
 export type seller = {
@@ -117,7 +118,7 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
         destination_sector: null,
         limit: 50,
         origin_sector: null,
-        status: null,
+        status: 'A',
         search: null
     };
 
@@ -129,6 +130,7 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
   
     async function busca() {
         setIsLoadingOrderData(true)
+        await delay(700);
         let params = {
                  limit: filterSearchRequirement.limit,
                  alterado_apos: filterSearchRequirement.data_init,

@@ -14,6 +14,11 @@ import { Separacao } from "../../screens/separacao";
 import { Fornecedores } from "../../screens/fornecedores";
 import { Lista_requerimentos } from "../../screens/requerimentos";
 import { NovoRequerimento } from "../../screens/novo_requerimento";
+import { Cadastro_caracteristicas } from "../../screens/cadastro-caracteristicas";
+import { Cadastro_Marcas } from "../../screens/cadastrarMarcas";
+import { Cadastro_Categorias } from "../../screens/cadastrarCategorias";
+import { BottomTabProdutos } from "../bottomTabsProduto";
+import { Cadastro_cliente } from "../../screens/cadastro_cliente";
 
 const StackConfig = createStackNavigator();
 
@@ -22,9 +27,12 @@ const PedidosDeCompra= ({navigation}:any)=>{
 }
 
      const PedidosDeVenda= ({navigation}:any)=>{
-        return <Lista_pedidos  navigation={navigation} tipo={1} />
-}   
-            
+         return <Lista_pedidos  navigation={navigation} tipo={1} />      
+        }   
+     const ViewTabProdutos =({ navigation}: any )=>{
+        return <BottomTabProdutos   />
+     }       
+
 
 export const  Stack=()=>{
 
@@ -32,11 +40,23 @@ export const  Stack=()=>{
             <StackConfig.Navigator>
                     <StackConfig.Screen name="Home" component={Home}    options={{headerShown:false}} />
                     <StackConfig.Screen name="produtos" component={ Produtos }  options={{headerShown:false}} />
+
+                    <StackConfig.Screen name="cadastro_caracteristicas"   component={Cadastro_caracteristicas}  options={{ headerShown:false }} />
+
+        
+                    <StackConfig.Screen name="cadastro_cliente"          component={Cadastro_cliente}  options={{ headerShown:false }} />
+
+                    <StackConfig.Screen name="cadastro_marcas"           component={Cadastro_Marcas}  options={{ headerShown:false }} />
+
+                    <StackConfig.Screen name="cadastro_categorias"       component={ Cadastro_Categorias } options={{ headerShown:false }}  />
+                
+                    <StackConfig.Screen name="ViewTabProdutos"           component={ViewTabProdutos} options={{headerShown:false}} />
+
                     <StackConfig.Screen name="setores" component={Setores}  options={ { headerShown:false} } />
                     <StackConfig.Screen name="usuarios" component={Usuarios}   options={ { headerShown:false} }  />
                     <StackConfig.Screen name="ajustes" component={Configurações}  options={{headerShown:false}} />
                     <StackConfig.Screen name="cadastro_produto" component={Cadastro_produto}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
-                    <StackConfig.Screen name="cadastro_setores" component={Cadastro_Setores}  options={{ headerStyle:{ backgroundColor:'#185FED'}, headerTintColor:'#FFF', title:"voltar"}} />
+                    <StackConfig.Screen name="cadastro_setores" component={Cadastro_Setores} options={ { headerShown:false} }/>
                     <StackConfig.Screen name="acertos" component={Acertos}  options={ { headerShown:false}} />
                     <StackConfig.Screen name="novo_acerto" component={NovoAcerto}  options={{ headerShown:false }} />
                     <StackConfig.Screen name="clientes"   component={Clientes} options={{headerShown:false}} />

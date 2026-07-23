@@ -9,6 +9,7 @@ import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api"
 import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
 import { RenderItensSuplier } from "./components/render-item/render-item";
+import { delay } from "../../utils/delay";
 
 export type fornecedor = {
     codigo: number,
@@ -62,6 +63,7 @@ export function Fornecedores({ navigation }: any) {
 
         try{
                     setIsLoadingDataSupplier(true)
+                    await delay(700)
                     const responseSupplier = await api.get('/fornecedores/search', 
                         {
                             params: { 
@@ -224,7 +226,10 @@ export function Fornecedores({ navigation }: any) {
             </Modal>
             {
                 isloadingDataSupplier ? 
-                <ActivityIndicator  size={50} color="#185FED" />
+                <View style={{flex:1, alignItems:'center', justifyContent:'center'}} >
+                  <ActivityIndicator  size={50} color="#185FED" />
+                </View>
+            
             :
                 <FlatList
                     data={dados}

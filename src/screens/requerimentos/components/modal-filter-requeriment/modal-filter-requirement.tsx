@@ -182,7 +182,7 @@ export const ModalFilterRequirement = ({ dispatch, filter, visible, setVisible }
                             />
                         )}
 
-                        <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Situação do Pedido:</Text>
+                        <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>Situação do requerimento:</Text>
 
                         <TouchableOpacity
                             onPress={() => setShowStatusModal(!showStatusModal)}
@@ -207,7 +207,11 @@ export const ModalFilterRequirement = ({ dispatch, filter, visible, setVisible }
                         </TouchableOpacity>
 
                         {showStatusModal && (
-                            <View style={{ marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
+                          
+                            
+                   <Modal visible={showStatusModal} transparent={true} animationType="fade" onRequestClose={() => setShowStatusModal(false)}>  
+                          <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+                                 <View style={{  width:'80%', marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
                                 <TouchableOpacity
                                     style={{
                                         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -233,7 +237,9 @@ export const ModalFilterRequirement = ({ dispatch, filter, visible, setVisible }
                                     renderItem={({ item }) => <RenderItemStatus item={item} />}
                                     keyExtractor={(item) => item}
                                 />
+                                </View>
                             </View>
+                   </Modal>
                         )}
 
                         <Text style={{ fontSize: 14, color: '#666', marginBottom: 8, marginTop: 15, fontWeight: 'bold' }}>Vendedor:</Text>
@@ -338,28 +344,28 @@ export const ModalFilterRequirement = ({ dispatch, filter, visible, setVisible }
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
                     <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={() => setShowLimitModal(false)} />
 
-                    <View style={{ width: '85%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
-                        <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Limite de Registros</Text>
-                            <TouchableOpacity onPress={() => setShowLimitModal(false)}>
-                                <Ionicons name="close" size={24} color="#FFF" />
-                            </TouchableOpacity>
-                        </View>
+                        <View style={{ width: '85%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
+                            <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Limite de Registros</Text>
+                                <TouchableOpacity onPress={() => setShowLimitModal(false)}>
+                                    <Ionicons name="close" size={24} color="#FFF" />
+                                </TouchableOpacity>
+                            </View>
 
-                        <View style={{ padding: 20 }}>
-                            <Text style={{ fontSize: 13, color: '#777', marginBottom: 15 }}>
-                                Selecione quantos registros exibir por vez:
-                            </Text>
+                            <View style={{ padding: 20 }}>
+                                <Text style={{ fontSize: 13, color: '#777', marginBottom: 15 }}>
+                                    Selecione quantos registros exibir por vez:
+                                </Text>
 
-                            <View style={{ gap: 10 }}>
-                                <FilterOption value={50} label="50 Registros" filter={filter} dispatch={dispatch} />
-                                <FilterOption value={100} label="100 Registros" filter={filter} dispatch={dispatch} />
-                                <FilterOption value={250} label="250 Registros" filter={filter} dispatch={dispatch} />
-                                <FilterOption value={500} label="500 Registros" filter={filter} dispatch={dispatch} />
-                                <FilterOption value={1000} label="1000 Registros" filter={filter} dispatch={dispatch} />
+                                <View style={{ gap: 10 }}>
+                                    <FilterOption value={50} label="50 Registros" filter={filter} dispatch={dispatch} />
+                                    <FilterOption value={100} label="100 Registros" filter={filter} dispatch={dispatch} />
+                                    <FilterOption value={250} label="250 Registros" filter={filter} dispatch={dispatch} />
+                                    <FilterOption value={500} label="500 Registros" filter={filter} dispatch={dispatch} />
+                                    <FilterOption value={1000} label="1000 Registros" filter={filter} dispatch={dispatch} />
+                                </View>
                             </View>
                         </View>
-                    </View>
                 </View>
             </Modal>
 

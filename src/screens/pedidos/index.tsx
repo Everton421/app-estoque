@@ -19,6 +19,7 @@ import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
 import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
+import { delay } from "../../utils/delay";
 
 export type pedido = {
     codigo?: number,
@@ -106,6 +107,7 @@ export type typefilterOrders = {
 export type actionsFilterOrder = 
     | { type: 'switch_status', paylod: filterOrdersituation }
     | { type: 'switch_data_init', paylod: string }
+    | { type: 'switch_data_final', paylod: string }
     | { type: 'switch_branch', paylod: branch | null }
     | { type: 'switch_seller', paylod: seller | null }
     | { type: 'switch_all', paylod: typefilterOrders }
@@ -120,7 +122,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         tipo: tipo, 
         data_inicial: useMoment.dataAtual(), 
         data_final: useMoment.dataAtual(), 
-        situacao: '*', 
+        situacao: 'AI', 
         filial: null, 
         limit: 1000000, 
         search: '', 
@@ -135,6 +137,8 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 return { ...state, search: action.paylod }
             case 'switch_data_init':
                 return { ...state, data_inicial: action.paylod }
+            case 'switch_data_final':
+                return { ...state, data_final: action.paylod }
             case 'switch_status':
                 return { ...state, situacao: action.paylod }
             case 'switch_seller':
@@ -218,10 +222,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             setTypeAlert('warning')
             return
         }
-        console.log(codeScanned)
-     //   if (configMobileApi && configMobileApi.offline === 'N') {
+     
             try {
                 setIsLoadingOrderData(true)
+                await delay(700)
                 const responseApiOrder = await api.get('/pedidos',
                     {
                         params: {
@@ -256,35 +260,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             } finally {
                 setIsLoadingOrderData(false)
             }
-       /* } else {
-            let resultOrder;
-            try {
-                setIsLoadingOrderData(true)
-                resultOrder = await useQuerypedidos.findByParam({ chave: configLeitorPedido, value: String(codeScanned) })
-            } catch (e) {
-            } finally {
-                setIsLoadingOrderData(false)
-            }
-            if (resultOrder && resultOrder?.length > 0) {
-                if (resultOrder[0].situacao === 'FI') {
-                    setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
-                    setVisibleAlert(true)
-                    setTypeAlert('warning')
-                } else {
-
-                    navigation.navigate('separacao', {
-                        codigo_pedido: resultOrder[0].codigo,
-                    });
-                }
-
-            } else {
-                setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
-                setVisibleAlert(true)
-                setTypeAlert('error')
-                return
-            }
-        }
-        */
     }
 
     async function fyndOrderBycode(code: number) {
@@ -335,6 +310,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
  
      useEffect(() => {
         AsyncStorage.setItem('filtroPedidos', JSON.stringify(filterSearchOrders));
+        console.log(filterSearchOrders)
     }, [ filterSearchOrders ])
  
 
@@ -343,8 +319,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setIsLoadingOrderData(true)
         try {
             let queryOrder = { 
-                ...filterSearchOrders, 
-                data_final: useMoment.dataAtual() 
+                ...filterSearchOrders,
+                filial:  filterSearchOrders.filial?.codigo,
+                vendedor: filterSearchOrders.vendedor?.codigo
             }
             if (pesquisa) queryOrder.search = pesquisa
             const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
@@ -488,7 +465,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
                         ID: {item.id || item.codigo} {item.id_externo ? `\nExt: ${item.id_externo}` : ''}
                     </Text>
-
+                 <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
+                        Filial: {  item.filial}    
+                    </Text>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
                         <View style={{ backgroundColor: status.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                             <Text style={{ color: status.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>

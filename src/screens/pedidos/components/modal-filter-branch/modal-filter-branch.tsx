@@ -8,14 +8,14 @@ import { branch } from '../..';
 type props = {
         visible: boolean,
         setVisible: ( visible:boolean)=>void;
-        selectBranch: ( branch: branch)=>void;
+        selectBranch: ( branch: branch | null)=>void;
         branchSelected: number | null
     }
 
 
 type propsBranch = {
     branch: branch,
-    selectBranch:(branch:branch)=>void
+    selectBranch:(branch:branch | null)=>void
      branchSelected: number | null
      setVisible: (visible:boolean)=>void
 }
@@ -40,7 +40,7 @@ type propsBranch = {
                 borderLeftColor:    branch.codigo == branchSelected ? '#1ea902f0' : '#185FED'  
             }}
             onPress={() => { 
-                selectBranch(branch)
+                branchSelected && branchSelected == branch.codigo ? selectBranch(null) : selectBranch(branch)
             setVisible(false)
             }}
         >

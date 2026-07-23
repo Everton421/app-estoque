@@ -6,6 +6,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome, Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import useApi from "../../../../services/api";
 import { actionsRequirement, itensPayloadRequirement, payloadRequirement } from "../..";
+import { delay } from "../../../../utils/delay";
 
 
 
@@ -49,7 +50,7 @@ export const ListaProdutosRequerimento = ({ requirement, dispatch }: { requireme
         const busca = async () => {
             setLoading(true); // Ativar loading
             try {
-                
+                await delay(700)
           const responseProduct = await api.get('/produtos-setor/search-grouped', 
                         {
                             params: { 

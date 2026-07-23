@@ -218,16 +218,13 @@ export const Home = ({ navigation }: any) => {
       "nome": "compras",
       "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
     },
-
- 
-    
     {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
     },
    {
       "nome": "setores",
-      "icon": <Entypo name="location" size={30} color="#185FED" />
+      "icon": <Entypo name="location-pin" size={30} color="#185FED" />
     },
     {
       "nome": "ajustes",
@@ -325,7 +322,7 @@ export const Home = ({ navigation }: any) => {
 
           <TouchableOpacity
             style={{ flexDirection: "row", padding: 10, marginTop: 15, margin: 10, backgroundColor: '#FFF', width: '80%', height: 80, borderRadius: 10, elevation: 2, justifyContent: "space-around", alignItems: "center" }}
-            onPress={() => { navigation.navigate('produtos') }} >
+            onPress={() => { navigation.navigate('ViewTabProdutos') }} >
             <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
               <FontAwesome name="cubes" size={24} color="#185FED" />
             </View>
@@ -348,7 +345,8 @@ export const Home = ({ navigation }: any) => {
                onPress={() => { navigation.navigate('fornecedores') }}
                 >
                   <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
-                    <FontAwesome6 name="users" size={25} color={defaultColors.darkBlue}/>
+                 <FontAwesome6 name="user-tag" size={24} color={defaultColors.darkBlue}/>
+
                   </View>
                 <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Fornecedores</Text>
                 <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />

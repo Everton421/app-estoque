@@ -10,6 +10,8 @@ import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProduto
 import { Entypo } from "@expo/vector-icons";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../services/api";
+import { delay } from "../../utils/delay";
+import { ModalSeriesProducts } from "./components/modal-series-product";
 
 type selectCompleteProdSector = {
     data_recadastro: string,
@@ -35,18 +37,22 @@ type ApiConfig = {
         offline: 'S' | 'N'
     }
 
+    type requestloteSeriesSetor=  {
+     setor : number,
+     produto : number,
+     lote_serie : number,
+     estoque : number,
+     lote : null | string,
+     serie : null | string
+  }
 
 
 export function Produtos({ navigation }: any) {
 
     const useQueryConfigApi = queryConfig_api();
-    const useQueryProdutos = useProducts();
-    const useQueryFotos = useFotosProdutos();
-    const useQueryProdutoSetores = useProdutoSetores();
 
     const [pesquisa, setPesquisa] = useState< string >('');
     const [dados, setDados] = useState<any[]>([]);
-    const [pSelecionado, setpSelecionado] = useState<produto>();
     
     const [visibleModalFilter, setVisibleModalFilter] = useState(false);
     const [limitQuery, setLimitQuery] = useState(25); // Valor padrão inicial
@@ -55,6 +61,12 @@ export function Produtos({ navigation }: any) {
     const [dataProdSector, setDataProdSector] = useState<selectCompleteProdSector[]>([])
     const [loadingItemModalSetor, setLoadingItemModalSetor] = useState(false);
     const [ isLoadingDataProduct , setIsLoadingDataProduct ] = useState(false);
+
+    const [ dataLoteSeriesSector , setDataLoteSeriesSector ] = useState<requestloteSeriesSetor[]>();
+    const [ isLoadingDataLoteSeriesSector , setIsLoadingDataLoteSeriesSector ] = useState(false);
+    const [ isVisibleModalLoteSeriesSector , setIsVisibleModalLoteSeriesSector ] = useState(false);
+    const [ productSectorSelectedViewerLoteSerie, setProductSectorSelectedViewerLoteSerie ] = useState<{ produto:number, setor:number } | null>(null);
+
  const [refreshing, setRefreshing] = useState(false);
 
     const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
@@ -82,10 +94,9 @@ export function Produtos({ navigation }: any) {
     
 
     async function filterByDescription() {
-   
-         if(configMobileApi && configMobileApi.offline === 'N'){
               try{
                     setIsLoadingDataProduct(true)
+                await delay(700, 'Busca de produtos')
                     const responseProduct = await api.get('/produtos/search', 
                         {
                             params: { 
@@ -96,112 +107,33 @@ export function Produtos({ navigation }: any) {
                         }
                     );
                       setDados(responseProduct?.data);
-                }catch(e){
-                    console.log( "[X] Erro ao buscar produtos na api ",e )
+                }catch(e:any){
+                    console.log( "[X] Erro ao buscar produtos na api ",e.response?.data?.message)
                 }finally{
                     setIsLoadingDataProduct(false)
                 }
-         }else{
-
-            try{
-                    setIsLoadingDataProduct(true)
-                const response: any = await useQueryProdutos.selectByDescription(pesquisa, limitQuery);
-                for (let p of response) {
-                    let dadosFoto: any = await useQueryFotos.selectByCode(p.codigo)
-                    if (dadosFoto?.length > 0) {
-                        p.fotos = dadosFoto
-                    } else {
-                        p.fotos = []
-                    }
-                }
-                
-                // Se a busca estiver vazia, limpamos os dados ou mantemos vazio, conforme sua lógica
-                setDados(response);
-           }catch(e){
-
-           }finally{
-                    setIsLoadingDataProduct(false)
-           }
-
-         }
     }
 
-    async function filterAll() {
-          if(configMobileApi && configMobileApi.offline === 'N'){
-            try{
-                setIsLoadingDataProduct(true)
-            const responseProduct = await api.get('/produtos/search', {
-                params:{
-                    limit: limitQuery,
-                    ativo: 'S'
-                }
-            });
-         setDados(responseProduct?.data);
-            }catch(e){
-                    console.log( "[X] Erro ao buscar produtos na api ",e )
-            }finally{
-                setIsLoadingDataProduct(false)
-            }
 
-
-         }else{
-            try{
-                setIsLoadingDataProduct(true)
-                const response: any = await useQueryProdutos.selectAllLimit(limitQuery);
-                for( let p of response ){
-                    let dadosFoto:any = await useQueryFotos.selectByCode(p.codigo)   
-                    if(dadosFoto?.length > 0 ) p.fotos = dadosFoto
-                }
-           setDados(response)
-            }catch(e){
-
-            }finally{
-                setIsLoadingDataProduct(false)
-            }
-
-        }
-    }
-    
+     
 
     useEffect(() => {
         console.log("useEffect")
         const unsubscribe = navigation.addListener('focus', () => {
-            if (pesquisa != '' ) {
                 filterByDescription()
-            } else {
-              filterAll()
-            }
         });
         return unsubscribe;
      }, [navigation, limitQuery, pesquisa,configMobileApi ]); // Adicionado limitQuery para atualizar ao voltar pra tela se mudou o padrão
 
 
      useEffect(() => {
-         if (pesquisa != '') {
-             filterByDescription()
-         } else {
-          filterAll()
-         }
+          filterByDescription()
      }, [pesquisa, limitQuery, configMobileApi]) 
 
+  
 
 
     async function viewItemSector(item: any) {
-      //  setVisibleModalSetores(true)
-      //  try {
-      //      setLoadingItemModalSetor(true)
-      //      let dados: any = await useQueryProdutoSetores.selectCompleteProdSector(item.codigo);
-      //      if (dados?.length > 0) {
-      //          setDataProdSector(dados);
-      //      } else {
-      //          setDataProdSector([]);
-      //      }
-      //  } catch (error) {
-      //      console.log(`Erro consulta setores`)
-      //  } finally {
-      //      setLoadingItemModalSetor(false)
-      //  }
-
         setVisibleModalSetores(true)
 
           try{
@@ -222,21 +154,16 @@ export function Produtos({ navigation }: any) {
 
      const onRefresh = async () => {
         setRefreshing(true);
-         if (pesquisa != '' ) {
                 filterByDescription()
-            } else {
-              filterAll()
-            }
-
         setRefreshing(false);
     };
 
     function handleSelect(item: any) {
-        setpSelecionado(item);
         navigation.navigate('cadastro_produto', {
             codigo_produto: item.codigo
         })
     }
+
 
     // --- RENDER ITEM (MANTIDO IGUAL AO ANTERIOR) ---
     function renderItem({ item }: any) {
@@ -287,7 +214,12 @@ export function Produtos({ navigation }: any) {
             )
         };
         return (
-            <View style={styles.sectorCard}>
+            <TouchableOpacity style={styles.sectorCard}
+                onPress={()=>{
+                       setIsVisibleModalLoteSeriesSector(true)
+                    setProductSectorSelectedViewerLoteSerie({produto: item.produto, setor:item.setor})
+                }}
+            >
                 <View style={styles.sectorLeft}>
                     <View style={styles.sectorHeader}>
                         <MaterialIcons name="storefront" size={20} color="#555" />
@@ -308,7 +240,7 @@ export function Produtos({ navigation }: any) {
                         <Text style={styles.sectorStockLabel}>UN</Text>
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         )
     }
 
@@ -447,7 +379,7 @@ export function Produtos({ navigation }: any) {
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle} numberOfLines={1}>
-                                {dataProdSector && dataProdSector[0] ? dataProdSector[0].descricao_produto : 'Detalhes do Setor'}
+                                {dataProdSector && dataProdSector[0] ? " Produto: "+dataProdSector[0].produto : 'Detalhes do Setor'}
                             </Text>
                             <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={styles.modalCloseBtn}>
                                 <Ionicons name="close" size={24} color="#FFF" />
@@ -474,6 +406,15 @@ export function Produtos({ navigation }: any) {
                     </View>
                 </View>
             </Modal>
+            {/* --- MODAL SERIES DO PRODUTO --- */}
+       {productSectorSelectedViewerLoteSerie && 
+            <ModalSeriesProducts
+                produto={productSectorSelectedViewerLoteSerie?.produto}
+                setVisible={setIsVisibleModalLoteSeriesSector}
+                setor={productSectorSelectedViewerLoteSerie?.setor}
+                visible={isVisibleModalLoteSeriesSector}
+            />}
+
         </View>
     )
 }

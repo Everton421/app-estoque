@@ -86,7 +86,7 @@ export const ModalApllicant = ({ visible, setVisible, dispatch, sellerSelected }
 
         let params = { ativo:'S' } as any 
         if(searchText){
-                params.nome = searchText
+                params.search = searchText
         }
         const resultDataSector = await api.get('/usuarios/search',{
             params 

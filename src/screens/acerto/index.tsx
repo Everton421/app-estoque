@@ -7,6 +7,7 @@ import { ActivityIndicator, FlatList, RefreshControl, Text, TextInput, Touchable
 import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
 import { ModalFilter } from "./components/modal-filter";
+import { delay } from "../../utils/delay";
 
 type resultQueryMov = {
     data_recadastro: string
@@ -67,7 +68,7 @@ export const Acertos = ({ navigation }: any) => {
           const dataFiltro =  await getFitroAcertos()
 
             setLoadinData(true);
-                    
+                    await delay(700)
                     let params:any = { 
                                 ent_sai: dataFiltro?.ent_sai,
                                 data_recadastro: dataFiltro?.data_recadastro
@@ -323,7 +324,9 @@ export const Acertos = ({ navigation }: any) => {
 
             {/* --- LISTA --- */}
             {loadingData ? (
-                <ActivityIndicator size="large" color="#185FED" style={{ marginTop: 20 }} />
+                <View style={{ flex:1, justifyContent:"center"}}>
+                  <ActivityIndicator size={50} color="#185FED" style={{ marginTop: 20 }} />
+                </View>
             ) : (
                 <FlatList
                     data={dataMovimet}

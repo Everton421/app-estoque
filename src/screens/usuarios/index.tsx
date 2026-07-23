@@ -6,6 +6,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AntDesign from "@expo/vector-icons/AntDesign";
 import useApi from "../../services/api";
 import { useUsuario } from "../../database/queryUsuario/queryUsuario";
+import { delay } from "../../utils/delay";
 
 export const Usuarios = ({ navigation }: any) => {
 
@@ -19,15 +20,21 @@ export const Usuarios = ({ navigation }: any) => {
     useEffect(() => {
         async function busca() {
             try {
-                // setLoading(true); // Opcional: Ativar loading se desejar
-                let data: any = await useQueryUsuario.selectAll();
-                if (data) {
-                    setDados(data);
+            setLoading(true); // Opcional: Ativar loading se desejar
+
+            await delay(700)
+                const resultRequestUsers = await api.get('/usuarios/search', {
+                    params:{
+                        search: pesquisa
+                    }
+                })
+                if (resultRequestUsers.status == 200) {
+                    setDados(resultRequestUsers.data);
                 }
             } catch (error) {
                 console.log("Erro ao buscar usuários", error);
             } finally {
-                // setLoading(false);
+                 setLoading(false);
             }
         }
         busca();
@@ -72,17 +79,22 @@ export const Usuarios = ({ navigation }: any) => {
                 {/* Informações de Texto */}
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>
-                            {item.nome}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold', backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                            ID: {item.codigo}
-                        </Text>
+                      <Text style={{ fontSize: 12,
+                           color: '#185FED',
+                           fontWeight: 'bold',
+                           backgroundColor: '#E3F2FD',
+                           paddingHorizontal: 6,
+                           paddingVertical: 2,
+                           borderRadius: 4 }}>ID: {item.codigo} </Text>
+                              <Text style={{ fontSize: 14, color: '#666', marginTop: 2 }}>
+                        {item?.email || ''}
+                    </Text>
+                    
+                        
                     </View>
 
-                    <Text style={{ fontSize: 14, color: '#666', marginTop: 2 }}>
-                        {item.email}
-                    </Text>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}
+                       numberOfLines={1} >{item.nome}  </Text>
                 </View>
 
                 {/* Ícone de seta indicando ação */}
@@ -139,7 +151,13 @@ export const Usuarios = ({ navigation }: any) => {
             </View>
 
             {/* --- LISTA --- */}
-            <FlatList
+            {
+                loading ? 
+                    <View style={{ flex:1, justifyContent:'center'}}>
+                        <ActivityIndicator size={50} color="#185FED"/>
+                    </View>
+                :
+                    <FlatList
                 data={dados}
                 renderItem={(item) => renderItem(item)}
                 keyExtractor={(i: any) => i.codigo.toString()}
@@ -151,6 +169,8 @@ export const Usuarios = ({ navigation }: any) => {
                     </View>
                 )}
             />
+            }
+        
 
             {/* --- BOTÃO FLUTUANTE (FAB) --- */}
             <TouchableOpacity
