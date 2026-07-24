@@ -514,9 +514,9 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
 
                 {/* --- LISTA DE ITENS --- */}
                 <View style={{ backgroundColor: '#FFF', marginTop: 20, borderRadius: 5, padding: 4 , margin:2}}>
-                    <View style={{ backgroundColor: '#e8eff5', marginTop: 6, marginBottom: 5, width: 70, borderRadius: 10, alignItems: 'center',     marginLeft:10 }} >
-                        <Text style={{ color: '#185FED', fontSize: 12, textAlign:'center', marginBottom: 10, fontWeight: 'bold'  }}>
-                            Qtd Itens: {requirement.itens.length}
+                    <View style={{ backgroundColor: '#e8eff5', marginTop: 6,padding:2, marginBottom: 5, width: 70, borderRadius: 7, alignItems: 'center',  marginLeft:10 }} >
+                        <Text style={{ color: '#185FED', fontSize: 12,  fontWeight: 'bold'  }}>
+                             Itens: {requirement.itens.length}
                         </Text>
                     </View>
                     <FlatList

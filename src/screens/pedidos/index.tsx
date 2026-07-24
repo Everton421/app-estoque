@@ -1,4 +1,4 @@
-import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -362,8 +362,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
            if (configMobileApi && configMobileApi.offline === 'N') {
               try {
                      setIsLoadingOrderData(true)
-                    const responseApiOrder = await api.get(`/pedidos/${item.codigo}`,
-                    );
+                    const responseApiOrder = await api.get(`/pedidos/${item.codigo}`);
                  
                        setOrcamentoModal(responseApiOrder.data);
              
@@ -465,9 +464,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
                         ID: {item.id || item.codigo} {item.id_externo ? `\nExt: ${item.id_externo}` : ''}
                     </Text>
-                 <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
-                        Filial: {  item.filial}    
-                    </Text>
+                    
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
                         <View style={{ backgroundColor: status.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                             <Text style={{ color: status.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
@@ -516,22 +513,35 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         Modificado: {new Date(item?.data_recadastro).toLocaleTimeString("pt-br", { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                 </View>
+                <View style={{flex:1, justifyContent:"space-between", flexDirection:"row"}}>
+                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                                 <MaterialCommunityIcons name="store-check" size={20} color={   '#185FED'} /> Filial {  item.filial}    
+                           </Text>
+                       </View>
+
                    {
                     item.tipo == 3 ?
-                    <Text style={{ fontSize: 10, color: '#185FED' }}>
-                      Os <FontAwesome5 name="tools" size={20} color="#185FED" />
-                    </Text>
+                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                                Os <FontAwesome5 name="tools" size={16} color="#185FED" />
+                            </Text>
+                       </View>
                   
                     :
-                    <Text style={{ fontSize: 10, fontWeight:"bold",color: '#185FED' }}>
-                     Venda <MaterialCommunityIcons name="cart-check" size={20} color="#185FED" />
-                    </Text>
+                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                             Venda <MaterialCommunityIcons name="cart-check" size={18} color="#185FED" />
+                            </Text>
+                       </View>
+
                 }
+                </View>
 
                 {/* --- RODAPÉ DE AÇÕES --- */}
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 12 }}>
+                <View style={{  borderTopWidth: 1,top:10, borderTopColor: '#F0F0F0', paddingTop: 7, paddingBottom:5 }}>
                    
-                    <View style={{ flexDirection: 'row' , gap: 10,  }}>
+                    <View style={{ flexDirection: 'row' , gap: 10 }}>
                         <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                             <Feather name="eye" size={20} color="#185FED" />
                         </TouchableOpacity>

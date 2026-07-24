@@ -30,7 +30,8 @@ type propsSetor = {
         <TouchableOpacity
             style={{
                 backgroundColor: isSelected && isSelected == setor.codigo ? '#f9fff9' : '#FFF',marginHorizontal: 10,marginVertical: 5,borderRadius: 12,padding: 15,elevation: 3,shadowColor: '#000',shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.1,shadowRadius: 3,flexDirection: 'row',alignItems: 'center',borderLeftWidth: 4,borderLeftColor: isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'   }}
-              onPress={() => { selectSetor(setor) }}>
+              onPress={() => { selectSetor(setor) } 
+              }>
             <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor:  '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
                 <MaterialIcons name="store" size={24} color={isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'} />
             </View>
@@ -46,8 +47,10 @@ type propsSetor = {
                     </Text>
                 </View>
             </View>
+               { isSelected && isSelected == setor.codigo ?  <Ionicons name="checkmark-circle" size={20} color="#1E9C43" /> : 
+                <MaterialIcons name="chevron-right" size={24} color={isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'} />
+                }
 
-            <MaterialIcons name="chevron-right" size={24} color={isSelected && isSelected == setor.codigo ? '#4CAF50' : '#185FED'} />
         </TouchableOpacity>
     )
 }
@@ -81,9 +84,9 @@ export const ModalSetoresRequerimento = ({ visible, setVisible, selectSector, is
     },[searchText])
 
 return  ( 
-<Modal visible={visible} transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
+<Modal visible={visible} transparent={true} animationType="slide" onRequestClose={() => setVisible(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
-                    <View style={{ width: '90%', height: '80%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
+                    <View style={{ width: '100%', height: '92%',top:20, backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
                         
                         <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>{title}</Text>
