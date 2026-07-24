@@ -167,20 +167,25 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
     }
 
     function handleCodeRead(data: string) {
+
         setModalvisible(false);
-        fyndBarcode(data);
+        const cleanCode = data.replace(/^0+/, '') || '0';
+               fyndBarcode(cleanCode);
+    
     }
 
     async function fyndBarcode(codeScanned: string) {
         try {
+            const chaveBusca = defaultConfigFilter == "codigo" ? 'produto' : defaultConfigFilter;
+                const params =    { 
+                                            setor: requirement.setor_origem,
+                                            [chaveBusca]: defaultConfigFilter == "codigo" ? Number(codeScanned) : codeScanned,
+                                            limit: 1
+                                        };
             setLoadingDataProd(true);
              const responseProduct = await api.get('/produtos-setor/search-grouped', 
                                     {
-                                        params: { 
-                                            setor: requirement.setor_origem,
-                                            [defaultConfigFilter]: defaultConfigFilter == "codigo" ? Number(codeScanned) : codeScanned,
-                                            limit: 1
-                                        }
+                                       params
                                     }
                                 );
            
@@ -304,7 +309,7 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                     } catch (_) {}
                     try {
                         const respEstoque = await api.get('/produtos-setor/search-grouped', {
-                            params: { setor: data.setor_origem, codigo: item.produto, limit: 1 }
+                            params: { setor: data.setor_origem, produto: item.produto, limit: 1 }
                         });
                         if (respEstoque.status === 200 && respEstoque.data.length > 0) {
                             quantidade_disponivel = respEstoque.data[0].setor[0]?.estoque || 0;

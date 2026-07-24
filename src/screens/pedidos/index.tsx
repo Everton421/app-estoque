@@ -179,6 +179,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const [ filterSearchOrders , dispatch] = useReducer( hadleEditFilter, initialStateFilter )
 
     const [isloadingOrderData, setIsLoadingOrderData] = useState(false);
+    const [filtersLoaded, setFiltersLoaded] = useState(false);
 
     const api = useApi();
 
@@ -297,9 +298,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     aux.tipo = tipo;
                     dispatch({type:'switch_all',paylod: aux })
                 }
-
             } catch (e) {
                 console.log("Erro ao carregar filtros do AsyncStorage", e)
+            } finally {
+                setFiltersLoaded(true)
             }
         };
 
@@ -316,8 +318,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
 
     async function busca() {
+        //if(!filtersLoaded) return
+
         setIsLoadingOrderData(true)
         try {
+         await delay(500,'Busca pedidos')
             let queryOrder = { 
                 ...filterSearchOrders,
                 filial:  filterSearchOrders.filial?.codigo,
@@ -342,7 +347,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     useEffect(() => {
         busca()
-    }, [filterSearchOrders, navigation, configMobileApi])
+    }, [filtersLoaded, filterSearchOrders, navigation, configMobileApi])
 
     const buscaRef = useRef(busca);
     buscaRef.current = busca;

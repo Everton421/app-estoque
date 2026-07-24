@@ -81,7 +81,6 @@ async function getuserApi(token:string){
 
         let user = { email: email, senha: senha };
         
-        //  await useRestart.restart();
             let usuariosDB: any = await useQueryUsuario.selectAll();
 
             if(usuariosDB?.length > 0 && usuariosDB[0].email != email ){
@@ -90,74 +89,7 @@ async function getuserApi(token:string){
             }
             
             loginApi(user)
-
-
-    /*
-        let userRemember: any = await useQueryUsuario.selectRemember();
-        if(userRemember.length > 0){
-            if(userRemember[0].email === user.email){
-                 if (lembrar === false) {
-                await useQueryUsuario.updateRemember();
-            }
-            setUsuario(userRemember[0]);
-            setLogado(true);
-            }else{
-                console.log(`${userRemember[0].email} != ${user.email}`)
-            loginApi(user)
-            }
-        }else{
-            loginApi(user)
-        }
-
-        if (userRemember.length > 0 && userRemember[0].email === user.email) {
-           
-
-            if (lembrar === false) {
-                await useQueryUsuario.updateRemember();
-            }
-            setUsuario(userRemember[0]);
-            setLogado(true);
-            return;
-        } else {
-            try {
-                setLoading(true);
-                let responseLoginRequest = await api.post("/login", user) ;
-
-                if (responseLoginRequest.status == 200) {
-
-                    const { token } =  responseLoginRequest.data as { token :string}
-
-                    const resultUserRequest = await getuserApi(token );
-
-                    let lembrarUsuario = lembrar ? "S" : "N";
-                    let userMobile = {
-                        email: user.email,
-                        senha: user.senha,
-                        codigo: Number(resultUserRequest?.codigo) || 1  ,
-                        nome: resultUserRequest?.nome || '',
-                        lembrar: lembrarUsuario,
-                        token: responseLoginRequest.data.token
-                    };
-                        
-                    await useRestart.restart();
-                    setUsuario(userMobile);
-                    await useQueryUsuario.create(userMobile);
-                    setLogado(true);
-
-                    return;
-                }
-            } catch (e: any) {
-                console.log(e);
-                if (e.response && e.response.status === 400) {
-                    dispararAlerta("Falha no Login", e.response.data.msg, "error");
-                } else {
-                    dispararAlerta("Erro", "Ocorreu um erro inesperado ao conectar ao servidor.", "error");
-                }
-            } finally {
-                setLoading(false);
-            }
-        }
-        */
+   
     }
  
 

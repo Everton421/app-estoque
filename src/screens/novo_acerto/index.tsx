@@ -102,7 +102,8 @@ export const NovoAcerto = ({ navigation }: any) => {
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        fyndBarcode(data);
+        const cleanCode = data.replace(/^0+/, '') || '0';
+        fyndBarcode(cleanCode);
     }
 
     async function fyndBarcode(codeScanned: string) {
@@ -259,10 +260,10 @@ export const NovoAcerto = ({ navigation }: any) => {
                 local_produto: local_produto ? local_produto : '' 
             }
 
-              let resultUpdateProdSetor  
+              let resultUpdateProdSetor:any; 
            
                  try{
-                 resultUpdateProdSetor = await api.put('/produtos-setor', payload)///
+                const  resultUpdateProdSetor = await api.put('/produtos-setor', payload) 
                 }catch(e:any){
                     console.log(e.response.data)
                  }

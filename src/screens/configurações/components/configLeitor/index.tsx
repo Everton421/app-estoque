@@ -15,7 +15,8 @@ export const ConfigLeitor = () => {
     const [tipos] = useState<propsSeletor[]>([
         { tipo: "Código de barras", value: 'num_fabricante' },
         { tipo: "Referência", value: 'num_original' },
-        { tipo: "SKU", value: 'sku' }
+        { tipo: "SKU", value: 'sku' },
+        { tipo: "Código interno", value: 'codigo' }
     ]);
 
         const [ tiposBuscaPedido ] = useState<propsSeletor[]>([
@@ -32,7 +33,7 @@ export const ConfigLeitor = () => {
             if (value !== null) {
                 setDefaultConfig(value);
             }else{
-                setDefaultConfig('num_fabricante');
+                setDefaultConfig('codigo');
             }
 
             const valuePedido:any = await  AsyncStorage.getItem('configPedido');

@@ -267,7 +267,8 @@ export const Separacao = ({ navigation, route }: any) => {
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        fyndBarcode(data);
+        const cleanCode = data.replace(/^0+/, '') || '0';
+        fyndBarcode(cleanCode);
     }
 
     async function fyndBarcode(codigo: string) {

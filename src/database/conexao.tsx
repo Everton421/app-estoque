@@ -107,7 +107,8 @@ export async function construtor(db: SQLiteDatabase) {
        cnpj TEXT NOT NULL,
        email TEXT NOT NULL,
        responsavel  INTEGER  NOT NULL DEFAULT 0,
-       nome TEXT NOT NULL 
+       nome TEXT NOT NULL,
+       logo TEXT
        );
 
     CREATE INDEX IF NOT EXISTS idx_empresas_cnpj ON empresas(cnpj);

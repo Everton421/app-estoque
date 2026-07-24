@@ -9,6 +9,7 @@ export const queryEmpresas = ()=>{
         cnpj:string,
         email:string,
         responsavel:string
+        logo: string | null
     }
 
     async function create(empresa:EmpresaMobile):Promise<SQLiteRunResult | any>{
@@ -20,13 +21,16 @@ export const queryEmpresas = ()=>{
                 nome,
                 cnpj,
                 email,
-                responsavel
+                responsavel,
+                logo
                 ) VALUES (
                 '${empresa.codigo_empresa}',
                 '${empresa.nome}'  ,
                 '${empresa.cnpj}'  ,
                 '${empresa.email}' ,
-                '${empresa.responsavel}'
+                '${empresa.responsavel}',
+                '${empresa.logo}'
+
                 ) `
             )
                 return result

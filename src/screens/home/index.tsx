@@ -31,12 +31,20 @@ import { CustomAlert } from '../../components/custom-alert/custom-alert';
     email : string
     codigo : any
     responsavel : string
-    logo_url : string
+    logo : string
     cor_fonte : string
     cor_fundo : string
     cor_banner : string
   }
 
+    interface EmpresaMobile  {
+        codigo_empresa:number,
+        nome:string,
+        cnpj:string,
+        email:string,
+        responsavel:string
+        logo: string | null
+    }
 
 
 export const Home = ({ navigation }: any) => {
@@ -69,7 +77,7 @@ export const Home = ({ navigation }: any) => {
 
     
   const [sair, setSair] = useState<boolean>(false)
-  const [cadEmpresa, setCadEmpresa] = useState<typeCompanyRequest>()
+  const [cadEmpresa, setCadEmpresa] = useState<EmpresaMobile>()
   const [loaidngEmpr, setLoadingEmpr] = useState(false);
 
   let useQueryEmpresa = queryEmpresas();
@@ -151,8 +159,7 @@ export const Home = ({ navigation }: any) => {
             }
           }) ;
 
-            const companyRequest = resultRequestCompany.data as typeCompanyRequest;
-
+            const companyRequest = resultRequestCompany.data as any;
         if (resultRequestCompany.status == 200) {
           let objEmpr = {
             codigo_empresa: Number(companyRequest.codigo),
@@ -160,9 +167,10 @@ export const Home = ({ navigation }: any) => {
             cnpj:  companyRequest.cnpj,
             email:  companyRequest.email,
             responsavel:  companyRequest.responsavel,
+            logo: companyRequest.logo_url || ''
           };
           let aux = await useQueryEmpresa.createByCode(objEmpr);
-          setCadEmpresa( companyRequest)
+          setCadEmpresa( objEmpr)
   
         }
       } catch (e: any) {
@@ -251,7 +259,7 @@ export const Home = ({ navigation }: any) => {
     );
   };
 
-
+ 
   return (
 
     <View style={{ flex: 1, backgroundColor: "#EAF4FE", height: 'auto' }}>
@@ -264,14 +272,27 @@ export const Home = ({ navigation }: any) => {
       <View style={{ backgroundColor: '#185FED', elevation: 7, padding: 5, height: 200, borderBottomEndRadius: 50, borderStartEndRadius: 50 }}>
           < View style={{ width: '100%', alignItems: "center", flexDirection: "row", justifyContent: "space-between" }} >
             <TouchableOpacity style={{ backgroundColor: '#FFF', borderRadius: 55, padding: 3, margin: 3 }}
-              onPress={()=> console.log(cadEmpresa)}
+              onPress={()=> console.log("cadEmpresa: ",cadEmpresa)}
             >
-              <Image
-                style={{ width: 45, height: 45, resizeMode: 'stretch', }}
-                source={
-                  require('../../imgs/intersig120x120.png')
-                }
-              />
+
+                  {
+                    loaidngEmpr ?  
+                    <View style={{alignItems:'center'}}>
+                       <ActivityIndicator size={35} color={'#185FED'} />
+                    </View>
+                   : 
+                    cadEmpresa?.logo && cadEmpresa?.logo != ''  ?
+                      <Image
+                      style={{ width: 45, height: 45, resizeMode: 'stretch', borderRadius:50}}
+                     src={cadEmpresa.logo}
+                     />
+                     :
+                        <Image
+                        style={{ width: 45, height: 45, resizeMode: 'stretch', borderRadius:50 }}
+                        source={ require('../../imgs/intersig120x120.png')  }
+                      />
+                        }
+                     
             </TouchableOpacity>
 
             {
