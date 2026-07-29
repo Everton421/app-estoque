@@ -1,7 +1,6 @@
 import { useContext, useEffect, useReducer, useState } from "react";
 import { Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView, Modal } from "react-native";
 import useApi from "../../services/api";
-import { useClients } from "../../database/queryClientes/queryCliente";
 import { AuthContext } from "../../contexts/auth";
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { ConnectedContext } from "../../contexts/conectedContext"
@@ -10,7 +9,7 @@ import { configMoment } from "../../services/moment";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 
-export type PayloadCliente = {
+export type PayloadFornecedor = {
     codigo: number;
     id: string;
     celular: string;
@@ -27,7 +26,7 @@ export type PayloadCliente = {
     ativo: "S" | "N";
 }
 
-type ActionCliente =
+type ActionFornecedor =
     | { type: 'set_codigo'; payload: number }
     | { type: 'set_id'; payload: string }
     | { type: 'set_celular'; payload: string }
@@ -42,9 +41,9 @@ type ActionCliente =
     | { type: 'set_estado'; payload: string }
     | { type: 'set_bairro'; payload: string }
     | { type: 'set_ativo'; payload: "S" | "N" }
-    | { type: 'load_cliente'; payload: PayloadCliente };
+    | { type: 'load_fornecedor'; payload: PayloadFornecedor };
 
-function handleCliente(state: PayloadCliente, action: ActionCliente): PayloadCliente {
+function handleFornecedor(state: PayloadFornecedor, action: ActionFornecedor): PayloadFornecedor {
     switch (action.type) {
         case 'set_codigo':      return { ...state, codigo: action.payload };
         case 'set_id':          return { ...state, id: action.payload };
@@ -60,12 +59,12 @@ function handleCliente(state: PayloadCliente, action: ActionCliente): PayloadCli
         case 'set_estado':      return { ...state, estado: action.payload };
         case 'set_bairro':      return { ...state, bairro: action.payload };
         case 'set_ativo':       return { ...state, ativo: action.payload };
-        case 'load_cliente':    return { ...action.payload };
+        case 'load_fornecedor': return { ...action.payload };
         default:                return state;
     }
 }
 
-export const Cadastro_cliente = ({ route, navigation }: any) => {
+export const Cadastro_fornecedores = ({ route, navigation }: any) => {
     const [visibleEndereco, setVisibleEndereco] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const [visibleAlert, setVisibleAlert] = useState(false);
@@ -74,14 +73,13 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
     const api = useApi();
-    const useQueryClient = useClients();
     const { usuario }: any = useContext(AuthContext);
     const useMoment = configMoment();
     const { connected, setConnected } = useContext<any>(ConnectedContext);
 
-    const { codigo_cliente } = route.params || { codigo_cliente: 0 };
+    const { codigo_fornecedor } = route.params || { codigo_fornecedor: 0 };
 
-    const initialState: PayloadCliente = {
+    const initialState: PayloadFornecedor = {
         codigo: 0,
         id: '',
         celular: '',
@@ -98,11 +96,11 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
         ativo: 'S',
     };
 
-    const [state, dispatch] = useReducer(handleCliente, initialState);
+    const [state, dispatch] = useReducer(handleFornecedor, initialState);
 
     useEffect(() => {
-        if (codigo_cliente > 0) {
-            carregarCliente();
+        if (codigo_fornecedor > 0) {
+            carregarFornecedor();
         } else {
             findLastCode();
         }
@@ -110,7 +108,7 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
 
     async function findLastCode() {
         try {
-            const result = await api.get("/clientes/last-codigo");
+            const result = await api.get("/fornecedores/last-codigo");
             if (result.status === 200) {
                 dispatch({ type: 'set_id', payload: `#${result.data.codigo + 1}` });
             }
@@ -119,16 +117,16 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
         }
     }
 
-    async function carregarCliente() {
+    async function carregarFornecedor() {
         try {
             setLoading(true);
-            const response = await api.get(`/clientes/${codigo_cliente}`);
+            const response = await api.get(`/fornecedores/${codigo_fornecedor}`);
             if (response.status === 200) {
                 const data = response.data;
                 dispatch({
-                    type: 'load_cliente',
+                    type: 'load_fornecedor',
                     payload: {
-                        codigo: data.codigo || codigo_cliente,
+                        codigo: data.codigo || codigo_fornecedor,
                         id: data.id || '',
                         celular: data.celular || '',
                         nome: data.nome || '',
@@ -146,10 +144,10 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                 });
             }
         } catch (e: any) {
-            console.log('[X] Erro ao carregar cliente', e);
+            console.log('[X] Erro ao carregar fornecedor', e);
             setTitleAlert('Erro');
             setTypeAlert('error');
-            setMessageAlert('Nao foi possivel carregar os dados do cliente.');
+            setMessageAlert('Nao foi possivel carregar os dados do fornecedor.');
             setVisibleAlert(true);
         } finally {
             setLoading(false);
@@ -179,22 +177,21 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
             return;
         }
 
-        if (codigo_cliente > 0) {
-            const putCliente = {
+        if (codigo_fornecedor > 0) {
+            const putFornecedor = {
                 ...state,
-                codigo: codigo_cliente,
+                codigo: codigo_fornecedor,
                 data_recadastro: useMoment.dataHoraAtual(),
             };
 
             try {
                 setLoading(true);
-                const result: any = await api.put('/clientes', putCliente);
+                const result: any = await api.put('/fornecedores', putFornecedor);
 
                 if (result.status === 200 && result.data.codigo > 0) {
-                    await useQueryClient.update(putCliente, codigo_cliente);
                     setTitleAlert('Sucesso!');
                     setTypeAlert('success');
-                    setMessageAlert('Cliente alterado com sucesso!');
+                    setMessageAlert('Fornecedor alterado com sucesso!');
                     setVisibleAlert(true);
                 }
             } catch (e: any) {
@@ -206,27 +203,26 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                 } else {
                     setTitleAlert('Erro');
                     setTypeAlert('error');
-                    setMessageAlert('Erro desconhecido ao alterar cliente.');
+                    setMessageAlert('Erro desconhecido ao alterar fornecedor.');
                     setVisibleAlert(true);
                 }
             } finally {
                 setLoading(false);
             }
         } else {
-            const novoCliente = {
+            const novoFornecedor = {
                 ...state,
                 id: state.id || '',
             };
 
             try {
                 setLoading(true);
-                const result: any = await api.post('/clientes', novoCliente);
+                const result: any = await api.post('/fornecedores', novoFornecedor);
 
                 if (result.status === 201 && result.data.codigo > 0) {
-                    await useQueryClient.createByCode(result.data);
                     setTitleAlert('Sucesso!');
                     setTypeAlert('success');
-                    setMessageAlert('Cliente registrado com sucesso!');
+                    setMessageAlert('Fornecedor registrado com sucesso!');
                     setVisibleAlert(true);
                 }
             } catch (e: any) {
@@ -238,7 +234,7 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                 } else {
                     setTitleAlert('Erro');
                     setTypeAlert('error');
-                    setMessageAlert('Erro desconhecido ao cadastrar cliente.');
+                    setMessageAlert('Erro desconhecido ao cadastrar fornecedor.');
                     setVisibleAlert(true);
                 }
             } finally {
@@ -254,7 +250,7 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
         >
             <LodingComponent isLoading={loading} />
             <CustomHeader
-                title={codigo_cliente > 0 ? `Cliente #${codigo_cliente}` : 'Novo Cliente'}
+                title={codigo_fornecedor > 0 ? `Fornecedor #${codigo_fornecedor}` : 'Novo Fornecedor'}
                 showSearch={false}
                 onBack={() => navigation.goBack()}
             />
@@ -290,7 +286,7 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                         <Text style={{ fontWeight: "600", fontSize: 14, color: '#6C757D', marginBottom: 4 }}>Razao Social</Text>
                         <TextInput
                             style={{ paddingVertical: 8, fontWeight: "500", fontSize: 16, color: '#333' }}
-                            placeholder="Nome do cliente"
+                            placeholder="Nome do fornecedor"
                             placeholderTextColor="#999"
                             onChangeText={(value) => dispatch({ type: 'set_nome', payload: value })}
                             value={state.nome}
@@ -398,7 +394,7 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                             style={{ backgroundColor: '#185FED', width: '85%', alignItems: "center", justifyContent: "center", borderRadius: 10, paddingVertical: 14, elevation: 4, shadowColor: '#185FED', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6 }}
                             onPress={() => gravar()}
                         >
-                            <Text style={{ fontWeight: "bold", color: "#FFF", fontSize: 18 }}>{codigo_cliente > 0 ? 'Atualizar Cliente' : 'Gravar Cliente'}</Text>
+                            <Text style={{ fontWeight: "bold", color: "#FFF", fontSize: 18 }}>{codigo_fornecedor > 0 ? 'Atualizar Fornecedor' : 'Gravar Fornecedor'}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

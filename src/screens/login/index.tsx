@@ -8,6 +8,7 @@ import { useUsuario } from "../../database/queryUsuario/queryUsuario";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import axios from "axios";
   type typeUserRequest = {
     codigo:string
     email:string
@@ -24,6 +25,10 @@ export const Login = ({ navigation }: any) => {
     const [messageAlert, setMessageAlert] = useState<string>('');
     const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
     const [titleAlert, setTitleAlert] = useState<string>('');
+
+    const [ isLoadingHelth, setIsLoadingHelth] = useState(false);
+    const [ healthApi, setHealthApi] = useState(false);
+    const [ messagehealthApi, setMessagehealthApi] = useState('');
 
     const { setLogado, setUsuario }: any = useContext(AuthContext);
 
@@ -94,9 +99,22 @@ async function getuserApi(token:string){
  
 
     async function loginApi (user:any){
+                let baseUrl = "https://dev.intersig.com.br:3000";
+
             try {
+
+
+                // teste para tentar logar no servidor
+                if( user.email.includes('syma')){
+                     baseUrl = "http://10.1.1.222:3030";
+                }  
                 setLoading(true);
-                let responseLoginRequest = await api.post("/login", user) ;
+                let responseLoginRequest = await axios.post(`${baseUrl}/login`,
+                     user,
+                     {
+                        timeout:2000
+                     }
+                    ) ;
 
                 if (responseLoginRequest.status == 200) {
 
@@ -121,6 +139,7 @@ async function getuserApi(token:string){
                      setLogado(true);
                      return;
                 }
+
             } catch (e: any) {
                 console.log(e);
                 if (e.response && e.response.status === 400) {
@@ -134,6 +153,34 @@ async function getuserApi(token:string){
     }
 
 
+       async function connect() {
+               let baseUrl = "https://dev.intersig.com.br:3000";
+
+        try {
+                setIsLoadingHelth(true);
+
+                // teste para tentar logar no servidor
+                if(   email.includes('syma')){
+                     baseUrl = "http://10.1.1.222:3030";
+                }  
+                let responseLoginRequest = await axios.get(`${baseUrl}/health`,{
+                        timeout:3000
+                });
+                setHealthApi(true)
+
+        } catch (err: any) {
+             
+            setMessagehealthApi(`Erro ao conectar em ${baseUrl}`)
+                setHealthApi(false)
+                setIsLoadingHelth(false);
+ 
+        } finally {
+                setIsLoadingHelth(false);
+        }
+    }
+    useEffect(()=>{
+        connect() 
+    },[ email ])
 
     return (
         /* --- AJUSTE AQUI: O behavior foi ajustado para Android e iOS --- */
@@ -290,6 +337,23 @@ async function getuserApi(token:string){
                             )}
                         </TouchableOpacity>
 
+                       {
+                        email.includes('syma') &&
+                         isLoadingHelth ? 
+                            <View style={{ flexDirection: 'row',top: 10, alignItems: 'center', gap: 5 }}>
+                                <ActivityIndicator 
+                                size={25}
+                                />
+                            </View>
+                          :
+                            <View style={{ flexDirection: 'row', alignItems: 'center', top:5, gap: 5 }}>
+                                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: healthApi ? '#4CAF50' : '#F44336' }} />
+                                <Text style={{ fontWeight: 'bold', fontSize: 9, color: healthApi ? '#4CAF50' : '#F44336' }}>
+                                    { /**/  !healthApi  && ( `${ messagehealthApi}` )}
+                                </Text>
+                            </View>
+                       }     
+                     
                     </View>
                 </View>
             </ScrollView>

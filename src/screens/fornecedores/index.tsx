@@ -96,9 +96,7 @@ export function Fornecedores({ navigation }: any) {
 
 
     function handleSelect(item: fornecedor) {
-        setfSelecionado(item);
-        setVisible(true);
-        //navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
+        navigation.navigate('cadastro_fornecedores', { codigo_fornecedor: item.codigo })
     }
 
     const FilterOption = ({ value, label }: { value: number, label: string }) => {
@@ -274,9 +272,9 @@ export function Fornecedores({ navigation }: any) {
                     shadowOffset: { width: 0, height: 3 },
                     zIndex: 999
                 }}
-            //   onPress={() => {
-            //       navigation.navigate('cadastro_cliente')
-            //   }}
+                onPress={() => {
+                    navigation.navigate('cadastro_fornecedores')
+                }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />
             </TouchableOpacity>

@@ -96,9 +96,7 @@ export function Clientes({ navigation }: any) {
 
 
     function handleSelect(item: client) {
-        setcSelecionado(item);
-        setVisible(true);
-        //navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
+        navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
     }
 
     const FilterOption = ({ value, label }: { value: number, label: string }) => {

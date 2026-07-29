@@ -1,4 +1,4 @@
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import Feather from '@expo/vector-icons/Feather';
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
@@ -10,6 +10,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { ModalFilterRequirement } from "./components/modal-filter-requeriment/modal-filter-requirement";
 import { configMoment } from "../../services/moment";
 import { delay } from "../../utils/delay";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
  
 
 export type seller = {
@@ -112,6 +113,16 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
     const [isloadingOrderData, setIsLoadingOrderData] = useState(false);
     const [visibleFilterModal, setVisibleFilterModal] = useState(false);
 
+    const [visibleAlert, setVisibleAlert] = useState(false);
+    const [messageAlert, setMessageAlert] = useState('');
+    const [titleAlert, setTitleAlert] = useState('');
+    const [typeAlert, setTypeAlert] = useState<AlertType>('info');
+
+    const [visibleAlertApplyRequirement, setVisibleAlertApplyRequirement] = useState(false);
+    const [ isLoadingApplyRequirement , setIsLoadingApplyRequeriment ] = useState(false);
+
+    const [ requirementSelected, setRequirementSelected ] = useState();
+
     const initialStateFilter: filterRequeriment = {
         applicant: null,
         data_init: useMoment.dataAtual(),
@@ -164,6 +175,39 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
         busca()
     }, [navigation, filterSearchRequirement])
  
+
+
+
+        async function applyRequirement (codigo:number){
+        try{
+
+            setIsLoadingOrderData(true)
+            await delay(1000,' Efetuar requerimento ');
+             const resultApllyRequirement = await api.post(`/requirements/${codigo}/efetuar`);
+
+                if(resultApllyRequirement.status == 200){
+                    setVisibleAlert(true);
+                    setTitleAlert(`Sucesso!`);
+                    setTypeAlert('success');
+                    setMessageAlert(`Requerimento ${codigo} efetuado com sucesso!`);
+                }
+        }catch(e:any){
+                  setVisibleAlert(true);
+                    setTitleAlert(`Erro!`);
+                    setTypeAlert('error');
+                    setMessageAlert(`Erro ao efetuar requerimento ${codigo} ! \n ${e.response.data.message}`);
+        }finally{
+            setIsLoadingOrderData(false)
+
+        }
+    }
+     
+    async function handleApplyRequirement( codigo: number ){
+            setVisibleAlertApplyRequirement(true)
+                    setTitleAlert(`Atenção!`);
+                    setTypeAlert('warning');
+                    setMessageAlert(`Deseja efetuar requerimento ${codigo} ? `);
+    }
 
 
     const getSituationsParams = (situacao: string) => {
@@ -276,16 +320,24 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                         <TouchableOpacity
                             onPress={() => { setSelectedRequirement(item); setVisiblePrintModal(true); }}
                             style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
-                            <Feather name="eye" size={20} color="#185FED" />
+                            <Feather name="eye" size={18} color="#185FED" />
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                             onPress={() => {
+                                   setSelectedRequirement(item);  handleApplyRequirement(item.codigo); 
+                                }}
+                            style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                        <FontAwesome5 name="check-circle" size={18} color="#185FED" />
+                        </TouchableOpacity>
+
                     </View>
                 </View>
             </View>
         )
     }
 
-     
-    
+
 
 
     return (
@@ -398,7 +450,32 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                         </>
                     )
             }
-        
+
+            <CustomAlert
+                message={messageAlert}
+                onConfirm={ 
+                     ()=>  { applyRequirement(selectedRequirement?.codigo!);
+                            setVisibleAlertApplyRequirement(false);
+                    }}
+                title={titleAlert}
+                visible={visibleAlertApplyRequirement}
+                cancelText='Não'
+                confirmText='Sim'
+                onCancel={()=> setVisibleAlertApplyRequirement(false)}
+            />
+
+       <CustomAlert
+                message={messageAlert}
+                onConfirm={ ()=>{ 
+                    setVisibleAlert(false)
+                    setRefreshing(true)    
+                }
+                }
+                title={titleAlert}
+                visible={visibleAlert}
+                cancelText='Não'
+                confirmText='Sim'
+            />
         </View>
     )
 }

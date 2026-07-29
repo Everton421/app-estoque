@@ -15,13 +15,15 @@
     "ios": {
       "supportsTablet": true
     },
+ 
     "android": {
       "adaptiveIcon": {
        "foregroundImage": "./assets/splash-intersig.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.everton421.newappestoque"
+      "package": "com.everton421.newappestoque",
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -19,6 +19,7 @@ import { Cadastro_Marcas } from "../../screens/cadastrarMarcas";
 import { Cadastro_Categorias } from "../../screens/cadastrarCategorias";
 import { BottomTabProdutos } from "../bottomTabsProduto";
 import { Cadastro_cliente } from "../../screens/cadastro_cliente";
+import { Cadastro_fornecedores } from "../../screens/cadastro_fornecedores";
 
 const StackConfig = createStackNavigator();
 
@@ -45,6 +46,8 @@ export const  Stack=()=>{
 
         
                     <StackConfig.Screen name="cadastro_cliente"          component={Cadastro_cliente}  options={{ headerShown:false }} />
+
+                    <StackConfig.Screen name="cadastro_fornecedores"     component={Cadastro_fornecedores}  options={{ headerShown:false }} />
 
                     <StackConfig.Screen name="cadastro_marcas"           component={Cadastro_Marcas}  options={{ headerShown:false }} />
 
