@@ -62,7 +62,7 @@ export const Routes = ( )=>{
         <NavigationContainer>
           { 
              logado ?
-                                    <Stack/> 
+                 <Stack/> 
                :
                <AuthStack/>
           }  
