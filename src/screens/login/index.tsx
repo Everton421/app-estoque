@@ -102,14 +102,8 @@ async function getuserApi(token:string){
                 let baseUrl = "https://dev.intersig.com.br:3000";
 
             try {
-
-
-                // teste para tentar logar no servidor
-                if( user.email.includes('syma')){
-                     baseUrl = "http://10.1.1.222:3030";
-                }  
                 setLoading(true);
-                let responseLoginRequest = await axios.post(`${baseUrl}/login`,
+                let responseLoginRequest = await api.post(`/login`,
                      user,
                      {
                         timeout:2000
@@ -153,35 +147,7 @@ async function getuserApi(token:string){
     }
 
 
-       async function connect() {
-               let baseUrl = "https://dev.intersig.com.br:3000";
-
-        try {
-                setIsLoadingHelth(true);
-
-                // teste para tentar logar no servidor
-                if(   email.includes('syma')){
-                     baseUrl = "http://10.1.1.222:3030";
-                }  
-                let responseLoginRequest = await axios.get(`${baseUrl}/health`,{
-                        timeout:3000
-                });
-                setHealthApi(true)
-
-        } catch (err: any) {
-             
-            setMessagehealthApi(`Erro ao conectar em ${baseUrl}`)
-                setHealthApi(false)
-                setIsLoadingHelth(false);
  
-        } finally {
-                setIsLoadingHelth(false);
-        }
-    }
-    useEffect(()=>{
-        connect() 
-    },[ email ])
-
     return (
         /* --- AJUSTE AQUI: O behavior foi ajustado para Android e iOS --- */
         <KeyboardAvoidingView 
@@ -337,22 +303,6 @@ async function getuserApi(token:string){
                             )}
                         </TouchableOpacity>
 
-                       {
-                        email.includes('syma') &&
-                         isLoadingHelth ? 
-                            <View style={{ flexDirection: 'row',top: 10, alignItems: 'center', gap: 5 }}>
-                                <ActivityIndicator 
-                                size={25}
-                                />
-                            </View>
-                          :
-                            <View style={{ flexDirection: 'row', alignItems: 'center', top:5, gap: 5 }}>
-                                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: healthApi ? '#4CAF50' : '#F44336' }} />
-                                <Text style={{ fontWeight: 'bold', fontSize: 9, color: healthApi ? '#4CAF50' : '#F44336' }}>
-                                    { /**/  !healthApi  && ( `${ messagehealthApi}` )}
-                                </Text>
-                            </View>
-                       }     
                      
                     </View>
                 </View>

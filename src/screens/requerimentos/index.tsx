@@ -177,11 +177,10 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
  
 
 
-
+ 
         async function applyRequirement (codigo:number){
         try{
 
-            setIsLoadingOrderData(true)
             await delay(1000,' Efetuar requerimento ');
              const resultApllyRequirement = await api.post(`/requirements/${codigo}/efetuar`);
 
@@ -196,10 +195,7 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                     setTitleAlert(`Erro!`);
                     setTypeAlert('error');
                     setMessageAlert(`Erro ao efetuar requerimento ${codigo} ! \n ${e.response.data.message}`);
-        }finally{
-            setIsLoadingOrderData(false)
-
-        }
+        } 
     }
      
     async function handleApplyRequirement( codigo: number ){
@@ -454,21 +450,23 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
             <CustomAlert
                 message={messageAlert}
                 onConfirm={ 
-                     ()=>  { applyRequirement(selectedRequirement?.codigo!);
-                            setVisibleAlertApplyRequirement(false);
+                     ()=>  { applyRequirement(selectedRequirement?.codigo!)
+                        setVisibleAlertApplyRequirement(false);
                     }}
                 title={titleAlert}
                 visible={visibleAlertApplyRequirement}
                 cancelText='Não'
                 confirmText='Sim'
-                onCancel={()=> setVisibleAlertApplyRequirement(false)}
+                onCancel={()=> { setVisibleAlertApplyRequirement(false) 
+
+                }}
             />
 
        <CustomAlert
                 message={messageAlert}
                 onConfirm={ ()=>{ 
                     setVisibleAlert(false)
-                    setRefreshing(true)    
+                      onRefresh()    
                 }
                 }
                 title={titleAlert}

@@ -6,26 +6,10 @@ import NetInfo from '@react-native-community/netinfo';
  
 const useApi = () => {
     const  { usuario } :any    = useContext(AuthContext);
+ 
 
-    let internetType: null | string = null;
-        let isWifiEnabled:  boolean = false;
-        let ipAddress :string | null = null;
-
-      const unsubscribe = NetInfo.addEventListener((state:any) => {
-                internetType = state.type;
-                isWifiEnabled = state.isWifiEnabled != undefined  && state.isWifiEnabled;
-                ipAddress = state?.details?.ipAddress || null;
-            });
-
-
-
-    let baseUrl = "https://dev.intersig.com.br:3000" ;
-            if(usuario && usuario.email && usuario.email.includes('syma')){
-                baseUrl= "http://10.1.1.222:3030";
-            }
-
-            
-
+    const baseUrl = "https://dev.intersig.com.br:3000" ;
+          
     const api = axios.create({
         baseURL: baseUrl, 
         timeout: 10000, // 10 segundos de limite
