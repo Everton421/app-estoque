@@ -260,15 +260,11 @@ export const NovoAcerto = ({ navigation }: any) => {
                 local_produto: local_produto ? local_produto : '' 
             }
 
-              let resultUpdateProdSetor:any; 
-           
-                 try{
-                const  resultUpdateProdSetor = await api.put('/produtos-setor', payload) 
-                }catch(e:any){
-                    console.log(e.response.data)
-                 }
+                
+              
+                 const  resultUpdateProdSetor = await api.put('/produtos-setor', payload) 
 
-              if (resultUpdateProdSetor.status === 200 || resultUpdateProdSetor.status == 201) {
+              if (resultUpdateProdSetor.status == 200  ) {
  
                  const payloadMovimentos  =  {
                       unidade_medida: 'und' ,

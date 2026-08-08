@@ -222,18 +222,21 @@ export const Home = ({ navigation }: any) => {
       "nome": "vendas",
       "icon": <MaterialCommunityIcons name="cart-variant" size={30} color={defaultColors.darkBlue} />
     },
+    
       {
       "nome": "compras",
       "icon": <MaterialCommunityIcons name="cart-plus" size={30} color="#185FED" />
     },
     {
+      "nome": "requerimentos",
+      "icon": <Entypo name="shuffle" size={26} color={defaultColors.darkBlue} />
+    },
+
+    {
       "nome": "acertos",
       "icon": <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
     },
-   {
-      "nome": "setores",
-      "icon": <Entypo name="location-pin" size={30} color="#185FED" />
-    },
+   
     {
       "nome": "ajustes",
       "icon": <FontAwesome5 name="sync-alt" size={24} color="#185FED" />
@@ -248,12 +251,12 @@ export const Home = ({ navigation }: any) => {
 
   const Item = ({ value }: any) => {
     return (
-      <TouchableOpacity style={{ margin: 6 }} onPress={() => navigation.navigate(value.nome)}    >
+      <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={() => navigation.navigate(value.nome)}    >
         <View
           style={{ backgroundColor: "#FFF", margin: 10, borderRadius: 100, width: 55, height: 55, alignItems: "center", justifyContent: "center", elevation: 5 }} >
           {value.icon}
         </View>
-        <Text style={{ fontSize: 15, fontWeight: "bold", textAlign: "center", maxWidth: 150, color: '#FFF' }}> {value.nome}</Text>
+        <Text style={{ fontSize: 12, fontWeight: "bold", textAlign: "center", maxWidth: 150, color: '#FFF' }}> {value.nome}</Text>
       </TouchableOpacity>
 
     );
@@ -283,7 +286,7 @@ export const Home = ({ navigation }: any) => {
                    : 
                     cadEmpresa?.logo && cadEmpresa?.logo != ''  ?
                       <Image
-                      style={{ width: 45, height: 45, resizeMode: 'stretch', borderRadius:50}}
+                      style={{ width: 40, height: 40, resizeMode: 'stretch', borderRadius:50}}
                      src={cadEmpresa.logo}
                      />
                      :
@@ -299,7 +302,7 @@ export const Home = ({ navigation }: any) => {
               loaidngEmpr ? (
                 <ActivityIndicator size={20} color={'#FFF'} />
               ) : (
-                <Text style={{ fontWeight: "bold", color: '#FFF', margin: 7 }}
+                <Text style={{ fontWeight: "bold", color: '#FFF', margin: 7, fontSize:12 }}
                 numberOfLines={1}
                 >
                   {cadEmpresa?.nome}
@@ -307,7 +310,7 @@ export const Home = ({ navigation }: any) => {
               )
             }
           </View>
-          <View style={{ margin: 10, alignItems: "center" }}>
+          <View style={{ margin: 10, alignItems: "center" ,}}>
             <FlatList
               horizontal={true}
               data={data}
@@ -347,7 +350,7 @@ export const Home = ({ navigation }: any) => {
             <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
               <FontAwesome name="cubes" size={24} color="#185FED" />
             </View>
-            <Text style={{ fontWeight: "bold", fontSize: 17, color: '#5f666dff', flex: 1, textAlign: 'center' }} > Produtos </Text>
+            <Text style={{ fontWeight: "bold", fontSize: 15, color: '#5f666dff', flex: 1, textAlign: 'center' }} > Produtos </Text>
             <AntDesign name="caret-down" size={24} color="#185FED" />
           </TouchableOpacity>
 
@@ -358,7 +361,7 @@ export const Home = ({ navigation }: any) => {
               <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
                 <FontAwesome6 name="users" size={25} color={defaultColors.darkBlue}/>
               </View>
-              <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Clientes</Text>
+              <Text style={{ fontWeight: "bold", fontSize: 15, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Clientes</Text>
               <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
             </TouchableOpacity>
 
@@ -369,35 +372,35 @@ export const Home = ({ navigation }: any) => {
                  <FontAwesome6 name="user-tag" size={24} color={defaultColors.darkBlue}/>
 
                   </View>
-                <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Fornecedores</Text>
+                <Text style={{ fontWeight: "bold", fontSize: 15, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Fornecedores</Text>
                 <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
             </TouchableOpacity>
-
 
           <TouchableOpacity style={{ backgroundColor: '#FFF', marginTop: 15, width: '80%', padding: 15, borderRadius: 10, elevation: 2, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
-              onPress={() => { navigation.navigate('requerimentos') }}
+              onPress={() => { navigation.navigate('setores') }}
                 >
                   <View style={{ backgroundColor: '#EAF4FE', flexDirection: "row", height: 50, width: 50, alignItems: "center", justifyContent: "center", borderRadius: 7, elevation: 3 }}>
-                <Entypo name="shuffle" size={24} color={defaultColors.darkBlue} />
+                <FontAwesome6 name="map-location-dot" size={24} color={defaultColors.darkBlue} />
 
                   </View>
-                <Text style={{ fontWeight: "bold", fontSize: 18, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Requerimentos</Text>
+                <Text style={{ fontWeight: "bold", fontSize: 15, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Setores</Text>
                 <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
             </TouchableOpacity>
+                 
+            
 
-        
+     
 
         </View>
       </ScrollView>
 
-      <View style={{ flexDirection: "row", position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#185FED', padding: 10, justifyContent: "space-between", }}>
-        <Text style={{ color: '#FFF', fontSize: 20, fontWeight: "bold"  }}>
+      <View style={{ flexDirection: "row", position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#185FED', padding: 11, justifyContent: "space-between", }}>
+        <Text style={{ color: '#FFF', fontSize: 15, fontWeight: "bold"  }}>
           {usuario && usuario.nome}
         </Text>
 
         <TouchableOpacity onPress={() => alertSair()} style={{ flexDirection: "row" }}>
-          <Text style={{ color: '#FFF', fontWeight: "bold" }} >Sair</Text>
-          <MaterialCommunityIcons name="logout" size={24} color="white" />
+          <AntDesign name="logout" size={24} color="white" />
         </TouchableOpacity>
 
       </View>

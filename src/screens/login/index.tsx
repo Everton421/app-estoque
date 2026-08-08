@@ -9,6 +9,10 @@ import { restartDatabaseService } from "../../services/restartDatabase";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { filterRequeriment } from "../requerimentos";
+import { configMoment } from "../../services/moment";
+import { typefilterOrders } from "../pedidos";
   type typeUserRequest = {
     codigo:string
     email:string
@@ -19,6 +23,7 @@ export const Login = ({ navigation }: any) => {
     const api = useApi();
     const useQueryUsuario = useUsuario();
     const useRestart = restartDatabaseService();
+        const useMoment = configMoment();
     
     // Estados do Alerta Customizado
     const[visibleAlert, setVisibleAlert] = useState(false);
@@ -38,6 +43,18 @@ export const Login = ({ navigation }: any) => {
     const [loading, setLoading] = useState(false);
     const[showPassword, setShowPassword] = useState(false); // Para mostrar/ocultar senha
 
+
+   
+const initialStateFilter: typefilterOrders = { 
+        tipo: 2, 
+        data_inicial: useMoment.dataAtual(), 
+        data_final: useMoment.dataAtual(), 
+        situacao: 'AI', 
+        filial: null, 
+        limit: 1000000, 
+        search: '', 
+        vendedor: null
+    }   
     useEffect(() => {
         async function buscaUser() {
             let users: any = await useQueryUsuario.selectRemember();
@@ -125,7 +142,8 @@ async function getuserApi(token:string){
                         lembrar: lembrarUsuario,
                         token: responseLoginRequest.data.token
                     };
-
+                            AsyncStorage.setItem('filtroPedidos', JSON.stringify(initialStateFilter));
+                    
                          setUsuario(userMobile);
  
                      await useQueryUsuario.deleteAll();

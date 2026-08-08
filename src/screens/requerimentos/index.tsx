@@ -319,14 +319,17 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                             <Feather name="eye" size={18} color="#185FED" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity
+                        {
+                            item.situacao == 'A' && 
+                     <TouchableOpacity
                              onPress={() => {
                                    setSelectedRequirement(item);  handleApplyRequirement(item.codigo); 
                                 }}
                             style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                         <FontAwesome5 name="check-circle" size={18} color="#185FED" />
                         </TouchableOpacity>
-
+                        }
+                       
                     </View>
                 </View>
             </View>

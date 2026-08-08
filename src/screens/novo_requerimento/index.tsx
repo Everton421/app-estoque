@@ -433,17 +433,23 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
 
 
-            {/* --- HEADER --- */}
+         {/* --- HEADER --- */}
             <View style={{
-                backgroundColor: '#185FED',paddingTop: 10,paddingBottom: 20,paddingHorizontal: 15,borderBottomLeftRadius: 20,borderBottomRightRadius: 20,elevation: 5,marginBottom: 10
+                backgroundColor: '#185FED',
+                paddingTop: 10,
+                paddingBottom: 20,
+                paddingHorizontal: 15,
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                elevation: 5,
+                marginBottom: 10
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
-                    <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>
-                        {isEdicao ? `Editar Requerimento #${codigoEdicao}` : 'Novo Requerimento'}
-                    </Text>
+                    <Text style={{ color: '#FFF', fontSize: 15, fontWeight: 'bold' }}>{isEdicao ? `Editar Requerimento #${codigoEdicao}` : 'Novo Requerimento'}</Text>
+                    <View style={{ width: 24 }} />
                 </View>
             </View>
 
