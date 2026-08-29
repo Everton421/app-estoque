@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 import { CustomHeader } from "../../components/custom-header/custom-header";
@@ -11,6 +11,8 @@ import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
 import { delay } from "../../utils/delay";
 import { RenderItensSetores } from "./renderItem";
+import { AuthContext } from '../../contexts/auth';
+import { verifyUserPermission } from '../../services/verify-user-permissions';
 
 type sector = {
     codigo: number;
@@ -26,7 +28,7 @@ export const Setores = ({ navigation }: any) => {
     const [visible, setVisible] = useState<boolean>(false);
     const [setorSelecionado, setSetorSelecionado] = useState<sector>();
     const [loading, setLoading] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
+   
 
     const [isVisibleAlert, setIsVisibleAlert] = useState(false);
     const [titleAlert, setTitleAlert] = useState('');
@@ -36,8 +38,12 @@ export const Setores = ({ navigation }: any) => {
     const [confirmText, setConfirmText] = useState<string | undefined>();
 
     const [isLoadingData, setIsloadingData] = useState(false);
+        const { usuario, permissoes }: any = useContext(AuthContext);
 
-    const useQuerySetores = useSetores();
+     const [ isEnabledViewerSectors ] = useState( verifyUserPermission("setores", 'ler', permissoes))
+     const [ isEnabledCreateSectors ] = useState( verifyUserPermission("setores", 'criar', permissoes))
+     const [ isEnabledEditSectors ] = useState( verifyUserPermission("setores", 'editar', permissoes))
+ 
     const api = useApi();
     const dateService = configMoment();
 
@@ -72,9 +78,16 @@ export const Setores = ({ navigation }: any) => {
     }, [pesquisa]);
 
     function handleSelect(item: sector) {
-        setVisible(true);
-        setSetorSelecionado(item);
-    }
+        if( isEnabledEditSectors ){  
+            setVisible(true);
+            setSetorSelecionado(item);
+        }else{
+                setIsVisibleAlert(true);
+                 setTitleAlert("Atenção!");
+                 setTypeAlert('warning');
+                 setMessageAlert("Você não tem permissão para editar setores!");
+        }
+     }
 
     async function gravar() {
         if (!setorSelecionado?.descricao) {
@@ -130,6 +143,18 @@ export const Setores = ({ navigation }: any) => {
         }
     }
 
+  
+    function handlesCreateSector (){
+         isEnabledCreateSectors ?     
+                        navigation.navigate('cadastro_setores')
+                        :
+                      setIsVisibleAlert(true);
+                      setTitleAlert("Atenção!");
+                      setTypeAlert('warning');
+                      setMessageAlert("Você não tem permissão para criar novos setores!");
+   }
+
+
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
             <LodingComponent isLoading={loading} />
@@ -175,7 +200,18 @@ export const Setores = ({ navigation }: any) => {
                 </View>
             </Modal>
 
+        { 
+              typeAlert == 'warning' || typeAlert == 'info' ?
             <CustomAlert
+                visible={isVisibleAlert}
+                message={messageAlert}
+                onConfirm={() => setIsVisibleAlert(false)}
+                onCancel={() => setIsVisibleAlert(false)}
+                title={titleAlert}
+                type={typeAlert}
+            />
+            :
+          <CustomAlert
                 visible={isVisibleAlert}
                 message={messageAlert}
                 onConfirm={() => setIsVisibleAlert(false)}
@@ -185,6 +221,9 @@ export const Setores = ({ navigation }: any) => {
                 cancelText={cancelText}
                 confirmText={confirmText}
             />
+        }
+        
+
 
             {isLoadingData ?
                 <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -192,16 +231,24 @@ export const Setores = ({ navigation }: any) => {
                 </View> :
 
                 <View style={{ marginBottom: 10 }}>
-                    <FlatList
-                        data={dados || []}
-                        renderItem={({ item }) => <RenderItensSetores item={item} handleSelect={handleSelect} />}
-                        keyExtractor={(i) => i.codigo.toString()}
-                        ListEmptyComponent={() => <EmptyState icon="store" message="Nenhum setor encontrado" />}
-                    />
+                    {
+                        isEnabledViewerSectors ? 
+                         <FlatList
+                                data={dados || []}
+                                renderItem={({ item }) => <RenderItensSetores item={item} handleSelect={handleSelect} />}
+                                keyExtractor={(i) => i.codigo.toString()}
+                                ListEmptyComponent={() => <EmptyState icon="store" message="Nenhum setor encontrado" />}
+                            />
+                        :
+                    <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                            <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os setores!</Text>
+                    </View>
+                    }
+                   
                 </View>
             }
 
-            <Fab onPress={() => navigation.navigate('cadastro_setores')} />
+            <Fab onPress={() => handlesCreateSector() } />
         </View>
     );
 }

@@ -1,10 +1,7 @@
-import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { CameraView } from "expo-camera";
+import { ActivityIndicator, FlatList, Modal, Text, TouchableOpacity, View } from "react-native";
 import useApi from "../../../services/api";
-import { AlertType, CustomAlert } from "../../../components/custom-alert/custom-alert";
-import { delay } from "../../../utils/delay";
 
 type ModalProps = {
    setor:number,
@@ -33,7 +30,6 @@ export const ModalSeriesProducts = ( { visible, setVisible, setor ,produto   }: 
     async function findSeriesProdSector(  codeProduct:number, sector:number ) {
               try{
                     setIsLoadingDataLoteSeriesSector(true)
-                await delay(700, 'Busca de lote serie setor')
                     const responseLoteSeriesSector= await api.get('/lote-serie-setor/search', 
                         {
                             params: { 
@@ -53,7 +49,7 @@ export const ModalSeriesProducts = ( { visible, setVisible, setor ,produto   }: 
 
     useEffect(()=>{
                 findSeriesProdSector(produto, setor)
-    },[])
+    },[produto, setor])
 
     const renderserie = ({ item }: { item: type_lote_serie_setor }) => {
 
@@ -69,7 +65,7 @@ export const ModalSeriesProducts = ( { visible, setVisible, setor ,produto   }: 
             }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>produto: {item.produto}</Text>
- 
+                    <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>setor: {item.setor}</Text>
                 </View>
 
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }}>
@@ -104,7 +100,8 @@ export const ModalSeriesProducts = ( { visible, setVisible, setor ,produto   }: 
                     borderTopLeftRadius: 20,
                     borderTopRightRadius: 20,
                     overflow: 'hidden',
-                    elevation: 10
+                    elevation: 10,
+                    width: '100%'
                 }}>
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={{ fontSize: 15, color: '#FFF', fontWeight: 'bold' }}>Séries Produto : {produto} setor: {setor}</Text>

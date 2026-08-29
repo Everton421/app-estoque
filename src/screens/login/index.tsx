@@ -5,6 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../contexts/auth";
 import { useUsuario } from "../../database/queryUsuario/queryUsuario";
+import { usePermissoes, Permissao } from "../../database/queryPermissoes/queryPermissoes";
 import { restartDatabaseService } from "../../services/restartDatabase";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ export const Login = ({ navigation }: any) => {
 
     const api = useApi();
     const useQueryUsuario = useUsuario();
+    const useQueryPermissoes = usePermissoes();
     const useRestart = restartDatabaseService();
         const useMoment = configMoment();
     
@@ -35,7 +37,7 @@ export const Login = ({ navigation }: any) => {
     const [ healthApi, setHealthApi] = useState(false);
     const [ messagehealthApi, setMessagehealthApi] = useState('');
 
-    const { setLogado, setUsuario }: any = useContext(AuthContext);
+    const { setLogado, setUsuario, setPermissoes }: any = useContext(AuthContext);
 
     const[email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
@@ -65,6 +67,8 @@ const initialStateFilter: typefilterOrders = {
                 if (users[0].lembrar === "S") {
                     setLembrar(true);
                 }
+                const permissoesDB = await useQueryPermissoes.selectByUsuario(users[0].codigo);
+                setPermissoes(permissoesDB || []);
             }
         }
         buscaUser();
@@ -97,6 +101,24 @@ async function getuserApi(token:string){
   }     
 }   
 
+async function getPermissoesApi(token: string, codigo: number){
+      try {
+          const responsePermissoes = await api.get("/permissoes/usuario",
+            {
+              headers: {
+                token:  token
+              }
+            }) ;
+            const { permissoes } = responsePermissoes.data as { permissoes: Permissao[] };
+            if (Array.isArray(permissoes)) {
+                await useQueryPermissoes.deleteAll();
+                await useQueryPermissoes.insertMany(permissoes, codigo);
+                setPermissoes(permissoes.map((i)=> i.id));
+            }
+        } catch (e: any) {
+          console.log(`[X] Erro ao tentar consultar permissões`, e?.response?.data || e)
+        }
+}
     async function logar() {
         if (!email) return dispararAlerta("Erro", "É necessário informar o e-mail!", "error");
         if (!senha) return dispararAlerta("Erro", "É necessário informar a senha!", "error");
@@ -145,9 +167,10 @@ async function getuserApi(token:string){
                             AsyncStorage.setItem('filtroPedidos', JSON.stringify(initialStateFilter));
                     
                          setUsuario(userMobile);
- 
+  
                      await useQueryUsuario.deleteAll();
                      await useQueryUsuario.insert(userMobile);
+                     await getPermissoesApi(token, userMobile.codigo);
                      setLogado(true);
                      return;
                 }

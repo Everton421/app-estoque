@@ -1,25 +1,21 @@
-import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import Feather from '@expo/vector-icons/Feather';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Button, FlatList, Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../contexts/auth";
-import { usePedidos } from "../../database/queryPedido/queryPedido";
-import { receberPedidos } from "../../hooks/sync-pedidos/getOrders";
-import { enviaPedidos } from "../../hooks/sync-pedidos/sendOrders";
 import { configMoment } from "../../services/moment";
 
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { CustomHeader } from "../../components/custom-header/custom-header";
+import { BarcodeScanner } from "../../components/barcode-scanner";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
+import { delay } from "../../utils/delay";
 import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
-import { delay } from "../../utils/delay";
 
 export type pedido = {
     codigo?: number,
@@ -45,6 +41,11 @@ export type pedido = {
     tipo_os: number,
     tipo: 1 | 2 | 3 | 4 | 5 | 6, // 6 = (pedido de compra );  1 = Orçamento (gerado no sistema); 2 = Orçamento (gerado fora do sistema); 3 = Ordem de Serviço; 4 = Contrato de Prestação de Serviços; 5 = Devolução
     contato: string
+    usuario:number,
+    usuario_separcao:number
+    inicio_separacao:string 
+    fim_separacao:string
+    status_separacao: 'NAO INICIADA' | 'EM ANDAMENTO' | 'PAUSADA' | 'RECUSADA' | 'CONCLUIDA'
 }
 
 export type produto_pedido = {
@@ -90,7 +91,7 @@ export type branch = {
 
 
 
-export type filterOrdersituation = '*' | 'EA' | 'AI' | 'FI' | 'FP' | 'RE'  
+export type filterOrdersituation = '*' | 'EA' | 'AI' | 'FI' | 'FP' | 'RE' | 'BM'
 
 export type typefilterOrders = { 
     tipo: number, 
@@ -117,12 +118,17 @@ export type actionsFilterOrder =
 
 export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const useMoment = configMoment();
-
+    const { usuario, permissoes }: any = useContext(AuthContext);
+ 
+    const getInitialStatus = (): filterOrdersituation => {
+        return 'AI';
+    };
+ 
     const initialStateFilter: typefilterOrders = { 
         tipo: tipo, 
         data_inicial: useMoment.dataAtual(), 
         data_final: useMoment.dataAtual(), 
-        situacao: 'AI', 
+        situacao: getInitialStatus(),   
         filial: null, 
         limit: 1000000, 
         search: '', 
@@ -150,25 +156,15 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-
-    const [permission, requestPermission] = useCameraPermissions();
-
-    const useQuerypedidos = usePedidos();
-    const { usuario }: any = useContext(AuthContext);
-
     const [orcamentosRegistrados, setOrcamentosRegistrados] = useState([]);
     const [visibleModal, setVisibleModal] = useState<boolean>(false);
-    const [pesquisa, setPesquisa] = useState('');
     const [visible, setVisible] = useState(false);
 
-    const [visiblePostPedido, setVisiblePostPedido] = useState(false);
-    const [loadingPedidoId, setLoadingPedidoId] = useState<number>(0)
 
     const [orcamentoModal, setOrcamentoModal] = useState();
-    const usePostPedidos = enviaPedidos();
-    const useGetPedidos = receberPedidos();
     const [modalVisible, setModalvisible] = useState(false);
-    const [configLeitorPedido, setConfigLeitorPedido] = useState<'id_externo' | 'id_interno' | 'codigo'>('codigo');
+
+    const [ titleAlert , setTitleAlert ] = useState("");
 
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [messageAlert, setMessageAlert] = useState<string>('');
@@ -199,82 +195,33 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     }
 
 
-    async function getDefaultConfig() {
-        try {
-            const valuePedido: any = await AsyncStorage.getItem('configPedido');
-            if (valuePedido !== null) {
-                setConfigLeitorPedido(valuePedido);
-            }
-
-        } catch (e) {
-            console.log('erro ao tentar obter a configuração no AsyncStorage');
-        }
-    }
-
     useEffect(() => {
         getConfigMobileApi();
     }, [])
 
 
-    async function fyndOrderByBarcode(codeScanned: string) {
-        if (!configLeitorPedido) {
-            setMessageAlert(`É necessario configurar o leitor de busca dos pedidos.`)
-            setVisibleAlert(true)
-            setTypeAlert('warning')
-            return
-        }
-     
-            try {
-                setIsLoadingOrderData(true)
-                await delay(700)
-                const responseApiOrder = await api.get('/pedidos',
-                    {
-                        params: {
-                            [configLeitorPedido]: configLeitorPedido == 'codigo' ? Number(codeScanned) : codeScanned ,
-                            tipo,
-                            situacao: filterSearchOrders.situacao,
-                            orderBy:'id'
-                        }
-                    }
-                );
-                if (responseApiOrder.status === 200 && responseApiOrder.data?.length > 0) {
-                    let order = responseApiOrder.data[0];
-                    if (order.situacao === 'FI') {
-                        setMessageAlert(`O Pedido ${codeScanned} já foi faturado.`)
-                        setVisibleAlert(true)
-                        setTypeAlert('warning')
-                    } else {
-                        navigation.navigate('separacao', {
-                            codigo_pedido: order.codigo,
-                        });
-                    }
-                } else {
-                    setMessageAlert(`Não foi possivel localizar o pedido ${codeScanned}.`)
-                    setVisibleAlert(true)
-                    setTypeAlert('error')
-                }
-            } catch (e) {
-                console.log("[X] Erro ao buscar pedido por código de barras na api ", e)
-                setMessageAlert(`Erro ao buscar pedido ${codeScanned} na API.`)
-                setVisibleAlert(true)
-                setTypeAlert('error')
-            } finally {
-                setIsLoadingOrderData(false)
-            }
-    }
-
     async function fyndOrderBycode(code: number) {
             try {
                 setIsLoadingOrderData(true)
-                const responseApiOrder = await api.get(`/pedidos/${code}`,
-                 
-                );
+                await delay(500)
+
+
+                 const responseApiOrder = await api.get(`/pedidos/${code}` );
                 
-                if(responseApiOrder.status === 200 ){
+                 if(responseApiOrder.status === 200 ){ 
+                    const order = responseApiOrder.data;
+                        if( order.status_separacao == 'EM ANDAMENTO' || ( order.usuario_separacao != 0 && order.usuario_separacao != usuario.codigo  )){
+                            setVisibleAlert(true)
+                            setMessageAlert(`Pedido ${order.codigo} já esta em processo de separação por outro usuario !`)
+                            setTypeAlert('warning') 
+                            setTitleAlert("Atenção!")
+                            return
+                        }
+
                       navigation.navigate('separacao', {
                         codigo_pedido: code,
                     });
-                }
+                 }
 
             } catch (e) {
                 console.log("[X] Erro ao buscar pedidos na api ", e)
@@ -285,10 +232,9 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        fyndOrderByBarcode(data);
+        dispatch({ type: 'switch_search', paylod: data });
     }
         
-    
     
     const carregarFiltros = async () => {
             try {
@@ -312,7 +258,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
  
      useEffect(() => {
         AsyncStorage.setItem('filtroPedidos', JSON.stringify(filterSearchOrders));
-        console.log(filterSearchOrders)
     }, [ filterSearchOrders ])
  
 
@@ -326,12 +271,12 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             let queryOrder = { 
                 ...filterSearchOrders,
                 filial:  filterSearchOrders.filial?.codigo,
-                vendedor: filterSearchOrders.vendedor?.codigo
+                vendedor: filterSearchOrders.vendedor?.codigo,
+                usuario_separacao: usuario.codigo
             }
-            if (pesquisa) queryOrder.search = pesquisa
+            if (filterSearchOrders.search) queryOrder.search = filterSearchOrders.search
             const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
             setOrcamentosRegistrados(responseApiOrder.data);
-            setVisiblePostPedido(false);
         } catch (e) {
             console.log("[X] Erro ao buscar pedidos na api ", e)
         } finally {
@@ -351,41 +296,30 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
-    const getDefaultConfigRef = useRef(getDefaultConfig);
-    getDefaultConfigRef.current = getDefaultConfig;
 
     useFocusEffect(
         useCallback(() => {
             buscaRef.current();
-            getDefaultConfigRef.current();
         }, [])
     );
 
 
-
     async function selecionaOrcamentoModal(item: any) {
-           if (configMobileApi && configMobileApi.offline === 'N') {
-              try {
+            try {
                      setIsLoadingOrderData(true)
                     const responseApiOrder = await api.get(`/pedidos/${item.codigo}`);
-                 
-                       setOrcamentoModal(responseApiOrder.data);
+                    const dataOrderRequest =responseApiOrder.data as pedido;
+                       setOrcamentoModal(dataOrderRequest as any) ;
              
                 } catch (e) {
                     console.log("[X] Erro ao buscar pedidos na api ", e)
                 } finally {
                      setIsLoadingOrderData(false)
                 }
-
-           }else{
-              let resultCompleteOrder = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
-                 setOrcamentoModal(resultCompleteOrder);
-           }
     
         setVisibleModal(true)
     }
-
-
+    
 
     const getStatusParams = (situacao: string) => {
         switch (situacao) {
@@ -401,52 +335,21 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const getSeparacaoParams = (situacao_separacao: string, situacao: string) => {
         if (situacao === 'FI') {
-            return { color: '#FF9800', label: 'Fat. Integral' };
+            return { color: '#FF9800', label: 'Fat. Integral' , id:'FI'  };
         }
         switch (situacao_separacao) {
-            case 'I': return { color: '#4CAF50', label: 'Separado' };
-            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' };
+            case 'I': return { color: '#4CAF50', label: 'Separado' , id:'I'};
+            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' , id:'P'};
             case 'N':
-            default: return { color: '#F44336', label: 'Não Separado' };
+            default: return { color: '#F44336', label: 'N. Separado', id:'N' };
         }
     }
-
-    async function postPedido(item: any) {
-        try {
-            if(configMobileApi && configMobileApi.offline === 'S'){
-                setVisiblePostPedido(true);
-                setLoadingPedidoId(item.codigo);
-                let aux = await useQuerypedidos.selectCompleteOrderByCode(item.codigo);
-                useGetPedidos.getPedido(item.codigo);
-                let resultPostApi = await usePostPedidos.postItem([aux]);
-
-                if (resultPostApi.status === 200 && resultPostApi.data.results && resultPostApi.data.results.length > 0) {
-                    setLoadingPedidoId(0);
-                    setVisiblePostPedido(false);
-                    busca();
-                }
-            }  
-
-        } catch (e) {
-            console.log(e);
-            Alert.alert('', `Algo de inesperado ocorreu ao processar o pedido: ${item.id}!`, [
-                {
-                    text: 'ok', onPress: () => {
-                        setLoadingPedidoId(0);
-                        setVisiblePostPedido(false);
-                        busca();
-                    }
-                }
-            ])
-        }
-    }
+ 
 
     const ItemOrcamento = ({ item, pedido }: { item: any, pedido: any }) => {
         const status = getStatusParams(item.situacao);
         const separacao = getSeparacaoParams(item.situacao_separacao, item.situacao);
 
-        // Variável auxiliar para verificar se este pedido específico está carregando
-        const isSyncing = visiblePostPedido && loadingPedidoId === item.codigo;
 
         return (
             <View style={{
@@ -463,19 +366,40 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 borderLeftWidth: 5,
                 borderLeftColor: status.color
             }}>
+                       
+                 { /**     <View style={{ width: 12, height: 12, alignSelf:'flex-start',backgroundColor: status.color,bottom:10, borderRadius: 6 }} />*/}
 
+                <View style={{flex:1, justifyContent:"space-between", flexDirection:"row"  }}>
+                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
+                        ID: {item.id || item.codigo || item.id_externo }  
+                     </Text> 
+                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                                 <MaterialCommunityIcons name="store-check" size={20} color={   '#185FED'} /> Filial {  item.filial}    
+                           </Text>
+                       </View>
 
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
-                        ID: {item.id || item.codigo} {item.id_externo ? `\nExt: ${item.id_externo}` : ''}
-                    </Text>
+                   {
+                    item.tipo == 3 ?
+                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20',marginHorizontal:3, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                                Os <FontAwesome5 name="tools" size={16} color="#185FED" />
+                            </Text>
+                       </View>
+                    :
+                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20',marginHorizontal:3, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                              Venda <MaterialCommunityIcons name="cart-check" size={18} color="#185FED" />
+                            </Text>
+                       </View>
+                  }
+                </View>
+
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10, marginVertical:2 }}>
+                   
                     
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                        <View style={{ backgroundColor: status.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                            <Text style={{ color: status.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
-                                {status.label}
-                            </Text>
-                        </View>
+                 
                         <View style={{ backgroundColor: separacao.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                             <Text style={{ color: separacao.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
                                 {separacao.label}
@@ -483,6 +407,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         </View>
                     </View>
                 </View>
+
                 {
                     pedido.operacao == 'V' ? 
                     (
@@ -504,58 +429,163 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                     </View>
                 ) : <View style={{ marginBottom: 8 }} />}
 
-                <Text style={{ fontSize: 18, fontWeight: "bold", color: '#185FED', marginBottom: 10 }}>
-                    Total: R$ {Number(item?.total_geral).toFixed(2)}
-                </Text>
+
+                 {item.endereco ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <MaterialCommunityIcons name="location-enter" size={16} color="#757575" style={{ marginRight: 4 }} />
+                        <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{item.endereco}</Text>
+                    </View>
+                ) : <View style={{ marginBottom: 8 }} />}
+
+                    {
+                         permissoes.some(( i:any )=> i =='pedidos.ver_valores') ? (
+                      <Text style={{ fontSize: 18, fontWeight: "bold", color: '#185FED', marginBottom: 10 }}>Total: R$ {Number(item?.total_geral).toFixed(2)}  </Text>
+                         ) :(
+                            <MaterialIcons name="money-off" size={35} color="#185FED" />  
+                        )
+                    }
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Criado: {new Date(item?.data_cadastro).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
                     </Text>
-             
-
                     <Text style={{ fontSize: 11, color: '#999' }}>
                         Modificado: {new Date(item?.data_recadastro).toLocaleTimeString("pt-br", { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                 </View>
-                <View style={{flex:1, justifyContent:"space-between", flexDirection:"row"}}>
-                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                                 <MaterialCommunityIcons name="store-check" size={20} color={   '#185FED'} /> Filial {  item.filial}    
-                           </Text>
-                       </View>
-
-                   {
-                    item.tipo == 3 ?
-                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                                Os <FontAwesome5 name="tools" size={16} color="#185FED" />
-                            </Text>
-                       </View>
-                  
-                    :
-                        <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                             Venda <MaterialCommunityIcons name="cart-check" size={18} color="#185FED" />
-                            </Text>
-                       </View>
-
-                }
-                </View>
+        
 
                 {/* --- RODAPÉ DE AÇÕES --- */}
                 <View style={{  borderTopWidth: 1,top:10, borderTopColor: '#F0F0F0', paddingTop: 7, paddingBottom:5 }}>
                    
-                    <View style={{ flexDirection: 'row' , gap: 10 }}>
-                        <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
-                            <Feather name="eye" size={20} color="#185FED" />
-                        </TouchableOpacity>
+                    <View style={{ flexDirection: 'row' , gap: 10, justifyContent: 'space-between' }}>
+                       
 
-                        {item.situacao === 'AI' && (
-                            <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)} style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
-                                <Feather name="package" size={20} color="#185FED" />
-                            </TouchableOpacity>
-                        )}
+                        {item.situacao === 'AI' &&  
+                            (
+                                <>
+                                { item.status_separacao === 'NAO INICIADA' && 
+                                    <View style={{  flex:1}}>
+                                        <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                            <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  style={{ padding: 8, backgroundColor: '#E3F2FD'  , borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                               <Text style={{fontWeight:'bold', fontSize: 12, color: '#185FED' }}>Iniciar Separação</Text>
+                                                <Feather name="package" size={18} color="#185FED" />
+                                            </TouchableOpacity>
+                                                <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                                        <Feather name="eye" size={20} color="#185FED" />
+                                                </TouchableOpacity>
+                                            </View>
+                                    </View>
+
+                                } 
+
+                                { item.status_separacao === 'EM ANDAMENTO' && 
+                                    <View style={{  flex:1}}>
+                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <TouchableOpacity  style={{alignItems:"center", justifyContent:"center",flexDirection:"row", padding: 8, backgroundColor: '#1E9C43' + '10', borderRadius: 8 }}>
+                                            <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}> Em Separação</Text>
+                                              <Feather name="loader" size={20} color='#1E9C43' />
+                                        </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                                <Feather name="eye" size={20} color="#185FED" />
+                                              </TouchableOpacity>
+                                        </View>
+
+                                      <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <Text style={{ fontSize: 11, color: '#999'  }}>
+                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
+                                        </Text>
+                                            <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
+                                                Separador:  {item.usuario_separacao}
+                                            </Text>
+                                      </View>
+                                    </View>
+                                } 
+
+                                { item.status_separacao === 'PAUSADA' && 
+                                    
+                                   <View style={{  flex:1}}>
+                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <TouchableOpacity  onPress={() => fyndOrderBycode(pedido.codigo)} style={{ padding: 8, backgroundColor: '#1E9C43' + 10, borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                            <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}>Separação pausada</Text>
+                                            <Entypo name="controller-play" size={20} color='#1E9C43'  />
+                                        </TouchableOpacity>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                                <Feather name="eye" size={20} color="#185FED" />
+                                              </TouchableOpacity>
+                                      </View>
+
+                                     <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <Text style={{ fontSize: 11, color: '#999'  }}>
+                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
+                                        </Text>
+                                            <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
+                                                Separador:  {item.usuario_separacao}
+                                            </Text>
+                                      </View>
+                                    </View>
+                                 
+                                }
+                                  { item.status_separacao === 'RECUSADA' && 
+                                    <>
+                                      <View style={{  flex:1}}>
+                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                      
+
+                                           <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  style={{ padding: 8, backgroundColor: '#E3F2FD'  , borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                               <Text style={{fontWeight:'bold', fontSize: 12, color: '#185FED' }}>Iniciar Separação</Text>
+                                                <Feather name="package" size={18} color="#185FED" />
+                                            </TouchableOpacity>
+                                      
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                                <Feather name="eye" size={20} color="#185FED" />
+                                              </TouchableOpacity>
+                                      </View>
+                                      
+                                    { /**  
+                                       <Text style={{ fontSize: 11, color: '#b82121'  }}>
+                                            Separação recusada separador [ {item.usuario_separacao} ]
+                                        </Text> 
+                                    */}
+
+                                      <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                         <Text style={{ fontSize: 11, color: '#999'  }}>
+                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
+                                        </Text>
+                                            <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
+                                                Separador:  {item.usuario_separacao}
+                                            </Text>
+                                      </View>
+                                    </View>
+                                    </>
+
+                                }
+                                  { item.status_separacao === 'CONCLUIDA' && 
+                                        
+                                   <View style={{  flex:1}}>
+                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <TouchableOpacity  style={{ padding: 8, backgroundColor: '#1E9C43' + 10, borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                            <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}>Separação Concluída</Text>
+                                            <MaterialCommunityIcons name="package-variant-closed-check" size={24} color="#1E9C43" />
+                                        </TouchableOpacity>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                                <Feather name="eye" size={20} color="#185FED" />
+                                              </TouchableOpacity>
+                                      </View>
+
+                                     <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                        <Text style={{ fontSize: 11, color: '#999'  }}>
+                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
+                                        </Text>
+                                            <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
+                                                Separador:  {item.usuario_separacao}
+                                            </Text>
+                                      </View>
+                                    </View>
+                                }
+                             </>
+                            )
+                        }
                     </View>
                 
                 </View>
@@ -589,19 +619,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         }
     }
 
-    if (!permission) return null;
-
-    if (modalVisible && !permission.granted) {
-        return (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
-                    Você precisa liberar o acesso a camera para continuar!
-                </Text>
-                <Button onPress={requestPermission} title="Liberar acesso" />
-            </View>
-        );
-    }
-
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }} >
 
@@ -609,7 +626,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 visible={visibleAlert}
                 message={messageAlert}
                 onConfirm={() => setVisibleAlert(false)}
-                title=""
+                title={titleAlert}
                 type={typeAlert}
             />
             <CustomHeader
@@ -621,6 +638,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 searchPlaceholder="Pesquisar..."
                 showFilter={true}
                 onFilterPress={() => setVisible(true)}
+                searchLeftElement={
+                    <TouchableOpacity onPress={() => setModalvisible(true)}>
+                        <MaterialCommunityIcons name="barcode-scan" size={28} color="#185FED" />
+                    </TouchableOpacity>
+                }
             />
 
 
@@ -664,27 +686,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                 )}
                             />
 
-                            <TouchableOpacity
-                                onPress={() => { setModalvisible(true) }}
-                                style={{
-                                    backgroundColor: '#185FED',
-                                    width: 56, height: 56,
-                                    borderRadius: 28,
-                                    position: "absolute",
-                                    elevation: 6,
-                                    shadowColor: '#000',
-                                    shadowOffset: { width: 0, height: 3 },
-                                    shadowOpacity: 0.3,
-                                    right: 30,
-                                    bottom: 80,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    zIndex: 99
-                                }}
-                            >
-                                <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-                            </TouchableOpacity>
-
                             <View style={{
                                 backgroundColor: '#FFF',
                                 padding: 10,
@@ -725,27 +726,12 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                         </>
                     )
             }
-            <Modal visible={modalVisible} animationType="slide">
-                <CameraView
-                    style={{ flex: 1 }}
-                    facing="back"
-                    onBarcodeScanned={({ data }) => {
-                        if (data) handleCodeRead(data);
-                    }}
-                >
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                        <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                        <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-
-                        <TouchableOpacity
-                            onPress={() => setModalvisible(false)}
-                            style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                        >
-                            <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </CameraView>
-            </Modal>
+            {/* SCANNER DE CÓDIGO DE BARRAS */}
+            <BarcodeScanner
+                visible={modalVisible}
+                onClose={() => setModalvisible(false)}
+                onBarcodeScanned={(data) => handleCodeRead(data)}
+            />
 
         </View>
     )

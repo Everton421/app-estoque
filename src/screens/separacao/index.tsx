@@ -1,20 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View, TextInput, KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator, Button } from "react-native";
-import { usePedidos } from "../../database/queryPedido/queryPedido";
-import { AntDesign, Entypo, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { CustomHeader } from "../../components/custom-header/custom-header";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { AntDesign, Entypo, Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useItemsPedido } from "../../database/queryPedido/queryItems";
-import { configMoment } from "../../services/moment";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
-import { ApiConfig } from "../../types/type-config-api";
+import { CustomHeader } from "../../components/custom-header/custom-header";
+import { BarcodeScanner } from "../../components/barcode-scanner";
 import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../services/api";
-import { useFocusEffect } from "@react-navigation/native";
-import { ModalFilter } from "../acerto/components/modal-filter";
+import { configMoment } from "../../services/moment";
+import { ApiConfig } from "../../types/type-config-api";
+import { ModalExitSeparation } from "./components/modal-exit/modal-exit";
 import { ModalSeries } from "./components/modal-series/modal-series";
 import { ModalSetores } from "./components/modal-setores/modal-setores";
+import { AuthContext } from "../../contexts/auth";
 
 export interface Cliente {
   bairro: string;
@@ -75,6 +74,7 @@ export interface Produto {
   series: serie[]
   quantidade_separada?: number; 
 }
+type status_separacao = 'NAO INICIADA' | 'EM ANDAMENTO' | 'PAUSADA' | 'RECUSADA' | 'CONCLUIDA'
 
 export interface Pedido {
   cliente: Cliente;
@@ -106,6 +106,11 @@ export interface Pedido {
   total_servicos: number;
   veiculo: number;
   vendedor: number;
+   usuario:number,
+    usuario_separcao:number
+    inicio_separacao:string 
+    fim_separacao:string
+    status_separacao: 'NAO INICIADA' | 'EM ANDAMENTO' | 'PAUSADA' | 'RECUSADA' | 'CONCLUIDA'
 }
 
 type resultOrderItens = {
@@ -133,17 +138,13 @@ type resultOrderItens = {
 
 export const Separacao = ({ navigation, route }: any) => {
     
-    const useQuerypedidos = usePedidos();
     const { codigo_pedido } = route.params;
-
     const[data, setData] = useState<Pedido>();
-    const useQueryItems = useItemsPedido();
+    const useMoment = configMoment();
 
     const[listaSeparacao, setListaSeparacao] = useState<resultOrderItens[]>([]);
     const[modalVisible, setModalvisible] = useState(false);
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
-    const useMoment = configMoment();
-    const [permission, requestPermission] = useCameraPermissions();
 
     const [ visibleAlert , setVisibleAlert ] = useState(false);
     const [ messageAlert , setMessageAlert ] = useState<string>('');
@@ -151,8 +152,15 @@ export const Separacao = ({ navigation, route }: any) => {
     const [ titleAlert, setTitleAlert ] = useState<string>('');
     const [ configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [ isloadingOrderData, setIsLoadingOrderData] = useState(false);
+    const [ confirmVisible, setConfirmVisible ] = useState(false);
+    const [ pendingAction, setPendingAction ] = useState<status_separacao | null>(null);
+    const [ exitVisible, setExitVisible ] = useState(false);
+    const [ incompleteVisible, setIncompleteVisible ] = useState(false);
+    const [ observacao, setObservacao ] = useState('');
+    const allowExitRef = useRef(false);
+    const { usuario }: any = useContext(AuthContext);
 
-        const [ isVisibleSetores , setIsVisibleSetores ] = useState(false);
+    const [ isVisibleSetores , setIsVisibleSetores ] = useState(false);
 
     const [selectedProductForSeries, setSelectedProductForSeries] = useState<resultOrderItens | null>(null);
 
@@ -173,6 +181,8 @@ export const Separacao = ({ navigation, route }: any) => {
             setIsLoadingOrderData(false)
         }
     }
+
+    // busca as configurações do leitor no asyncStorage 
   async function getDefaultConfig() {
         try {
             let value: any = await AsyncStorage.getItem('configProduto');
@@ -183,36 +193,13 @@ export const Separacao = ({ navigation, route }: any) => {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
     }
+
      useEffect(() => {
          getConfigMobileApi();
      }, [])
 
 
-
-        async function findOrderMobileDatabase() {
-            if (codigo_pedido !== undefined) {
-                let orderData = await useQuerypedidos.selectCompleteOrderByCode(codigo_pedido) as Pedido;
-                if (!orderData) {
-                    setVisibleAlert(true)
-                    setMessageAlert(`Não foi possivel localizar o pedido ${codigo_pedido}.`)
-                    setTypeAlert('error') 
-                    setTitleAlert("Erro")
-                    return
-
-                }
-                setData(orderData);
-
-                if (orderData.produtos) {
-                    const produtosIniciais = orderData.produtos.map(p => ({
-                        ...p,
-                        quantidade: Number(p.quantidade) || 0,
-                        quantidade_separada: Math.round(Number(p.quantidade_separada) || 0)
-                    }));
-                    setListaSeparacao(produtosIniciais);
-                }
-            }
-        }
-
+     // consulta o pedido na api
         async function findOrderApi(){
              try {
                 setIsLoadingOrderData(true)
@@ -225,6 +212,13 @@ export const Separacao = ({ navigation, route }: any) => {
                         setTitleAlert("Erro")
                         return
                     }
+                    if( orderData.status_separacao == 'EM ANDAMENTO'){
+                            setVisibleAlert(true)
+                        setMessageAlert(`Pedido ${codigo_pedido} já esta em processo de separação!`)
+                        setTypeAlert('warning') 
+                        setTitleAlert("Atenção!")
+                        return
+                    }
 
                   setData(responseApiOrder.data);
                        if (orderData.produtos) {
@@ -235,7 +229,11 @@ export const Separacao = ({ navigation, route }: any) => {
                             }));
                             setListaSeparacao(produtosIniciais);
                         }
-
+                            await api.patch(`/pedidos/${codigo_pedido}`, {
+                                status_separacao: 'EM ANDAMENTO',
+                                inicio_separacao: useMoment.dataHoraAtual(),
+                                usuario_separacao: usuario.codigo
+                            })
             } catch (e) {
                 console.log(`[X] Erro ao buscar pedido ${codigo_pedido} da api `, e)
 
@@ -245,15 +243,10 @@ export const Separacao = ({ navigation, route }: any) => {
         }
 
 
-
         useEffect(() => {
             async function loadConfigAndOrder() {
                 const config = await getConfigMobileApi();
-                if (config?.offline === 'S') {
-                    await findOrderMobileDatabase();
-                } else {
                     await findOrderApi();
-                }
             }
             loadConfigAndOrder();
     }, [codigo_pedido, navigation]);
@@ -263,12 +256,20 @@ export const Separacao = ({ navigation, route }: any) => {
                 getDefaultConfig();
             }, [navigation])
         );
+
+     useEffect(() => {
+         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+             if (allowExitRef.current) return;
+             e.preventDefault();
+             setExitVisible(true);
+         });
+         return unsubscribe;
+     }, [navigation]);
     
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        const cleanCode = data.replace(/^0+/, '') || '0';
-        fyndBarcode(cleanCode);
+        fyndBarcode(data);
     }
 
     async function fyndBarcode(codigo: string) {
@@ -311,20 +312,22 @@ export const Separacao = ({ navigation, route }: any) => {
     };
 
 
-        async function saveOrderApi() {
+        async function saveOrderApi(status_separacao: status_separacao,usuario_separacao:number,  itensOverride?: resultOrderItens[]) {
             try {
-                const itens = listaSeparacao.map(item => ({
+                const itens = (itensOverride ?? listaSeparacao).map(item => ({
                     produto: item.codigo,
                     quantidade_separada: item.quantidade_separada || 0,
                     series: (item.series || []).filter(s => s.quantidade > 0)
                 }));
 
-                const payload = { itens , setor: data!.setor};
-                   const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
-  
+                const payload = { itens , setor: data!.setor, status_separacao, observacoes_separacao: observacao, usuario_separacao:usuario_separacao};
+                console.log(payload)
+             const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
+             
                    if (response.status >= 200 && response.status < 300) {
+                       allowExitRef.current = true;
                        setVisibleAlert(true);
-                       setMessageAlert("Separação salva com sucesso!");
+                       setMessageAlert(`Separação salva com sucesso! \n Status da separação: ${status_separacao}`);
                        setTypeAlert('success');
                        setTitleAlert("Sucesso");
                    } else {
@@ -339,6 +342,43 @@ export const Separacao = ({ navigation, route }: any) => {
                 setTypeAlert('error');
                 setTitleAlert("Erro");
             }
+    }
+
+
+    function openConfirmAction(action: status_separacao){
+        setPendingAction(action);
+        setConfirmVisible(true);
+    }
+
+    function executeSeparationAction(action: status_separacao){
+        if (action === 'CONCLUIDA' && !isOrderFullySeparated()) {
+            setIncompleteVisible(true);
+            return;
+        }
+        if (action === 'RECUSADA') {
+            const zeroedItems = listaSeparacao.map(p => ({ ...p, quantidade_separada: 0, series: [] }));
+            setListaSeparacao(zeroedItems);
+            // se a separacao for recusada é passado o usuario 0 na separação, para que o pedido apareça para outros usuarios separar
+            saveOrderApi('RECUSADA', 0 , zeroedItems);
+        } else {
+            saveOrderApi(action, usuario.codigo);
+        }
+    }
+
+    function isOrderFullySeparated(){
+        return listaSeparacao.length > 0 &&
+            listaSeparacao.every(item => Number(item.quantidade_separada || 0) >= item.quantidade);
+    }
+
+    function handleConfirmAction(){
+        setConfirmVisible(false);
+        if (pendingAction) executeSeparationAction(pendingAction);
+        setPendingAction(null);
+    }
+
+    function handleExitAction(action: status_separacao){
+        setExitVisible(false);
+        executeSeparationAction(action);
     }
 
 
@@ -456,19 +496,6 @@ export const Separacao = ({ navigation, route }: any) => {
         );
     };
 
-       if (!permission) return null;
-    
-        if (modalVisible && !permission.granted) {
-            return (
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
-                        Você precisa liberar o acesso a camera para continuar!
-                    </Text>
-                    <Button onPress={requestPermission} title="Liberar acesso" />
-                </View>
-            );
-        }
-    
         function handleSector(dataSector:any){
             setData(  (prev:any) =>( 
                 {
@@ -481,13 +508,38 @@ export const Separacao = ({ navigation, route }: any) => {
             console.log('Novo setor:', dataSector.codigo)
         }
 
+    const FooterActionButton = ({ label, icon, color, onPress }: { label: string; icon: React.ReactNode; color: string; onPress: () => void }) => (
+        <TouchableOpacity
+            activeOpacity={0.8}
+            style={{
+                flex: 1,
+                backgroundColor: color,
+                borderRadius: 10,
+                paddingVertical: 12,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 6,
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 3
+            }}
+            onPress={onPress}
+        >
+            {icon}
+            <Text style={{ color: '#FFF', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>{label}</Text>
+        </TouchableOpacity>
+    );
+
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
             
-            <CustomHeader 
+              <CustomHeader 
                 title="Separação" 
                 onBack={() => navigation.goBack()} 
-            />
+              />
 
               <CustomAlert 
                   visible={visibleAlert}
@@ -500,11 +552,60 @@ export const Separacao = ({ navigation, route }: any) => {
                   type={typeAlert}
               />
 
+              <CustomAlert
+                  visible={confirmVisible}
+                  title={
+                      pendingAction === 'RECUSADA' ? 'Confirmar Cancelamento'
+                      : pendingAction === 'PAUSADA' ? 'Confirmar Pausa'
+                      : 'Confirmar Conclusão'
+                  }
+                  message={
+                      pendingAction === 'RECUSADA'
+                          ? `Confirma o cancelamento da separação do pedido #${data?.codigo}? As quantidades separadas serão zeradas.`
+                          : pendingAction === 'PAUSADA'
+                          ? `Confirma a pausa da separação do pedido #${data?.codigo}?`
+                          : `Confirma a conclusão da separação do pedido #${data?.codigo}?`
+                  }
+                  type="warning"
+                  confirmText={pendingAction === 'RECUSADA' ? 'Sim, cancelar' : 'Sim'}
+                  cancelText="Voltar"
+                  onConfirm={handleConfirmAction}
+                  onCancel={() => setConfirmVisible(false)}
+              />
+
+              <CustomAlert
+                  visible={incompleteVisible}
+                  title="Separação incompleta"
+                  message="Há itens com separação incompleta. Deseja salvar como PAUSADA para retomar depois?"
+                  type="warning"
+                  confirmText="pausar separação"
+                  cancelText="Manter status"
+                  onConfirm={() => {
+                      setIncompleteVisible(false);
+                      saveOrderApi('PAUSADA', usuario.codigo);
+                  }}
+                  onCancel={
+                    () =>{
+                         setIncompleteVisible(false)
+
+                      saveOrderApi( data && data?.status_separacao || 'PAUSADA' , usuario.codigo);
+                    }
+                  }
+              />
+
               <ModalSetores
               selectSector={handleSector}
               setVisible={setIsVisibleSetores}
               visible={isVisibleSetores}
               />                
+
+              <ModalExitSeparation
+                  visible={exitVisible}
+                  onConclude={() => handleExitAction('CONCLUIDA')}
+                  onPause={() => handleExitAction('PAUSADA')}
+                  onCancel={() => handleExitAction('RECUSADA')}
+                  onContinue={() => setExitVisible(false)}
+              />
 
             {
             isloadingOrderData ? 
@@ -514,9 +615,9 @@ export const Separacao = ({ navigation, route }: any) => {
                                     </View>
                                 )
             : 
-           data && !isloadingOrderData &&(
+                data && !isloadingOrderData &&(
             <>
-                    <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15, marginBottom: 15, padding: 15, elevation: 2 }}>
+                    <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15,   marginBottom: 15, padding: 15, elevation: 2 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                         
                             <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
@@ -528,30 +629,29 @@ export const Separacao = ({ navigation, route }: any) => {
                    <TouchableOpacity
                         style={{ 
                             backgroundColor: '#185FED', 
-                            borderRadius: 12, 
+                            borderRadius: 7, 
                             paddingVertical: 5, 
                             flexDirection: 'row', 
                             justifyContent: 'space-around',
                             alignItems: 'center', 
+                            elevation:5,
                             gap: 10 
                         }}
                         onPress={ ()=> setIsVisibleSetores(true)} >
-                            <AntDesign name="caret-down" size={35} color="#FFF" />
+                            <AntDesign name="caret-down" size={25} color="#FFF" />
 
                         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}> Setor: {data.setor}</Text>
-                         <Entypo name="location" size={30} color="#FFF" />
+                         <Entypo name="location" size={20} color="#FFF" />
                     </TouchableOpacity>
-            
-
                                     
                         {
                             data.tipo == 6 ?
-                             <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                             <Text style={{ fontSize: 15,top:5, color: '#555', marginBottom: 4 }}>
                                <Text style={{ fontWeight: 'bold' }}>Fornecedor:</Text> { data.fornecedor && data.fornecedor?.nome}
                              </Text>
                             
                             :
-                             <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                             <Text style={{ fontSize: 15, top:5, color: '#555', marginBottom: 4 }}>
                                <Text style={{ fontWeight: 'bold' }}>Cliente:</Text> {  data.cliente && data.cliente?.nome}
                              </Text>
                         }                                    
@@ -573,6 +673,27 @@ export const Separacao = ({ navigation, route }: any) => {
                      <Text style={{ fontSize: 14, color: '#666' }}>
                             <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
                         </Text>
+
+                    <View style={{ marginTop: 10 }}>
+                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold', marginBottom: 4 }}>Observação:</Text>
+                        <TextInput
+                            style={{
+                                backgroundColor: '#F5F7FA',
+                                borderRadius: 8,
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                fontSize: 13,
+                                color: '#333',
+                                maxHeight: 60,
+                                textAlignVertical: 'top'
+                            }}
+                            placeholder="Adicionar observação na separação..."
+                            placeholderTextColor="#999"
+                            value={observacao}
+                            onChangeText={setObservacao}
+                            multiline
+                        />
+                    </View>
                     </View>
                     
 
@@ -591,31 +712,50 @@ export const Separacao = ({ navigation, route }: any) => {
                 />
 
                 {/* BOTÃO FIXO NO RODAPÉ */}
-                <View style={{ 
-                    position: 'absolute', 
-                    bottom: 0, left: 0, right: 0, 
-                    backgroundColor: '#FFF', 
-                    padding: 15, 
-                    elevation: 10, 
-                    borderTopWidth: 1, 
-                    borderTopColor: '#E0E0E0' 
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#FFF',
+                    padding: 12,
+                    paddingBottom: 20,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4
                 }}>
-                    <TouchableOpacity
-                        style={{ 
-                            backgroundColor: '#185FED', 
-                            borderRadius: 12, 
-                            paddingVertical: 15, 
-                            flexDirection: 'row', 
-                            justifyContent: 'center', 
-                            alignItems: 'center', 
-                            gap: 10 
-                        }}
-                        onPress={saveOrderApi}
-                    >
-                        <MaterialCommunityIcons name="check-all" size={24} color="#FFF" />
-                        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Concluir Separação</Text>
-                    </TouchableOpacity>
+
+                    <FooterActionButton
+                        label="Concluir"
+                        color="#1E9C43"
+                        icon={<Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />}
+                        onPress={() => openConfirmAction('CONCLUIDA')}
+                    />
+
+                    <FooterActionButton
+                        label="Pausar"
+                        color="#185FED"
+                        icon={<Feather name="pause-circle" size={18} color="#FFF" />}
+                        onPress={() => openConfirmAction('PAUSADA')}
+                    />
+
+                    <FooterActionButton
+                        label="Cancelar"
+                        color="#9C0404"
+                        icon={<AntDesign name="close-circle" size={18} color="#FFF" />}
+                        onPress={() => openConfirmAction('RECUSADA')}
+                    />
+
                 </View>
+
 
                 {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
                 <TouchableOpacity
@@ -640,28 +780,12 @@ export const Separacao = ({ navigation, route }: any) => {
                 </TouchableOpacity>
             </>
             )}
-            {/* MODAL CÂMERA */}
-            <Modal visible={modalVisible} animationType="slide">
-                <CameraView
-                    style={{ flex: 1 }}
-                    facing="back"
-                    onBarcodeScanned={({ data }) => {
-                        if (data) handleCodeRead(data);
-                    }}
-                >
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                        <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                        <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-
-                        <TouchableOpacity
-                            onPress={() => setModalvisible(false)}
-                            style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                        >
-                            <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </CameraView>
-            </Modal>
+            {/* SCANNER DE CÓDIGO DE BARRAS */}
+            <BarcodeScanner
+                visible={modalVisible}
+                onClose={() => setModalvisible(false)}
+                onBarcodeScanned={(data) => handleCodeRead(data)}
+            />
            {
                  data && data.tipo != 6 &&
             <ModalSeries

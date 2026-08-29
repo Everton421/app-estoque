@@ -17,6 +17,16 @@ export async function construtor(db: SQLiteDatabase) {
 
     CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
 
+     CREATE TABLE IF NOT EXISTS permissoes (
+      codigo INTEGER NOT NULL,
+      id TEXT NOT NULL,
+      descricao TEXT NOT NULL,
+      usuario INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (usuario, codigo)
+     );
+
+    CREATE INDEX IF NOT EXISTS idx_permissoes_usuario ON permissoes(usuario);
+
      CREATE TABLE IF NOT EXISTS produtos (
       codigo          INTEGER PRIMARY KEY NOT NULL,
       id          TEXT,   

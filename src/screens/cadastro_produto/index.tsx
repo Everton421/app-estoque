@@ -13,6 +13,8 @@ import { RenderModalMarcas } from "./_components/modal-marcas";
 import { typeFotoProduto } from "./types/fotos";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 import { isAxiosError } from "axios";
+import { AuthContext } from "../../contexts/auth";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 
 
 type ApiConfig = {
@@ -91,6 +93,11 @@ type ApiConfig = {
         ;
 
 export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
+   
+           const { usuario, permissoes }: any = useContext(AuthContext);
+   
+    const [ isEnabledViewerValues] =useState( verifyUserPermission('produtos','ver_valores',permissoes));
+
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [messageAlert, setMessageAlert] = useState('');
     const [titleAlert, setTitleAlert] = useState('');
@@ -107,7 +114,7 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
 
     const useMoment = configMoment();
     
-    
+
         function handleEditPayloadProduct(state:typePayloadProduct, action:actionEditPayloadProduct ){
              switch (action.type) {
 
@@ -393,7 +400,10 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                     <Text style={styles.infoBoxValue} numberOfLines={1}>{payloadProduct.id || null}</Text>
                                 </View>
                                 <View style={styles.infoBox}>
-                                    <Text style={styles.infoBoxLabel}>R$</Text>
+                                    <Text style={styles.infoBoxLabel}>R$ </Text>
+                                    { 
+                                        isEnabledViewerValues ? 
+
                                     <TextInput
                                         onChangeText={(v) => dispatch({ type:'switch_preco' ,payload: v} ) }
                                         style={styles.numericInput}
@@ -402,6 +412,11 @@ export const Cadastro_produto: React.FC = ({ route, navigation }: any) => {
                                         placeholder="0,00"
                                         placeholderTextColor={colors.placeholder}
                                     />
+                                        :
+                                       <MaterialIcons name="money-off" size={20} color="#185FED" />  
+                                }
+
+
                                 </View>
                             </View>
                         </View>

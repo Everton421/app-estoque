@@ -17,7 +17,10 @@ type CustomHeaderProps = {
     onFilterPress?: () => void;
     
     // --- Elemento extra caso queira colocar um ícone na direita superior ---
-    rightElement?: React.ReactNode; 
+    rightElement?: React.ReactNode;
+
+    // --- Elemento à esquerda dentro da barra de busca ---
+    searchLeftElement?: React.ReactNode;
 }
 
 export const CustomHeader = ({
@@ -29,7 +32,8 @@ export const CustomHeader = ({
     searchPlaceholder = "Pesquisar...",
     showFilter = false,
     onFilterPress,
-    rightElement
+    rightElement,
+    searchLeftElement
 }: CustomHeaderProps) => {
 
     const hasBottomRow = showSearch || showFilter;
@@ -88,7 +92,7 @@ export const CustomHeader = ({
                             paddingHorizontal: 10,
                             height: 45
                         }}>
-                            <Ionicons name="search" size={20} color="#185FED" style={{ marginRight: 8 }} />
+                            {searchLeftElement && <View style={{ marginRight: 8 }}>{searchLeftElement}</View>}
                             <TextInput
                                 style={{ flex: 1, color: '#333', fontWeight: '500' }}
                                 value={searchValue}
@@ -96,6 +100,8 @@ export const CustomHeader = ({
                                 placeholder={searchPlaceholder}
                                 placeholderTextColor="#999"
                             />
+                            <Ionicons name="search" size={20} color="#185FED" style={{ marginRight: 8 }} />
+
                         </View>
                     )}
 

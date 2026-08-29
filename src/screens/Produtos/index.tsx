@@ -1,31 +1,45 @@
-import { View, Text, TextInput, FlatList, Modal, Image, TouchableOpacity, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
-import { produto, useProducts } from "../../database/queryProdutos/queryProdutos";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFotosProdutos } from "../../database/queryFotosProdutos/queryFotosProdutos";
-import { useProdutoSetores } from "../../database/queryProdutoSetor/queryProdutoSetor";
-import { Entypo } from "@expo/vector-icons";
-import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
+import { BarcodeScanner } from "../../components/barcode-scanner";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { AuthContext } from "../../contexts/auth";
 import useApi from "../../services/api";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 import { delay } from "../../utils/delay";
+import { prodSectorGroupedRequest } from "../novo_requerimento/components/produtos_requerimento";
 import { ModalSeriesProducts } from "./components/modal-series-product";
+ 
 
-type selectCompleteProdSector = {
-    data_recadastro: string,
-    descricao_produto: string,
-    descricao_setor: string,
-    estoque: number,
-    produto: number,
-    setor: number,
-    local_produto: string,
-    local1_produto: string,
-    local2_produto: string,
-    local3_produto: string,
-    local4_produto: string
+type productSectorSearchGrouped = {
+    produto: productSearchGrouped
+    setor:sectorSearchGrouped[]
 }
+
+type sectorSearchGrouped = {
+        codigo: number,
+         descricao: string,
+         ativo: "S" | "N",
+         id: string,
+         estoque: number,
+         local_produto: string,
+         local1_produto: string,
+         local2_produto: string,
+         local3_produto: string,
+         local4_produto: string
+}
+
+type productSearchGrouped =  { 
+       codigo: number,
+       descricao: string ,
+       id: string,
+       controle_lote_serie: "S" | "N"
+    } 
+
 
 type ApiConfig = {
         codigo?:number
@@ -37,61 +51,49 @@ type ApiConfig = {
         offline: 'S' | 'N'
     }
 
-    type requestloteSeriesSetor=  {
-     setor : number,
-     produto : number,
-     lote_serie : number,
-     estoque : number,
-     lote : null | string,
-     serie : null | string
-  }
+ 
 
 
 export function Produtos({ navigation }: any) {
-
-    const useQueryConfigApi = queryConfig_api();
+        const {    permissoes }: any = useContext(AuthContext);
 
     const [pesquisa, setPesquisa] = useState< string >('');
     const [dados, setDados] = useState<any[]>([]);
     
     const [visibleModalFilter, setVisibleModalFilter] = useState(false);
+    const [visibleScanner, setVisibleScanner] = useState(false);
     const [limitQuery, setLimitQuery] = useState(25); // Valor padrão inicial
     
     const [visibleModalSetores, setVisibleModalSetores] = useState(false);
-    const [dataProdSector, setDataProdSector] = useState<selectCompleteProdSector[]>([])
+    
+    const [dataProdSector, setDataProdSector] = useState<productSectorSearchGrouped[]>([])
+ 
     const [loadingItemModalSetor, setLoadingItemModalSetor] = useState(false);
     const [ isLoadingDataProduct , setIsLoadingDataProduct ] = useState(false);
 
-    const [ dataLoteSeriesSector , setDataLoteSeriesSector ] = useState<requestloteSeriesSetor[]>();
-    const [ isLoadingDataLoteSeriesSector , setIsLoadingDataLoteSeriesSector ] = useState(false);
     const [ isVisibleModalLoteSeriesSector , setIsVisibleModalLoteSeriesSector ] = useState(false);
     const [ productSectorSelectedViewerLoteSerie, setProductSectorSelectedViewerLoteSerie ] = useState<{ produto:number, setor:number } | null>(null);
 
- const [refreshing, setRefreshing] = useState(false);
-
+    const [refreshing, setRefreshing] = useState(false);
     const [ configMobileApi , setConfigMobileApi ] = useState<ApiConfig>();
     const api = useApi();
 
+        const [ isEnabledViewerValues ] =useState( verifyUserPermission('produtos', 'ver_valores', permissoes))
 
-
-    async function getConfigMobileApi(){
-        try{
-               setIsLoadingDataProduct(true)
-        const resultConfigMobileApi  = await useQueryConfigApi.select(1);
-        if(resultConfigMobileApi && resultConfigMobileApi.length >  0 ){
-            setConfigMobileApi(resultConfigMobileApi[0]);
-        }
-        }catch(e){
-        }finally{
-             setIsLoadingDataProduct(false)
-        }
-    }
-
-    useEffect(()=>{
-      getConfigMobileApi();
-    },[])
-
-    
+        const [ isEnabledViewerProducts ] =useState( verifyUserPermission('produtos', 'ler', permissoes))
+        const [ isEnabledCreateProducts ] =useState( verifyUserPermission('produtos', 'criar', permissoes))
+        const [ isEnabledEditProducts ] =useState( verifyUserPermission('produtos', 'editar', permissoes))
+   
+          
+              
+           const [isVisibleAlert, setIsVisibleAlert] = useState(false);
+           const [titleAlert, setTitleAlert] = useState('');
+           const [messageAlert, setMessageAlert] = useState('');
+           const [typeAlert, setTypeAlert] = useState<AlertType>('success');
+           const [cancelText, setCancelText] = useState<string | undefined>();
+           const [confirmText, setConfirmText] = useState<string | undefined>();
+       
+       
 
     async function filterByDescription() {
               try{
@@ -131,19 +133,19 @@ export function Produtos({ navigation }: any) {
      }, [pesquisa, limitQuery, configMobileApi]) 
 
   
-
-
+// --- BUSCA O PRODUTO NOS SETORES ---  
     async function viewItemSector(item: any) {
         setVisibleModalSetores(true)
 
           try{
                 setLoadingItemModalSetor(true)
-            const responseProduct = await api.get('/produtos-setor/search', {
+            const responseProduct = await api.get('/produtos-setor/search-grouped', {
                 params:{
                    produto:item.codigo
                 }
             });
-         setDataProdSector(responseProduct?.data);
+         setDataProdSector(responseProduct.data)
+            console.log(responseProduct.data)
             }catch(e){
                     console.log( "[X] Erro ao buscar produtos nos setores da api ",e )
             }finally{
@@ -157,12 +159,31 @@ export function Produtos({ navigation }: any) {
                 filterByDescription()
         setRefreshing(false);
     };
+        /// 
+         function handleEditProduct (item:any){
+                if( isEnabledEditProducts){
+                          navigation.navigate('cadastro_produto', {
+                        codigo_produto: item.codigo
+                      })
+                  }else{
+                   setIsVisibleAlert(true);
+                   setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert("Você não tem permissão para editar produtos!");
+                   }
+                }
 
-    function handleSelect(item: any) {
-        navigation.navigate('cadastro_produto', {
-            codigo_produto: item.codigo
-        })
-    }
+        function handleCreateProduct (){
+                    if( isEnabledCreateProducts){
+                        navigation.navigate('cadastro_produto')
+                    }else{
+                        setIsVisibleAlert(true);
+                        setTitleAlert("Atenção!");
+                        setTypeAlert('warning');
+                        setMessageAlert("Você não tem permissão para criar novos produtos!");
+                    }
+                }
+
 
 
     // --- RENDER ITEM (MANTIDO IGUAL AO ANTERIOR) ---
@@ -171,7 +192,7 @@ export function Produtos({ navigation }: any) {
         const preco = item.preco ? item.preco : 0;
 
         return (
-            <TouchableOpacity onPress={() => handleSelect(item)} style={styles.productCard}>
+            <TouchableOpacity onPress={() => handleEditProduct(item)} style={styles.productCard}>
                 <View style={styles.imageContainer}>
                     {hasImage ? (
                         <Image source={{ uri: `${item.fotos[0].link}` }} style={styles.productImage} resizeMode="cover" />
@@ -184,13 +205,18 @@ export function Produtos({ navigation }: any) {
                 <View style={styles.contentContainer}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.textCode} numberOfLines={1}> {item.id ? "Id. "+ item.id : "Cód. "+item.codigo }</Text>
-                        <Text style={styles.textPrice}>R$ {Number(preco)?.toFixed(2) || 0}</Text>
+                               {
+                                    isEnabledViewerValues  ?  
+                                     <Text style={styles.textPrice}> R$ {Number(preco)?.toFixed(2) || 0} </Text>
+                                        : 
+                                       <MaterialIcons name="money-off" size={25} color="#185FED" />  
+                                }
                     </View>
                     <Text numberOfLines={2} style={styles.textDescription}>{item.descricao}</Text>
                     <View style={styles.cardFooter}>
                         <View style={styles.stockInfo}>
-                            <Text style={styles.stockLabel}>Estoque Total</Text>
-                            <Text style={styles.stockValue}>{Number(item.estoque)?.toFixed(2) || 0}</Text>
+                            <Text style={styles.stockLabel}>Unidade</Text>
+                            <Text style={styles.stockValue}> { item.unidade_medida ? item.unidade_medida : null}</Text>
                         </View>
                         <TouchableOpacity style={styles.btnSector} onPress={() => { viewItemSector(item) }}>
                             <Entypo name="archive" size={18} color="#185FED" />
@@ -202,9 +228,10 @@ export function Produtos({ navigation }: any) {
         )
     }
 
-    // --- RENDER SECTOR ITEM (MANTIDO) ---
-    function renderProdSectorItem({ item }: { item: selectCompleteProdSector }) {
-        const renderLocal = (label: string, value: string) => {
+   
+
+      function RenderProdSector({ data }: { data: prodSectorGroupedRequest}) {
+         const renderLocal = (label: string, value: string) => {
             if (!value) return null;
             return (
                 <View style={styles.localRow}>
@@ -214,34 +241,45 @@ export function Produtos({ navigation }: any) {
             )
         };
         return (
-            <TouchableOpacity style={styles.sectorCard}
-                onPress={()=>{
-                       setIsVisibleModalLoteSeriesSector(true)
-                    setProductSectorSelectedViewerLoteSerie({produto: item.produto, setor:item.setor})
-                }}
-            >
-                <View style={styles.sectorLeft}>
-                    <View style={styles.sectorHeader}>
-                        <MaterialIcons name="storefront" size={20} color="#555" />
-                        <Text style={styles.sectorTitle}>{item.descricao_setor}</Text>
+             <>
+
+           {
+            data.setor.map( (sector)=>{
+            return (    
+                <TouchableOpacity key={sector.codigo} style={styles.sectorCard}
+                    onPress={()=>{
+                         setIsVisibleModalLoteSeriesSector(true)
+                      setProductSectorSelectedViewerLoteSerie({produto:   data.produto.codigo, setor: sector.codigo})
+                      console.log({produto:   data.produto.codigo, setor: sector.codigo})
+                    }}
+                >
+
+                    <View style={styles.sectorLeft}>
+                        <View style={styles.sectorHeader}>
+                            <MaterialIcons name="storefront" size={20} color="#555" />
+                            <Text style={styles.sectorTitle}>{sector.descricao}</Text>
+                        </View>
+                        <Text style={styles.sectorCode}>Cód. Setor: {sector.codigo}</Text>
+
+                        <View style={styles.locaisContainer}>
+                            {renderLocal("Local", sector.local_produto)}
+                            {renderLocal("Loc. 1", sector.local1_produto)}
+                            {renderLocal("Loc. 2", sector.local2_produto)}
+                            {renderLocal("Loc. 3", sector.local3_produto)}
+                            {renderLocal("Loc. 4", sector.local4_produto)}
+                        </View>
                     </View>
-                    <Text style={styles.sectorCode}>Cód. Setor: {item.setor}</Text>
-                    <View style={styles.locaisContainer}>
-                        {renderLocal("Local", item.local_produto)}
-                        {renderLocal("Loc. 1", item.local1_produto)}
-                        {renderLocal("Loc. 2", item.local2_produto)}
-                        {renderLocal("Loc. 3", item.local3_produto)}
-                        {renderLocal("Loc. 4", item.local4_produto)}
+                    <View style={styles.sectorRight}>
+                        <View style={styles.sectorStockBadge}>
+                            <Text style={styles.sectorStockValue}>{sector.estoque}</Text>
+                            <Text style={styles.sectorStockLabel}>UN</Text>
+                        </View>
                     </View>
-                </View>
-                <View style={styles.sectorRight}>
-                    <View style={styles.sectorStockBadge}>
-                        <Text style={styles.sectorStockValue}>{item.estoque}</Text>
-                        <Text style={styles.sectorStockLabel}>UN</Text>
-                    </View>
-                </View>
-            </TouchableOpacity>
-        )
+                </TouchableOpacity>
+            )
+             })
+           }
+        </>)
     }
 
     // --- COMPONENTE INTERNO: OPÇÃO DO FILTRO ---
@@ -263,9 +301,11 @@ export function Produtos({ navigation }: any) {
         )
     }
 
+
+
     return (
         <View style={styles.container}>
-            
+                
             {/* --- HEADER --- */}
             <View style={styles.header}>
                 <View style={styles.headerTop}>
@@ -278,14 +318,20 @@ export function Produtos({ navigation }: any) {
 
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBox}>
-                        <Ionicons name="search" size={20} color="#185FED" style={{marginRight: 8}} />
+                          <TouchableOpacity
+                                             onPress={() => setVisibleScanner(true)}
+                                        >   
+                                              <MaterialCommunityIcons name="barcode-scan" size={30} color="#185FED" />
+                               </TouchableOpacity>
                         <TextInput
-                            style={styles.searchInput}
+                            style={[styles.searchInput, { marginLeft:5}]}
                             onChangeText={(value) => setPesquisa(value)}
                             placeholder="Pesquisar por descrição..."
                             placeholderTextColor="#999"
                             value={pesquisa}
                         />
+                        <Ionicons name="search" size={20} color="#185FED" style={{marginRight: 8}} />
+
                     </View>
                     
                     {/* BOTÃO DE FILTRO AGORA ABRE O MODAL */}
@@ -295,14 +341,19 @@ export function Produtos({ navigation }: any) {
                 </View>
             </View>
 
-            {/* --- LISTA PRINCIPAL --- */}
-            {
+
+ 
+
+
+            {/** LISTA PRINCIPAL   */}
+            { 
                  isLoadingDataProduct ? 
                  <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
                      <ActivityIndicator size={50} color="#185FED" /> 
                  </View>
                 
                 :
+          isEnabledViewerProducts ? 
             <FlatList
                 data={dados}
                 renderItem={(item) => renderItem(item)}
@@ -318,12 +369,17 @@ export function Produtos({ navigation }: any) {
                                                             />
                                    }
             />
+            :
+                 <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                        <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os produtos!</Text>
+                 </View>
                  
-            }
+             }
             {/* --- BOTÃO FLUTUANTE --- */}
+ 
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => navigation.navigate('cadastro_produto')}
+                onPress={() => handleCreateProduct()}
             >
                 <MaterialIcons name="add" size={40} color="#FFF" />
             </TouchableOpacity>
@@ -368,7 +424,7 @@ export function Produtos({ navigation }: any) {
                 </View>
             </Modal>
 
-            {/* --- MODAL DE SETORES (MANTIDO) --- */}
+            {/* --- MODAL DE SETORES   --- */}
             <Modal
                 visible={visibleModalSetores}
                 transparent={true}
@@ -379,8 +435,11 @@ export function Produtos({ navigation }: any) {
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle} numberOfLines={1}>
-                                {dataProdSector && dataProdSector[0] ? " Produto: "+dataProdSector[0].produto : 'Detalhes do Setor'}
+                                {dataProdSector && dataProdSector[0] ? " Produto: "+dataProdSector[0].produto.descricao : 'Detalhes do Setor'}
                             </Text>
+                            <Text style={styles.modalTitle} numberOfLines={1}>
+                            </Text>
+
                             <TouchableOpacity onPress={() => setVisibleModalSetores(false)} style={styles.modalCloseBtn}>
                                 <Ionicons name="close" size={24} color="#FFF" />
                             </TouchableOpacity>
@@ -395,9 +454,9 @@ export function Produtos({ navigation }: any) {
                                         <Text style={styles.emptyStateText}>Produto não vinculado a nenhum setor.</Text>
                                     )}
                                     <FlatList
-                                        data={dataProdSector}
-                                        renderItem={(item) => renderProdSectorItem(item)}
-                                        keyExtractor={(item: any) => item.setor.toString()}
+                                          data={dataProdSector}
+                                          renderItem={({ item }) =>  <RenderProdSector data={item} />}
+                                        keyExtractor={( item ) => item.setor[0].codigo.toString()}
                                         contentContainerStyle={{ paddingBottom: 20 }}
                                     />
                                 </>
@@ -406,14 +465,33 @@ export function Produtos({ navigation }: any) {
                     </View>
                 </View>
             </Modal>
+              
+              {/** Alerta  */}
+                <CustomAlert
+                       visible={isVisibleAlert}
+                       message={messageAlert}
+                       onConfirm={() => setIsVisibleAlert(false)}
+                       onCancel={() => setIsVisibleAlert(false)}
+                       title={titleAlert}
+                       type={typeAlert}
+                       cancelText={cancelText}
+                       confirmText={confirmText}
+                   />
+
             {/* --- MODAL SERIES DO PRODUTO --- */}
-       {productSectorSelectedViewerLoteSerie && 
             <ModalSeriesProducts
-                produto={productSectorSelectedViewerLoteSerie?.produto}
+                produto={productSectorSelectedViewerLoteSerie?.produto!}
                 setVisible={setIsVisibleModalLoteSeriesSector}
-                setor={productSectorSelectedViewerLoteSerie?.setor}
+                setor={productSectorSelectedViewerLoteSerie?.setor!}
                 visible={isVisibleModalLoteSeriesSector}
-            />}
+            /> 
+
+            {/* --- SCANNER DE CÓDIGO DE BARRAS --- */}
+            <BarcodeScanner
+                visible={visibleScanner}
+                onClose={() => setVisibleScanner(false)}
+                onBarcodeScanned={(data) => setPesquisa(data)}
+            />
 
         </View>
     )
@@ -459,7 +537,8 @@ const styles = StyleSheet.create({
     sectorStockValue: { fontSize: 22, fontWeight: 'bold', color: '#185FED' },
     sectorStockLabel: { fontSize: 10, color: '#999' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    modalContent: { width: '90%', height: '80%', backgroundColor: '#F5F7FA', borderRadius: 15, overflow: 'hidden' },
+    
+    modalContent: { flex:1, marginTop: 45, width: '100%', backgroundColor: '#F5F7FA', borderTopRightRadius: 15, borderTopLeftRadius: 15, overflow: 'hidden' },
     modalHeader: { backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     modalTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 10 },
     modalCloseBtn: { padding: 4 },

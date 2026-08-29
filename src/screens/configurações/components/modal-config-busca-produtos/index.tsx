@@ -3,14 +3,14 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { RenderConfigSeletor } from "../RenderConfigSeletor"; // Ajuste o caminho se necessário
+import { RenderConfigSeletor } from "../render-config-seletor"; // Ajuste o caminho se necessário
 
 type propsSeletor = { tipo: string, value: string }
 
-export const ConfigLeitor = () => {
+export const ModalConfigBuscaProdutos = () => {
+
     const [visible, setVisible] = useState(false);
     const [defaultConfig, setDefaultConfig] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
-    const [defaultConfigPedido, setDefaultConfigPedido] = useState<'id_externo' | 'id_interno' | 'codigo' >('codigo');
 
     const [tipos] = useState<propsSeletor[]>([
         { tipo: "Código de barras", value: 'num_fabricante' },
@@ -18,13 +18,6 @@ export const ConfigLeitor = () => {
         { tipo: "SKU", value: 'sku' },
         { tipo: "Código interno", value: 'codigo' }
     ]);
-
-        const [ tiposBuscaPedido ] = useState<propsSeletor[]>([
-            { tipo:'Código externo', value: "id_externo"},
-            { tipo:'Código interno', value: "id_interno"},
-            { tipo:'Id ', value: "id"},
-            { tipo:'Código mobile', value: "codigo"},
-        ])
 
 
     async function getDefaultConfigLeitor() {
@@ -35,38 +28,21 @@ export const ConfigLeitor = () => {
             }else{
                 setDefaultConfig('codigo');
             }
-
-            const valuePedido:any = await  AsyncStorage.getItem('configPedido');
-             if (valuePedido !== null) {
-                setDefaultConfigPedido(valuePedido);
-            }else{
-                setDefaultConfigPedido('codigo');
-            }
         } catch (e) {
             console.log('erro ao tentar obter a configuração no AsyncStorage');
         }
     }
     
- 
 
     async function setConfig(value: 'codigo' | 'num_fabricante' | 'num_original' | 'sku') {
         try {
             await AsyncStorage.setItem('configProduto', value);
             setDefaultConfig(value);
-            // setVisible(false); // Opcional: fechar ao selecionar
         } catch (error) {
             console.log('erro ao tentar salvar a configuração no AsyncStorage');
         }
     }
-        async function setConfigPedido(value:'id_externo' | 'id_interno' | 'codigo') {
-        try {
-            await AsyncStorage.setItem('configPedido', value);
-            setDefaultConfigPedido(value);
-            // setVisible(false); // Opcional: fechar ao selecionar
-        } catch (error) {
-            console.log('erro ao tentar salvar a configuração no AsyncStorage');
-        }
-    }
+      
 
     useEffect(() => {
         getDefaultConfigLeitor();
@@ -95,25 +71,19 @@ export const ConfigLeitor = () => {
                     <FontAwesome name="gear" size={24} color="#185FED" />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }}>Configurar Leitor</Text>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Configuração de Busca de produtos</Text>
                     <Text style={{ fontSize: 12, color: '#666' }}>Padrão de busca: {defaultConfig}</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={24} color="#BDBDBD" />
             </TouchableOpacity>
 
             {/* Modal Estilizado */}
-            <Modal visible={visible}   transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
+            <Modal visible={visible}   transparent={true} animationType="slide" onRequestClose={() => setVisible(false)}>
                 <View style={{ flex: 1, height:'auto', backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center'  }}>
                     <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setVisible(false)} />
                     
                     <View style={{
-                        width: '90%',
-                        backgroundColor: "#FFF",
-                        borderRadius: 16,
-                        position: 'absolute',
-                        elevation: 10,
-                        overflow: 'hidden',
-                    }}>
+                        width: '100%',height:'80%',backgroundColor: "#FFF",borderTopRightRadius:16,borderTopLeftRadius:16,elevation: 10,overflow: 'hidden' }}>
                         {/* Header do Modal */}
                         <View style={{
                             backgroundColor: '#185FED',
@@ -122,7 +92,7 @@ export const ConfigLeitor = () => {
                             justifyContent: 'space-between',
                             alignItems: 'center'
                         }}>
-                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Configuração de Busca</Text>
+                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Configuração de Busca de produtos</Text>
                             <TouchableOpacity onPress={() => setVisible(false)}>
                                 <Ionicons name="close" size={24} color="#FFF" />
                             </TouchableOpacity>
@@ -141,25 +111,6 @@ export const ConfigLeitor = () => {
                                         value={item.value}
                                         setDefaultConfig={setConfig}
                                         defaultConfig={defaultConfig}
-                                    />
-                                )}
-                                keyExtractor={(item) => item.value}
-                            />
-                            <View style={{borderWidth: 0.5, borderColor:"#CCC"}}></View>
-
-                             <Text style={{ fontSize: 14, color: '#666', marginBottom: 15 }}>
-                                Selecione qual campo será priorizado na leitura para busca de pedidos:
-                            </Text>
-
-                            
-                            <FlatList
-                                data={tiposBuscaPedido}
-                                renderItem={({ item }) => (
-                                    <RenderConfigSeletor
-                                        tipo={item.tipo}
-                                        value={item.value}
-                                        setDefaultConfig={setConfigPedido}
-                                        defaultConfig={defaultConfigPedido}
                                     />
                                 )}
                                 keyExtractor={(item) => item.value}

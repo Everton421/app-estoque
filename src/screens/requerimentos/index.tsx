@@ -1,16 +1,17 @@
 import { FontAwesome, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import Feather from '@expo/vector-icons/Feather';
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useContext, useEffect, useReducer, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import useApi from "../../services/api";
-import { ModalPrintRequirement } from "./components/modal-print-requirement";
-import { useFocusEffect } from "@react-navigation/native";
-import { ModalFilterRequirement } from "./components/modal-filter-requeriment/modal-filter-requirement";
 import { configMoment } from "../../services/moment";
 import { delay } from "../../utils/delay";
-import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { ModalFilterRequirement } from "./components/modal-filter-requeriment/modal-filter-requirement";
+import { ModalPrintRequirement } from "./components/modal-print-requirement";
+import { AuthContext } from "../../contexts/auth";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
  
 
 export type seller = {
@@ -102,6 +103,7 @@ function handleEditFilter(state: filterRequeriment, action: actionsFilterRequeri
 
 export const Lista_requerimentos = ({ navigation  }: any) => {
     const useMoment = configMoment();
+        const { usuario, permissoes }: any = useContext(AuthContext);
 
     const [requiriments, setRequeriments] = useState<requirement[]>([]);
 
@@ -119,9 +121,14 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
     const [visibleAlertApplyRequirement, setVisibleAlertApplyRequirement] = useState(false);
-    const [ isLoadingApplyRequirement , setIsLoadingApplyRequeriment ] = useState(false);
+ 
 
-    const [ requirementSelected, setRequirementSelected ] = useState();
+    const [ isEnabledViewerRequirements ] = useState( verifyUserPermission("requerimentos", 'ler', permissoes))
+    const [ isEnabledCreateRequirement ] = useState( verifyUserPermission("requerimentos", 'criar', permissoes))
+    const [ isEnabledEditRequirement ] = useState( verifyUserPermission("requerimentos", 'editar', permissoes))
+        
+     
+
 
     const initialStateFilter: filterRequeriment = {
         applicant: null,
@@ -308,7 +315,17 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                         {item.situacao === 'A' && (
                             <TouchableOpacity
-                                onPress={() => navigation.navigate('novoRequerimento', { codigo: item.codigo })}
+                                onPress={() =>{ 
+                                    isEnabledEditRequirement ? 
+                                     navigation.navigate('novoRequerimento', { codigo: item.codigo })
+                                    :
+                                    setVisibleAlert(true);
+                                    setTitleAlert("Atenção!");
+                                    setTypeAlert('warning');
+                                    setMessageAlert("Você não tem permissão para editar novos requerimentos!");
+                                }
+                            }
+
                                 style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                                 <FontAwesome name="pencil" size={18} color="#185FED" />
                             </TouchableOpacity>
@@ -323,7 +340,8 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                             item.situacao == 'A' && 
                      <TouchableOpacity
                              onPress={() => {
-                                   setSelectedRequirement(item);  handleApplyRequirement(item.codigo); 
+                                     setSelectedRequirement(item); 
+                                    handleApplyRequirement(item.codigo); 
                                 }}
                             style={{ padding: 8, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                         <FontAwesome5 name="check-circle" size={18} color="#185FED" />
@@ -337,7 +355,15 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
     }
 
 
-
+function handlesCreateRequirement (){
+        isEnabledCreateRequirement ?     
+                        navigation.navigate('novoRequerimento')
+                        :
+                      setVisibleAlert(true);
+                      setTitleAlert("Atenção!");
+                      setTypeAlert('warning');
+                      setMessageAlert("Você não tem permissão para criar novos requerimentos!");
+   }
 
     return (
         <View style={{ flex: 1, backgroundColor: '#EAF4FE' }} >
@@ -366,24 +392,10 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
             />
 
           <TouchableOpacity
-                    style={{
-                        position: 'absolute',
-                        bottom: 50,
-                        right: 30,
-                        backgroundColor: '#185FED',
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        elevation: 6,
-                        shadowColor: '#000',
-                        shadowOpacity: 0.3,
-                        shadowOffset: { width: 0, height: 3 },
-                        zIndex: 999
+                    style={{position: 'absolute',bottom: 50,right: 30,backgroundColor: '#185FED',width: 56,height: 56,borderRadius: 28,justifyContent: 'center',alignItems: 'center',elevation: 6,shadowColor: '#000',shadowOpacity: 0.3,shadowOffset: { width: 0, height: 3 },zIndex: 999
                     }}
                     onPress={() => {
-                        navigation.navigate('novoRequerimento')
+                      handlesCreateRequirement()
                     }}
                 >
                     <MaterialIcons name="add" size={32} color="#FFF" />
@@ -397,7 +409,7 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                         </View>
                     ) :
                     (
-                        <>
+                         isEnabledViewerRequirements ? 
                             <FlatList
                                 data={requiriments}
                                 renderItem={({ item }) => <ItemRequirements item={item}  />}
@@ -413,24 +425,19 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                                     />
                                 }
                                 ListEmptyComponent={() => (
-                                    <View style={{ alignItems: 'center', marginTop: 50 }}>
+                                    <View style={{ flex:1, alignItems: 'center', justifyContent:"center" }}>
                                         <Text style={{ color: '#999', fontSize: 16 }}>Nenhum registro encontrado.</Text>
                                     </View>
                                 )}
                             />
-
-                    
-                            <View style={{
-                                backgroundColor: '#FFF',
-                                padding: 10,
-                                borderTopWidth: 1,
-                                borderTopColor: '#E0E0E0',
-                                flexDirection: 'row',
-                                justifyContent: 'space-around',
-                                alignItems: 'center',
-                                elevation: 10
-                            }}>      
-             
+                     :
+                    <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                            <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os requerimentos!</Text>
+                    </View>
+                        
+                    )
+            }
+            <View style={{backgroundColor: '#FFF',padding: 10,borderTopWidth: 1,borderTopColor: '#E0E0E0',flexDirection: 'row',justifyContent: 'space-around',alignItems: 'center',elevation: 10 }}>      
                                 <View style={{ alignItems: "center" }}>
                                     <View style={{ width: 12, height: 12, backgroundColor: '#1E9C43', borderRadius: 6, marginBottom: 2 }} />
                                     <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Em Aberto</Text>
@@ -444,11 +451,7 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                                     <View style={{ width: 12, height: 12, backgroundColor: '#9C0404', borderRadius: 6, marginBottom: 2 }} />
                                     <Text style={{ fontWeight: 'bold', fontSize: 10, color: '#555' }}>Cancelado</Text>
                                 </View>
-
                             </View>
-                        </>
-                    )
-            }
 
             <CustomAlert
                 message={messageAlert}
@@ -465,6 +468,21 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                 }}
             />
 
+
+                { /** se o alerta for do tipo info   */}
+                {
+                   visibleAlert && typeAlert == 'warning' ?
+                    <CustomAlert
+                        message={messageAlert}
+                        onConfirm={ ()=>{ 
+                            setVisibleAlert(false)
+                          //  onRefresh()    
+                        }
+                        }
+                        title={titleAlert}
+                        visible={visibleAlert}
+                    />:
+
        <CustomAlert
                 message={messageAlert}
                 onConfirm={ ()=>{ 
@@ -474,9 +492,11 @@ export const Lista_requerimentos = ({ navigation  }: any) => {
                 }
                 title={titleAlert}
                 visible={visibleAlert}
-                cancelText='Não'
+                 cancelText='Não'
                 confirmText='Sim'
             />
+                }
+
         </View>
     )
 }

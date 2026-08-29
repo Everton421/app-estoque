@@ -1,9 +1,12 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Modal, FlatList, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from "react-native";
-import {   Ionicons } from '@expo/vector-icons'; // Usando ícones para um visual mais limpo. Instale com: npx expo install @expo/vector-icons
-import * as Sharing from 'expo-sharing'
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, Modal, FlatList, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Alert } from "react-native";
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import { shareAsync } from 'expo-sharing';
+import { generateOrderHTML } from '../../utils/generateHTML';
+import { AuthContext } from '../../../../contexts/auth';
+
+
 
 // --- Constantes de Estilo (Melhor prática para cores e tamanhos) ---
 const COLORS = {
@@ -23,12 +26,54 @@ const SIZES = {
     base: 8,
 };
 
+// --- Componente Principal do Modal ---
+
+export const ModalPrint = ({ visible, orcamento, setVisible }) => {
+        const { usuario, permissoes }: any = useContext(AuthContext);
+        const [ isEnabledViewerValues ] =useState( permissoes.some(( i:any )=> i =='pedidos.ver_valores')) 
+
+    if (!orcamento) {
+        return null;
+    }
+
+//////////////    
+//    useEffect(()=>{
+//        if(isEnable) setIsViewerValues(true);
+//    },[])
+/////////
+
+    const print = async () => {
+        try {
+            const html = generateOrderHTML(orcamento);
+            await Print.printAsync({ html });
+        } catch (error) {
+            console.error('Erro ao imprimir:', error);
+            Alert.alert('Erro', 'Não foi possível imprimir. Tente novamente.');
+        }
+    };
+
+    const printToFile = async () => {
+        try {
+            const html = generateOrderHTML(orcamento);
+            const { uri } = await Print.printToFileAsync({ html });
+            await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+        } catch (error) {
+            console.error('Erro ao exportar PDF:', error);
+            Alert.alert('Erro', 'Não foi possível exportar o PDF. Tente novamente.');
+        }
+    };
+
+    const getTipoOrcamento = () => {
+        if (orcamento.tipo === 1) return `Orçamento: #${orcamento.id}`;
+        if (orcamento.tipo === 3) return `Ordem de Serviço: #${orcamento.id}`;
+        if (orcamento.tipo === 6) return `Ordem de Compra: #${orcamento.id}`;
+        return `Documento: ${orcamento.id}`;
+    }
 
 
-
-const InfoRow = ({ label, value }) => (
+    const InfoRow = ({ label, value }) => (
     <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>{label}</Text>
+         <Text style={styles.infoLabel}>{label}</Text>
         <Text style={styles.infoValue}>{value}</Text>
     </View>
 );
@@ -44,8 +89,18 @@ const ProdutoItem = ({ item }) => {
             <Text style={styles.cardSubtitle}>Código: {item?.codigo}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Qtd: {item.quantidade}</Text>
-                <Text style={styles.detailText}>Unit.: R$ {Number(item.preco)?.toFixed(2)}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {Number(item.total)?.toFixed(2)}</Text>
+                <Text style={styles.detailText}>Unit.: R$ {
+                        isEnabledViewerValues ? Number(item.preco)?.toFixed(2) : 
+                          <MaterialIcons name="money-off" size={17} color="#185FED" />  
+                    }</Text>
+                <Text style={[styles.detailText, styles.totalText]}>
+                        Total: R$ { 
+                                    isEnabledViewerValues  ?  
+                                        Number(item.total)?.toFixed(2)
+                                    : 
+                                       <MaterialIcons name="money-off" size={17} color="#185FED" />  
+                                    }
+                        </Text>
             </View>
         </View>
     );
@@ -58,106 +113,42 @@ const ServicoItem = ({ item }) => {
             <Text style={styles.cardSubtitle}>Código: {item?.codigo}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Qtd: {item.quantidade}</Text>
-                <Text style={styles.detailText}>Unit.: R$ {Number(item.valor)?.toFixed(2)}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Total: R$ {Number(item.total)?.toFixed(2)}</Text>
+                <Text style={styles.detailText}>Unit.: R$ {
+                                            isEnabledViewerValues ? 
+                                                    Number(item.valor)?.toFixed(2)
+                                                :
+                                                    <MaterialIcons name="money-off" size={17} color="#185FED" />  
+                                                }</Text>
+                <Text style={[styles.detailText, styles.totalText]}>Total: R$ 
+                        {
+                            isEnabledViewerValues ? 
+                               Number(item.total)?.toFixed(2)
+                            :
+                              <MaterialIcons name="money-off" size={17} color="#185FED" />  
+                        }</Text>
             </View>
         </View>
     );
 };
-
+ 
 const ParcelaItem = ({ item }) => {
     return (
         <View style={styles.card}>
             <Text style={styles.cardTitle}>Parcela {item.parcela}</Text>
             <View style={styles.cardDetails}>
                 <Text style={styles.detailText}>Vencimento: {item.vencimento}</Text>
-                <Text style={[styles.detailText, styles.totalText]}>Valor: R$ {Number(item.valor)?.toFixed(2)}</Text>
+                <Text style={[styles.detailText, styles.totalText]}>Valor: R$ 
+                        {   isEnabledViewerValues ? 
+                            Number(item.valor)?.toFixed(2)
+                        :
+                              <MaterialIcons name="money-off" size={17} color="#185FED" />  
+                        }</Text>
             </View>
         </View>
     );
 };
 
-/*  
-const html =
- ` <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-  </head>
-  <body style="text-align: center;">
-    <h1 style="font-size: 50px; font-family: Helvetica Neue; font-weight: normal;">
-      Hello Expo!
-    </h1>
-    <img
-      src="https://d30j33t1r58ioz.cloudfront.net/static/guides/sdk.png"
-      style="width: 90vw;" />
-  </body>
-</html>
-`
-*/
-// --- Componente Principal do Modal ---
 
-export const ModalPrint = ({ visible, orcamento, setVisible }) => {
-
- const [selectedPrinter, setSelectedPrinter] = useState();
-
-    if (!orcamento) {
-        return null; // Não renderiza nada se o orçamento for nulo
-    }
-    
-    //  const viewShotRef = useRef();
-
-
- const print = async ()=>{
-    await Print.printAsync({
-        html, 
-        //printerUrl:  
-    })
- }
-
-  const printToFile = async () => {
-    // On iOS/android prints the given html. On web prints the HTML from the current page.
-    const { uri } = await Print.printToFileAsync({ html });
-    console.log('File has been saved to:', uri);
-    await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-  };
-
-  const selectPrinter = async () => {
-    const printer = await Print.selectPrinterAsync(); // iOS only
-    setSelectedPrinter(printer);
-  };
-const compartilharProduto = async () => {
-    try {
-      const uri = await captureRef(viewShotRef, {
-        format: 'png',
-        quality: 0.9, // Qualidade da imagem (0 a 1)
-      });
-
-     console.log('URI da imagem:', uri); // Verifique a URI no console
-      // Compartilhar a imagem
-   if (await Sharing.isAvailableAsync()) {
-        try {
-          await Sharing.shareAsync(uri, {
-            mimeType: 'applicaion/pdf',
-            dialogTitle: 'Compartilhar Produto',
-            UTI: '.pdf', // Uniform Type Identifier (iOS)
-          });
-        } catch (error) {
-          console.error('Erro ao compartilhar com expo-sharing:', error);
-        }
-      } else {
-        console.warn('Compartilhamento não está disponível neste dispositivo.');
-      }
-    } catch (error) {
-      console.error('Erro ao capturar e compartilhar:', error);
-    }
-  };
-
-    const getTipoOrcamento = () => {
-        if (orcamento.tipo === 1) return `Orçamento: #${orcamento.id}`;
-        if (orcamento.tipo === 3) return `Ordem de Serviço: #${orcamento.id}`;
-        if (orcamento.tipo === 6) return `Ordem de Compra: #${orcamento.id}`;
-        return `Documento: ${orcamento.id}`;
-    }
 
     return (
         <Modal
@@ -167,30 +158,29 @@ const compartilharProduto = async () => {
             onRequestClose={() => setVisible(false)}
         >
             <SafeAreaView style={styles.modalBackground}>
-             {/** <View ref={viewShotRef} options={{ format: 'png', quality: 0.9 }} style={styles.modalContainer} >*/}   
-                <View   style={styles.modalContainer} >
-                 
-       
-                      {/** 
-                         <TouchableOpacity style={{   backgroundColor: '#FFF',   height:30,padding:2, borderRadius: 5, width: 35, elevation: 5, alignItems:"center" }} 
-                            // onPress={ ()=> compartilharProduto(true)}
-                             onPress={ ()=> printToFile()}
-                            >
-                          <FontAwesome name="share-square-o" size={30} color="#185FED" />
-                         </TouchableOpacity>
-                        */}
-                         
+                <View style={styles.modalContainer}>
+                        <View style={{ flexDirection:'row', gap:5 , justifyContent:'space-around'}}>
+                              <TouchableOpacity onPress={() => setVisible(false)} style={[styles.closeButton ]}>
+                               <Ionicons name="close" size={28} color="#a40b0b" />
+                             </TouchableOpacity>
+                             <TouchableOpacity onPress={()=>print()} style={[styles.printButton]}>
+                                  <Feather name="printer" size={18} color="#FFF" />
+                                 <Text style={styles.printButtonText}>Imprimir</Text>
+                            </TouchableOpacity>
+                           <TouchableOpacity onPress={()=>printToFile()} style={[styles.printButton, { backgroundColor: COLORS.darkGray }]}>
+                              <Feather name="file-text" size={18} color="#FFF" />
+                               <Text style={styles.printButtonText}>Exportar PDF</Text>
+                            </TouchableOpacity>
+                       
+                       
+                        </View>
+
                     {/* Cabeçalho do Modal */}
                     <View style={styles.header}>
                         <View>
-                              <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
-                            <Ionicons name="close" size={28} color={COLORS.darkGray} />
-                        </TouchableOpacity>
                             <Text style={styles.headerTitle} numberOfLines={1} >{getTipoOrcamento()}</Text>
                             <Text style={  styles.headerSubtitle  } numberOfLines={1} >ID Externo: {orcamento?.id_externo || 'N/A'}</Text>
-                      
                         </View>
-
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
@@ -211,11 +201,36 @@ const compartilharProduto = async () => {
                         {/* Totais */}
                         <View style={styles.section}>
                             <View style={styles.totalsContainer}>
-                                <InfoRow label="Total Produtos:" value={`R$ ${ Number(orcamento?.total_produtos)?.toFixed(2) || '0.00'}`} />
-                                <InfoRow label="Total Serviços:" value={`R$ ${Number(orcamento?.total_servicos)?.toFixed(2) || '0.00'}`} />
-                                <InfoRow label="Descontos:" value={`R$ ${Number(orcamento?.descontos)?.toFixed(2) || '0.00'}`} />
+                                        {
+                                         isEnabledViewerValues   
+                                         ? 
+                                          <InfoRow label="Total Produtos:" value={`R$ ${ Number(orcamento?.total_produtos)?.toFixed(2) || '0.00'}`} />
+                                        :
+                                          <InfoRow label="Total Produtos:" value={ <MaterialIcons name="money-off" size={20} color="#185FED" />} />
+                                      }   
+                                
+                                    { 
+                                         isEnabledViewerValues ?   
+                                        <InfoRow label="Total Serviços:" value={`R$ ${Number(orcamento?.total_servicos)?.toFixed(2) || '0.00'}`} />
+                                        :
+                                          <InfoRow label="Total Serviços:" value={ <MaterialIcons name="money-off" size={20} color="#185FED" />} />
+                                    }
+                                    {
+                                         isEnabledViewerValues ?   
+                                       <InfoRow label="Descontos:" value={`R$ ${Number(orcamento?.descontos)?.toFixed(2) || '0.00'}`} />
+                                      :
+                                        <InfoRow label="Descontos:" value={ <MaterialIcons name="money-off" size={20} color="#185FED" />} />
+                                    }
+
                                 <View style={styles.divider} />
-                                <InfoRow label="Total Geral:" value={`R$ ${Number(orcamento?.total_geral)?.toFixed(2) || '0.00'}`} />
+                                {
+                                         isEnabledViewerValues ?   
+                                      <InfoRow label="Total Geral:" value={`R$ ${Number(orcamento?.total_geral)?.toFixed(2) || '0.00'}`} />
+                                    :
+                                        <InfoRow label="Total Geral:" value={ <MaterialIcons name="money-off" size={20} color="#185FED" />} />
+
+                                    }
+
                             </View>
                         </View>
                         
@@ -381,5 +396,19 @@ const styles = StyleSheet.create({
     totalText: {
         fontWeight: 'bold',
         color: COLORS.primary,
+    },
+      printButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    printButtonText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 13,
     },
 });

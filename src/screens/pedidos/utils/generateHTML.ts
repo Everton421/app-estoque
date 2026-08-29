@@ -65,8 +65,8 @@ export function generateOrderHTML(pedido: pedido): string {
           <td class="border p-1 text-left">${produto.codigo}</td>
           <td class="border p-1 text-left">Produto ${produto.descricao}</td>  
           <td class="border p-1 text-right">${produto.quantidade}</td>
-          <td class="border p-1 text-right">${produto.preco.toFixed(2)}</td>
-          <td class="border p-1 text-right">${produto.total.toFixed(2)}</td>
+          <td class="border p-1 text-right">${(produto.preco ?? 0).toFixed(2)}</td>
+          <td class="border p-1 text-right">${(produto.total ?? 0).toFixed(2)}</td>
         </tr>
       `
       ).join('')
@@ -79,8 +79,8 @@ export function generateOrderHTML(pedido: pedido): string {
           <td class="border p-1 text-left">${servico.codigo}</td>
           <td class="border p-1 text-left">Serviço ${servico.aplicacao}</td>
           <td class="border p-1 text-right">${servico.quantidade}</td>
-          <td class="border p-1 text-right">${servico.valor.toFixed(2)}</td>
-          <td class="border p-1 text-right">${servico.total.toFixed(2)}</td>
+          <td class="border p-1 text-right">${(servico.valor ?? 0).toFixed(2)}</td>
+          <td class="border p-1 text-right">${(servico.total ?? 0).toFixed(2)}</td>
         </tr>
       `
       ).join('')
@@ -91,7 +91,7 @@ export function generateOrderHTML(pedido: pedido): string {
         (parcela) => `
         <tr>
           <td class="border p-1 text-left">${parcela.parcela}</td>
-          <td class="border p-1 text-right">${parcela.valor.toFixed(2)}</td>
+          <td class="border p-1 text-right">${(parcela.valor ?? 0).toFixed(2)}</td>
           <td class="border p-1 text-right">${parcela.vencimento}</td>
         </tr>
       `
@@ -199,11 +199,11 @@ export function generateOrderHTML(pedido: pedido): string {
       </div>
 
       <div class="grid grid-cols-2 gap-x-4 mb-4">
-        <div><strong>Cliente:</strong> <span data-cliente-nome>${pedido.cliente.nome}</span></div>
-        <div><strong>Data:</strong> <span data-data-cadastro>${pedido.data_cadastro}</span></div>
-        <div><strong>Endereco:</strong> <span data-cliente-endereco>${pedido.cliente.endereco}</span></div> 
-        <div><strong>Numero:</strong> <span data-cliente-numero>${pedido.cliente.numero}</span></div>
-        <div><strong>Celular:</strong> <span data-cliente-celular>${pedido.cliente.celular}</span></div>
+        <div><strong>Cliente:</strong> <span data-cliente-nome>${pedido.cliente?.nome ?? ''}</span></div>
+        <div><strong>Data:</strong> <span data-data-cadastro>${pedido.data_cadastro ?? ''}</span></div>
+        <div><strong>Endereco:</strong> <span data-cliente-endereco>${pedido.cliente?.endereco ?? ''}</span></div> 
+        <div><strong>Numero:</strong> <span data-cliente-numero>${pedido.cliente?.numero ?? ''}</span></div>
+        <div><strong>Celular:</strong> <span data-cliente-celular>${pedido.cliente?.celular ?? ''}</span></div>
       </div>
 
       <hr class="my-4">
@@ -265,11 +265,11 @@ export function generateOrderHTML(pedido: pedido): string {
 
       <div class="mb-4">
         <h3 class="font-semibold">Observações:</h3>
-        <p class="text-sm whitespace-pre-wrap" data-observacoes>${pedido.observacoes}</p>
+        <p class="text-sm whitespace-pre-wrap" data-observacoes>${pedido.observacoes ?? ''}</p>
       </div>
 
       <div class="text-right font-bold text-lg">
-        Total Geral: R$ <span data-total-geral>${pedido.total_geral.toFixed(2)}</span>
+        Total Geral: R$ <span data-total-geral>${(pedido.total_geral ?? 0).toFixed(2)}</span>
       </div>
 
     </div>

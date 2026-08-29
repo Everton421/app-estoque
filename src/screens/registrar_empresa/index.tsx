@@ -12,6 +12,7 @@ import Foundation from '@expo/vector-icons/Foundation';
 import { insertDataFic } from '../../services/insertDataFic';
 import { AuthContext } from '../../contexts/auth';
 import { cpf as cpfValid, cnpj as cnpjValid } from 'cpf-cnpj-validator'
+import { AlertType, CustomAlert } from '../../components/custom-alert/custom-alert';
 
 // --- FUNÇÕES DE VALIDAÇÃO ADICIONADAS ---
 const isValidEmail = (email: string): boolean => {
@@ -47,15 +48,15 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
 
     const [dadosFic, setDadosFic] = useState<boolean | null>(true);
 
-    const { logado, setLogado, usuario, setUsuario }: any = useContext(AuthContext);
+    const useQueryUsuario = useUsuario();
 
-    let useQueryUsuario = useUsuario();
-    let useQueryEmpresa = queryEmpresas();
-    let useDataFic = insertDataFic();
+        const [isVisibleAlert, setIsVisibleAlert] = useState(false);
+           const [titleAlert, setTitleAlert] = useState('');
+           const [messageAlert, setMessageAlert] = useState('');
+           const [typeAlert, setTypeAlert] = useState<AlertType>('success');
 
-    const showAlert = (message: any) => {
-        Alert.alert('Alerta', message, [{ text: 'OK' }]);
-    };
+
+ 
 
 
     interface EmpresaMobile {
@@ -78,57 +79,108 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
         }
 
         if (!validCnpjInput) {
-            return Alert.alert('Erro!', "CNPJ/CPF inválido!")
+            
+                   setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert("CNPJ/CPF inválido!");
+                   setIsVisibleAlert(true);
+                   return;
         }
 
         if (!nomeEmpresa) {
             setLoading(false);
-            return showAlert('É Necessário Informar o Nome da Empresa!');
+                    setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert("É Necessário Informar o Nome da Empresa!");
+                   setIsVisibleAlert(true);
+                   return;
         }
-        if (!cnpjInput) return showAlert('É Necessário Informar o CNPJ da Empresa!');
+        if (!cnpjInput){
+                 setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('É Necessário Informar o CNPJ da Empresa!');
+                   setIsVisibleAlert(true);
+                   return;
+                }  
         
         // Validação do Email da Empresa
         if (!emailEmpresa) {
             setLoading(false);
-            return showAlert('É Necessário Informar o Email da Empresa!');
-        }
+                   setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('É Necessário Informar o Email da Empresa!');
+                   setIsVisibleAlert(true);
+                   return;
+                }
         if (!isValidEmail(emailEmpresa)) {
             setLoading(false);
-            return showAlert('Email da Empresa inválido!');
+             setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('Email da Empresa inválido!');
+                   setIsVisibleAlert(true);
+                   return;
         }
 
         // Validação do Telefone da Empresa (opcional, mas se informado, deve ser válido)
         if (telefone && !isValidPhoneNumber(telefone)) {
-            setLoading(false);
-            return showAlert('Telefone da Empresa inválido! Use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX.');
-        }
+                   setLoading(false);
+                   setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('Telefone da Empresa inválido! Use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX.');
+                   setIsVisibleAlert(true);
+                   return;
+                }
 
-        if (!nomeUsuario) return showAlert('É Necessário Informar o Responsável da Empresa!');
-        
+        if (!nomeUsuario){
+           setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('É Necessário Informar o Responsável da Empresa!');
+                   setIsVisibleAlert(true);
+                   return;
+        }
+     
         // Validação do Email do Responsável
         if (!email) {
             setLoading(false);
-            return showAlert('É Necessário Informar o Email do Responsável da Empresa!');
+                   setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('É Necessário Informar o Email do Responsável da Empresa!');
+                   setIsVisibleAlert(true);
+                   return;
         }
         if (!isValidEmail(email)) {
             setLoading(false);
-            return showAlert('Email do Responsável inválido!');
-        }
+               setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('Email do Responsável inválido!');
+                   setIsVisibleAlert(true);
+                   return;
+                }
         
         // Validação do Telefone do Usuário/Responsável (opcional, mas se informado, deve ser válido)
         if (telefoneUsuario && !isValidPhoneNumber(telefoneUsuario)) {
             setLoading(false);
-            return showAlert('Telefone do Responsável inválido! Use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX.');
+             setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('Telefone do Responsável inválido! Use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX.');
+                   setIsVisibleAlert(true);
+                   return;
+                }
+
+        if (!senha)  {
+          setTitleAlert("Atenção!");
+                   setTypeAlert('warning');
+                   setMessageAlert('É Necessário Informar a Senha do Responsável da Empresa!');
+                   setIsVisibleAlert(true);
+                   return;
         }
-
-        if (!senha) return showAlert('É Necessário Informar a Senha do Responsável da Empresa!');
-
+ 
         let empresa =
         {
             "nome_empresa": nomeEmpresa,
             "telefone_empresa": telefone,
             "email_empresa": emailEmpresa,
-            "cnpj": cnpjInput,
+            "cnpj": cnpjInput.replace(/\D/g, ''), 
             dados_teste: dadosFic
         }
         let usuarioEmpresa =
@@ -138,69 +190,57 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
             "email": email,
             "senha": senha
         }
-
+         
         try {
             setLoading(true);
-            let response = await api.post('/empresa', { empresa: empresa, usuario: usuarioEmpresa });
-            if (response.status === 200) {
-                console.log(response.data);
-                const apiResult = response.data;
-                const resultEmpresa = response.data.data.empresa
-                const resultUsuario = response.data.data.usuario
+            let response = await api.post('/criar-empresa', { empresa: empresa, usuario: usuarioEmpresa },
+                {
+                    timeout:100000
+                } 
+            );
+            console.log(response.status)
 
-                let responsavel = resultUsuario.codigo_usuario;
-                let codigo_empresa = resultEmpresa.codigo_empresa;
-                let cnpj = resultEmpresa.cnpj;
-                let nome_empresa = resultEmpresa.nome_empresa;
-                let email_empresa = resultEmpresa.email_empresa;
+            console.log(response.data)
 
-                const empMobile: EmpresaMobile = { codigo_empresa: codigo_empresa, nome: nome_empresa, cnpj: cnpj, email: email_empresa, responsavel: responsavel };
+            if (response.status == 200 || response.status == 201) {
 
-                let email_usuario = resultUsuario.email_usuario;
-                let senhaUsuarioApi = resultUsuario.senha; // Renomeei para evitar conflito com a variável de estado 'senha'
-                let nomeDoUsuarioApi = resultUsuario.usuario // nome do usuario - Renomeei para evitar conflito
-                let token = resultUsuario.token
-
-                let userMobile = {
-                    email: email_usuario,
-                    senha: senhaUsuarioApi, // Use a senha retornada pela API ou a digitada, conforme a lógica do seu app
-                    codigo: responsavel,
-                    nome: nomeDoUsuarioApi,
-                    lembrar: "S",
-                    token: token
-                };
-                let codeUser = await useQueryUsuario.create(userMobile);
-
-
-                let resCadEmpr = await useQueryEmpresa.create(empMobile);
-                if (resCadEmpr > 0) console.log("empresa rgistrada")
-                setNomeEmpresa('')
-                setEmailEmpresa('')
-                setCnpjInput('')
-                setNomeUsuario('')
-                setEmail('')
-                setSenha('');
-                setTelefone(''); // Limpar telefone da empresa
-                setTelefoneUsuario(''); // Limpar telefone do usuário
-                showAlert(apiResult.status.msg);
-                setUsuario(userMobile);
-                setLogado(true);
+            await useQueryUsuario.deleteAll();
+            await useQueryUsuario.create({
+                codigo:1,
+                email:usuarioEmpresa.email,
+                lembrar:'S',
+                nome:usuarioEmpresa.nome,
+                senha: usuarioEmpresa.senha,
+                token:''
+            });
+                   setIsVisibleAlert(true);
+                   setTitleAlert("Sucesso!");
+                   setTypeAlert('success');
+                   setMessageAlert("Empresa registrada com sucesso!");
             }
         } catch (e: any) {
-            console.log('Erro:', e.response?.data?.msg || e.message); // Melhor log de erro
+             
+            console.log(`Erro ${e.response.status}: ${e.response.data?.message || 'Ocorreu um erro ao registrar a empresa, contate o suporte!'}`);
+
             if (e.response && e.response.status === 400) {
-                 showAlert(e.response.data.msg);
-            } else if (e.response) {
-                showAlert(`Erro ${e.response.status}: ${e.response.data?.msg || 'Ocorreu um erro.'}`);
+                    setTitleAlert("Erro!");
+                   setTypeAlert('error');
+                   setMessageAlert( e.response.data.message );
+                   setIsVisibleAlert(true);
             }
-             else {
-                showAlert('Ocorreu um erro ao tentar registrar. Verifique sua conexão.');
+            if(e.response && e.response.status === 500){
+                     setTitleAlert(`Erro!`);
+                   setTypeAlert('error');
+                   setMessageAlert( e.response.data.message );
+                   setIsVisibleAlert(true);
             }
+             
         } finally {
             setLoading(false);
         }
+       
     }
-
+ 
 
     return (
         <View style={{ flex: 1 }}>
@@ -271,11 +311,10 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} 
             >
-                {loading ? (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} >
-                        <ActivityIndicator size={25} color={'#185FED'} />
-                    </View>
-                ) : (
+                
+                   
+
+              
                     <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: '#EAF4FE' }}>
                         <View style={{ width: '100%', marginTop: 10 }}>
                             <TouchableOpacity onPress={() => navigation.goBack()} style={{ margin: 10, flexDirection: 'row', alignItems: 'center' }}>
@@ -309,7 +348,7 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
                                         <TextInput style={{ borderBottomWidth: 1, borderColor: '#DDD', flex: 1, paddingVertical: 8 }} placeholder="00.000.000/0000-00 ou CPF"
                                             value={cnpjInput}
                                             onChangeText={setCnpjInput}
-                                            keyboardType="numeric"
+                                         
                                         />
                                         <MaterialCommunityIcons name="card-account-details-outline" size={24} color="#185FED" />
                                     </View>
@@ -335,7 +374,6 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
                                         <TextInput style={{ borderBottomWidth: 1, borderColor: '#DDD', flex: 1, paddingVertical: 8 }} placeholder="(XX) XXXX-XXXX ou (XX) XXXXX-XXXX"
                                             value={telefone}
                                             onChangeText={setTelefone}
-                                            keyboardType="phone-pad"
                                         />
                                         <MaterialIcons name="phone" size={24} color="#185FED" />
                                     </View>
@@ -405,8 +443,39 @@ export const Resgistrar_empresa = ({ navigation }: any) => {
                             </TouchableOpacity>
 
                         </View>
+                {
+
+
+                        }
+                     <CustomAlert
+                       visible={isVisibleAlert}
+                       message={messageAlert}
+                       onConfirm={() => { 
+                        setIsVisibleAlert(false);
+                        typeAlert == 'success' &&
+                        navigation.navigate('login')
+                       }}
+                       title={titleAlert}
+                       type={typeAlert}
+                       confirmText='Ok'
+                   />
+
+                <Modal
+                        visible={loading}
+                        transparent={true}
+                        animationType="fade"
+                                
+                            >
+                        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center'}}>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} >
+                           
+                            <ActivityIndicator size={50} color={'#FFF'} />
+                            <Text style={{ fontWeight:'bold', fontSize: 20, color:'#FFF'}} > Registrando empresa...</Text>
+                        </View>
+                        </View>
+                </Modal>
                     </ScrollView>
-                )}
+               
             </KeyboardAvoidingView>
         </View>
     );

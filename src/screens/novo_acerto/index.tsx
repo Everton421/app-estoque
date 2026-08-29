@@ -1,6 +1,5 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { useContext, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Button, Modal, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, Button, Modal } from "react-native";
 import { ListaProdutos } from "./components/produtos_";
 import { AntDesign, FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { FlatList } from "react-native-gesture-handler";
@@ -12,6 +11,8 @@ import useApi from "../../services/api";
 import { AuthContext } from "../../contexts/auth";
 import { CustomAlert, AlertType } from "../../components/custom-alert/custom-alert";
 import {   ModalSeriesAcerto } from "./components/modal-series-acerto/modal-series-acerto";
+import { BarcodeScanner } from "../../components/barcode-scanner";
+import { useCameraPermissions } from "expo-camera";
 
 type filterBarcodeOption = {
     chave: 'codigo' | 'num_fabricante' | 'num_original' | 'sku'
@@ -62,7 +63,6 @@ export const NovoAcerto = ({ navigation }: any) => {
     const [titleAlert, setTitleAlert] = useState('');
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
-    const [permission, requestPermission] = useCameraPermissions();
     const [prodSeletor, setProdSeletor] = useState<any>();
     const [loadingInsertItem, setLoadingInsertItem] = useState(false);
 
@@ -79,6 +79,7 @@ export const NovoAcerto = ({ navigation }: any) => {
 
     const [ seriesToUpdate, setSeriesToUpdate ] = useState<type_lote_serie_setor[]>();
 
+     const [permission, requestPermission] = useCameraPermissions();
 
     const moment = configMoment();
     const api = useApi();
@@ -102,8 +103,7 @@ export const NovoAcerto = ({ navigation }: any) => {
 
     function handleCodeRead(data: string) {
         setModalvisible(false);
-        const cleanCode = data.replace(/^0+/, '') || '0';
-        fyndBarcode(cleanCode);
+        fyndBarcode(data);
     }
 
     async function fyndBarcode(codeScanned: string) {
@@ -671,28 +671,13 @@ export const NovoAcerto = ({ navigation }: any) => {
                 )}
             </ScrollView>
 
-            {/* --- MODAL CÂMERA --- */}
-            <Modal visible={modalVisible} animationType="slide">
-                <CameraView
-                    style={{ flex: 1 }}
-                    facing="back"
-                    onBarcodeScanned={({ data }) => {
-                        if (data) handleCodeRead(data);
-                    }}
-                >
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                        <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                        <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-
-                        <TouchableOpacity
-                            onPress={() => setModalvisible(false)}
-                            style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                        >
-                            <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </CameraView>
-            </Modal>
+            {/* --- SCANNER DE CÓDIGO DE BARRAS --- */}
+            <BarcodeScanner
+                visible={modalVisible}
+                onClose={() => setModalvisible(false)}
+                onBarcodeScanned={(data) => handleCodeRead(data)}
+                stripZeros={false}
+            />
 
             {/* --- MODAL SETORES (Padronizado) --- */}
             <Modal visible={visibleModalSetores} transparent={true} animationType="fade" onRequestClose={() => setVisibleModalSetores(false)}>

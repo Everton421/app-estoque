@@ -1,9 +1,10 @@
 import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Button, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import useApi from "../../../../services/api";
-import { CameraView } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { AlertType, CustomAlert } from "../../../../components/custom-alert/custom-alert";
+import { BarcodeScanner } from "../../../../components/barcode-scanner";
 
 type ModalProps = {
    setor:number,
@@ -38,6 +39,7 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
 
       const [typeAlert, setTypeAlert] = useState<AlertType>('info');
   
+       const [permission, requestPermission] = useCameraPermissions();
   
     async function handleCodeRead(data: string) {
         setIsVisibleCamera(false);
@@ -164,7 +166,7 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                                        <View style={{ minWidth: 40, borderBottomWidth: 2, borderBottomColor: item.quantidade > 0 ? '#4CAF50' : '#185FED', alignItems: 'center' }}>
                                            <TextInput
                                                style={{ fontSize: 20, fontWeight: 'bold', color: item.quantidade > 0 ? '#4CAF50' : '#185FED', textAlign: 'center', paddingVertical: 0 }}
-                                               value={String(parseInt(item.quantidade))}
+                                               value={String(Number(item.quantidade))}
                                                onChangeText={(text) => {
                                                    const num = Number(text.replace(/[^0-9]/g, ''));
                                              //      handleUpdateQuantity(item.lote_serie, num, item.estoque);
@@ -191,7 +193,18 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
     };
 
 
+         if (!permission) return null;
      
+         if (isVisibleCamera && !permission.granted) {
+             return (
+                 <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                     <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
+                         Você precisa liberar o acesso a camera para continuar!
+                     </Text>
+                     <Button onPress={requestPermission} title="Liberar acesso" />
+                 </View>
+             );
+         }
 
     return (
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={()=> setVisible(false) }>
@@ -286,7 +299,15 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                     <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
                 </TouchableOpacity>
 
-                         {/* MODAL CÂMERA */}
+                      <BarcodeScanner
+                                    visible={isVisibleCamera}
+                                    onClose={() => setIsVisibleCamera(false)}
+                                    onBarcodeScanned={(data) => handleCodeRead(data)}
+                                    stripZeros={false}
+                                />
+                    
+
+                         {/* MODAL CÂMERA 
                                     <Modal visible={isVisibleCamera} animationType="slide">
                                         <CameraView
                                             style={{ flex: 1 }}
@@ -308,7 +329,7 @@ export const ModalSeriesAcerto = ( { maxQuantity, visible,setVisible, setor ,pro
                                             </View>
                                         </CameraView>
                                     </Modal>
-
+*/}
 
 
                             <CustomAlert

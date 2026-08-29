@@ -9,6 +9,7 @@ import { LodingComponent } from "../../components/loading";
 import { configMoment } from "../../services/moment";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 
 export type PayloadCliente = {
     codigo: number;
@@ -66,17 +67,25 @@ function handleCliente(state: PayloadCliente, action: ActionCliente): PayloadCli
 }
 
 export const Cadastro_cliente = ({ route, navigation }: any) => {
+    
+    
     const [visibleEndereco, setVisibleEndereco] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [messageAlert, setMessageAlert] = useState('');
     const [titleAlert, setTitleAlert] = useState('');
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
+
     const api = useApi();
     const useQueryClient = useClients();
-    const { usuario }: any = useContext(AuthContext);
+    const { usuario, permissoes }: any = useContext(AuthContext);
     const useMoment = configMoment();
+
+        const [ isEnabledEditCustomer ] =useState(verifyUserPermission('clientes', 'editar' , permissoes))
+        const [ isEnabledCreateCustomer ] =useState(verifyUserPermission('clientes', 'criar' , permissoes))
+
     const { connected, setConnected } = useContext<any>(ConnectedContext);
 
     const { codigo_cliente } = route.params || { codigo_cliente: 0 };
@@ -186,7 +195,14 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                 data_recadastro: useMoment.dataHoraAtual(),
             };
 
+
             try {
+                    if(!isEnabledEditCustomer){
+                    setTitleAlert('Atenção!');
+                    setTypeAlert('warning');
+                    setMessageAlert('Você não tem permisssão para alterar clientes!');
+                    setVisibleAlert(true);
+                    }
                 setLoading(true);
                 const result: any = await api.put('/clientes', putCliente);
 
@@ -220,6 +236,13 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
 
             try {
                 setLoading(true);
+                if(!isEnabledCreateCustomer){
+                    setTitleAlert('Atenção!');
+                    setTypeAlert('warning');
+                    setMessageAlert('Você não tem permisssão para criar novos clientes!');
+                    setVisibleAlert(true);
+                    }
+                    
                 const result: any = await api.post('/clientes', novoCliente);
 
                 if (result.status === 201 && result.data.codigo > 0) {
@@ -416,6 +439,9 @@ export const Cadastro_cliente = ({ route, navigation }: any) => {
                 message={messageAlert}
                 type={typeAlert}
             />
+
+ 
+
         </KeyboardAvoidingView>
     )
 }

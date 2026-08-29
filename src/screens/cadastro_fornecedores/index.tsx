@@ -8,6 +8,7 @@ import { LodingComponent } from "../../components/loading";
 import { configMoment } from "../../services/moment";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 
 export type PayloadFornecedor = {
     codigo: number;
@@ -73,11 +74,12 @@ export const Cadastro_fornecedores = ({ route, navigation }: any) => {
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
     const api = useApi();
-    const { usuario }: any = useContext(AuthContext);
+    const { usuario, permissoes }: any = useContext(AuthContext);
     const useMoment = configMoment();
-    const { connected, setConnected } = useContext<any>(ConnectedContext);
 
     const { codigo_fornecedor } = route.params || { codigo_fornecedor: 0 };
+
+    const [ isEnabledEditSuplier] =useState( verifyUserPermission('fornecedores','editar',permissoes));
 
     const initialState: PayloadFornecedor = {
         codigo: 0,
@@ -155,6 +157,15 @@ export const Cadastro_fornecedores = ({ route, navigation }: any) => {
     }
 
     async function gravar() {
+        if(!isEnabledEditSuplier){
+                setTitleAlert('Atenção!');
+                    setTypeAlert('warning');
+                    setMessageAlert('Você não tem permisssão para editar Fornecedores!');
+                    setVisibleAlert(true);
+                return;
+        }
+
+
         if (!state.cnpj || state.cnpj === '') {
             setTitleAlert('Atenção');
             setTypeAlert('warning');

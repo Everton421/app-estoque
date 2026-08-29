@@ -14,6 +14,7 @@ export const restartDatabaseService = ()=>{
       DROP TABLE IF EXISTS servicos;
       DROP TABLE IF EXISTS setores;
       DROP TABLE IF EXISTS usuarios ;
+      DROP TABLE IF EXISTS permissoes;
       DROP TABLE IF EXISTS api_config;
       DROP TABLE IF EXISTS empresas;
       DROP TABLE IF EXISTS categorias;
@@ -38,6 +39,16 @@ export const restartDatabaseService = ()=>{
     ); 
 
     CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+
+  CREATE TABLE IF NOT EXISTS permissoes (
+      codigo INTEGER NOT NULL,
+      id TEXT NOT NULL,
+      descricao TEXT NOT NULL,
+      usuario INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (usuario, codigo)
+     );
+
+    CREATE INDEX IF NOT EXISTS idx_permissoes_usuario ON permissoes(usuario);
 
   CREATE TABLE IF NOT EXISTS produtos (
       codigo          INTEGER PRIMARY KEY NOT NULL,

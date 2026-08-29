@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons, Fontisto, MaterialIcons } from "@expo/vector-icons";
+import { Fontisto, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { configMoment } from "../../../../services/moment"; 
-import { ModalBranches } from "../modal-filter-branch/modal-filter-branch";
+import React, { useContext, useEffect, useState } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { actionsFilterOrder, filterOrdersituation, typefilterOrders } from "../..";
+import { CustomAlert } from "../../../../components/custom-alert/custom-alert";
+import { AuthContext } from "../../../../contexts/auth";
+import { configMoment } from "../../../../services/moment";
+import { ModalBranches } from "../modal-filter-branch/modal-filter-branch";
 import { ModalSeller } from "../modal-filter-seller/modal-filter-seller";
 
 type ModalFilterProps = {
@@ -16,6 +18,10 @@ type ModalFilterProps = {
 };
 
 export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: ModalFilterProps) => {
+       
+    let { permissoes }:any  = useContext(AuthContext) ;
+
+    const userPermission = permissoes as string[];
     
     const moment = configMoment();
     const [showPickerInitalDate, setShowPickerInitalDate] = useState(false);
@@ -23,20 +29,57 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
     const [showStatusPicker, setShowStatusPicker] = useState(false);
     const [isVisibleModalBranch, setIsVisibleModalBranch] = useState(false);
     const [ isVisibleModalSeller, setIsVisibleModalSeller] = useState(false);
-    
 
-    const statusOptions = [  
-        { id: '*', label: 'Todos', color: '#333' },
-        { id: 'EA', label: 'Orçamentos', color: '#1E9C43' },
-        { id: 'AI', label: 'Pedidos', color: '#307CEB' },
-        { id: 'FI', label: 'Faturados', color: '#FF7F27' },
-        { id: 'FP', label: 'Parcialmente Faturados', color: '#0023F5' },
-        { id: 'RE', label: 'Reprovados', color: '#F44336' },
-    ];
+    const [ isVisibleAlert, setIsVisibleAlert ] = useState(false);
+    const [ titleAlert, setTitleAlert ] = useState('');
+    const [ messageAlert, setMessageAlert ]= useState('');
+    const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
+
+    const [statusOptions ]= useState([  
+        { id: '*', permission:'pedidos.',                            label: 'Todos', color: '#333' },
+        { id: 'EA',permission:'pedidos.ver_em_aberto',               label: 'Orçamentos', color: '#1E9C43' },
+        { id: 'AI',permission:'pedidos.ver_aprovados',               label: 'Pedidos', color: '#307CEB' },
+        { id: 'FI',permission:'pedidos.ver_faturados',               label: 'Faturados', color: '#FF7F27' },
+        { id: 'FP',permission:'pedidos.ver_faturados_parcialmente',  label: 'Parcialmente Faturados', color: '#0023F5' },
+        { id: 'RE',permission:'pedidos.ver_reprovados',              label: 'Reprovados', color: '#F44336' },
+    ])
+
+
+            const orderPermission = userPermission.filter(( i )=>{
+                 return i.startsWith('pedidos.')
+            })
+    
+         function switchStatusFilter(status:filterOrdersituation){
+                        let isEnabledPermission = false;
+                    if(orderPermission.length > 0 ) {
+                        for( const permission of orderPermission ){
+                            if( status == 'EA' && permission == 'pedidos.ver_em_aberto') isEnabledPermission =true;
+                            if( status == 'AI' && permission == 'pedidos.ver_aprovados') isEnabledPermission =true;
+                            if( status == 'FI' && permission == 'pedidos.ver_faturados') isEnabledPermission =true;
+                            if( status == 'FP' && permission == 'pedidos.ver_faturados_parcialmente') isEnabledPermission =true;
+                            if( status == 'RE' && permission == 'pedidos.ver_reprovados') isEnabledPermission =true;
+                        }
+                    }  
+                    return isEnabledPermission;
+            }
+
+    useEffect(()=>{
+         switchStatusFilter('BM');
+    },[])
 
     const handleSelectStatus = (newStatus: filterOrdersituation) => {
-        setFilter({ paylod: newStatus, type:'switch_status' })
-        setShowStatusPicker(false);
+        const iSenabled = switchStatusFilter(newStatus)
+            console.log(`  iSenabled ${iSenabled}`) 
+
+        if(iSenabled){
+           setFilter({ paylod: newStatus, type:'switch_status' })
+           setShowStatusPicker(false);
+        }else{
+             setIsVisibleAlert(true);
+             setTitleAlert('Atenção!');
+             setMessageAlert(`Você não possui permissao para ver pedidos com status:\n [ ${statusOptions.find((i)=> i.id == newStatus)?.label} ]`);
+              setTypeAlert('warning');
+        }
     };
 
     const handleDateInitialChange = (event: any, selectedDate?: Date) => {
@@ -47,7 +90,7 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
         }
     };
 
-      const handleDateFinalChange = (event: any, selectedDate?: Date) => {
+      const handleDateFinalChange = (event: any, selectedDate?: Date) => { 
         setShowPickerFinalDate(false);
         if (event.type === 'set' && selectedDate) {
             const dataFormatada = moment.formatarData(selectedDate as any);
@@ -88,6 +131,13 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={() => setVisible(false)}>
             <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
                 
+                   <CustomAlert
+                                visible={isVisibleAlert}
+                                message={messageAlert}
+                                onConfirm={() => setIsVisibleAlert(false)}
+                                title={titleAlert}
+                                type={typeAlert}
+                            />
                 <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={() => setVisible(false)} />
 
                 <View style={{
@@ -196,8 +246,13 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                             {/**Modal filtro do status do pedido */}
                               <Modal visible={showStatusPicker} transparent={true} animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>  
                                   <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
-                                     <View style={{  width:'80%', marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
-                                    {statusOptions.map((opt:any) => {
+                                    
+                                 <View style={{  width:'80%', marginTop: 8, backgroundColor: '#F5F7FA', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' }}>
+                                 <TouchableOpacity onPress={() => setShowStatusPicker(false)}>
+                            <Ionicons name="close" size={24} color="#8d0a0a" />
+                        </TouchableOpacity>
+                        {  
+                                    statusOptions.map((opt:any) => {
                                         const isSelected = filter.situacao === opt.id;
                                         return (
                                             <TouchableOpacity
@@ -223,7 +278,9 @@ export const ModalFilter = ({setFilter, filter,  visible, setVisible,    }: Moda
                                                 {isSelected && <Ionicons name="checkmark-circle" size={20} color="#185FED" />}
                                             </TouchableOpacity>
                                         );
-                                    })}
+                                    }) 
+
+                                   }
                                   </View>
                                 </View>
                             </Modal>

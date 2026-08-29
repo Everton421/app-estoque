@@ -1,7 +1,7 @@
 import { FontAwesome5 } from "@expo/vector-icons";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { useClients } from "../../database/queryClientes/queryCliente";
@@ -10,6 +10,9 @@ import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
 import { RenderItensClients } from "./components/renderItemsClients/RenderItensClients";
 import { delay } from "../../utils/delay";
+import { AuthContext } from "../../contexts/auth";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 // import { defaultColors } from "../../styles/global"; // Pode remover se não for usar em outros lugares
 
 export type client = {
@@ -25,6 +28,7 @@ export type client = {
 }
 
 export function Clientes({ navigation }: any) {
+        const { usuario, permissoes }: any = useContext(AuthContext);
 
     const [pesquisa, setPesquisa] = useState('');
     const [dados, setDados] = useState<client[]>([]);
@@ -35,6 +39,29 @@ export function Clientes({ navigation }: any) {
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [isloadingDataClient, setIsLoadingDataClient] = useState(false);
      const [refreshing, setRefreshing] = useState(false);
+
+        const [ isEnabledViewerCustomers ] =useState(verifyUserPermission('clientes', 'ler' , permissoes))
+        const [ isEnabledCreateCustomer ] =useState( verifyUserPermission('clientes', 'criar',permissoes) )
+        const [ isEnabledEditCustomer ] =useState( verifyUserPermission('clientes', 'editar',permissoes) )
+
+
+    const [visibleAlertCreateCustomer,  setVisibleAlertCreateCustomer] = useState(false);
+    const [messageAlertCreateCustomer , setMessageAlertCreateCustomer] = useState('');
+    const [titleAlertCreateCustomer,    setTitleAlertCreateCustomer] = useState('');
+    const [typeAlertCreateCustomer,     setTypeAlertCreateCustomer] = useState<AlertType>('info');
+
+        function handleCreateNewCustomer(){
+            if(!isEnabledCreateCustomer){  
+              setVisibleAlertCreateCustomer(true);
+              setMessageAlertCreateCustomer("Você não tem permissão para cadastrar novos clientes!");
+              setTitleAlertCreateCustomer("Atenção!");
+              setTypeAlertCreateCustomer('warning');
+            }else{
+                 navigation.navigate('cadastro_cliente')
+            }
+        }
+        
+
 
     const api = useApi();
 
@@ -96,7 +123,15 @@ export function Clientes({ navigation }: any) {
 
 
     function handleSelect(item: client) {
+        if(!isEnabledEditCustomer){
+             setVisibleAlertCreateCustomer(true);
+              setMessageAlertCreateCustomer("Você não tem permissão para editar clientes!");
+              setTitleAlertCreateCustomer("Atenção!");
+              setTypeAlertCreateCustomer('warning');
+        }else{
         navigation.navigate('cadastro_cliente', { codigo_cliente: item.codigo })
+        }
+    
     }
 
     const FilterOption = ({ value, label }: { value: number, label: string }) => {
@@ -230,6 +265,7 @@ export function Clientes({ navigation }: any) {
                 </View>
             
             :
+             isEnabledViewerCustomers ?
                 <FlatList
                     data={dados}
                     renderItem={({ item }) => <RenderItensClients item={item} handleSelect={handleSelect} />}
@@ -249,31 +285,28 @@ export function Clientes({ navigation }: any) {
                                       tintColor="#185FED"
                                   />
                             }
-                                                       
                 />
+                :
+                 <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                        <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os clientes!</Text>
+                 </View>
             }
            
+            <CustomAlert
+                visible={visibleAlertCreateCustomer}
+                message={messageAlertCreateCustomer}
+                onConfirm={() => setVisibleAlertCreateCustomer(false)}
+                title={titleAlertCreateCustomer}
+                type={typeAlertCreateCustomer}
+            />
 
             {/* --- BOTÃO FLUTUANTE (FAB) --- */}
             <TouchableOpacity
-                style={{
-                    position: 'absolute',
-                    bottom: 30,
-                    right: 30,
-                    backgroundColor: '#185FED',
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    elevation: 6,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.3,
-                    shadowOffset: { width: 0, height: 3 },
-                    zIndex: 999
+                style={{position: 'absolute',bottom: 30,right: 30,backgroundColor: '#185FED',width: 56,height: 56,borderRadius: 28,justifyContent: 'center',alignItems: 'center',elevation: 6,shadowColor: '#000',shadowOpacity: 0.3,shadowOffset: { width: 0, height: 3 },zIndex: 999
                 }}
                 onPress={() => {
-                    navigation.navigate('cadastro_cliente')
+                   
+                    handleCreateNewCustomer()
                 }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />

@@ -50,7 +50,7 @@ import { CustomAlert } from '../../components/custom-alert/custom-alert';
 export const Home = ({ navigation }: any) => {
 
   const { connected, setConnected }: any = useContext(ConnectedContext);
-  const { setLogado, setUsuario, usuario }: any = useContext(AuthContext);
+  const { setLogado, setUsuario, usuario , permissoes}: any = useContext(AuthContext);
   const api = useApi();
   
   const syncprodSector = useSyncProdSector();
@@ -82,65 +82,6 @@ export const Home = ({ navigation }: any) => {
 
   let useQueryEmpresa = queryEmpresas();
   let restartDB = restartDatabaseService();
-
-
-
-  const verifyDateSinc = async () => {
-    let validConfig = await useQueryConfigApi.select(1)
-    let dataUltSinc: string;
-    let dataLastSincronization =
-    {
-      codigo: 1,
-      url: '',
-      porta: 3306,
-      token: '',
-      data_sinc: useMoment.dataHoraAtual(),
-      data_env: '0000-00-00 00:00:00',  
-      offline: "N"
-    } as any
-
-    if (validConfig && validConfig?.length > 0) {
-      dataUltSinc = validConfig[0].data_sinc
-      dataLastSincronization.data_sinc = validConfig[0].data_sinc;
-
-      console.log("Ultima Sincronizacao : ", validConfig[0].data_sinc)
-      useQueryConfigApi.updateByParam(dataLastSincronization)
-    } else {
-      let aux = await useQueryConfigApi.create(dataLastSincronization);
-      dataUltSinc = '';
-      console.log("Executando primeira sincronizacao")
-    }
-    return dataLastSincronization;
-  }
-
-  const syncDataProcess = async () => {
-    let { data_sinc, offline } = await verifyDateSinc();
-    const data = data_sinc;
-    if(  offline === "N"){
-      return;
-    }
-    setIsLoading(true);
-    setProgress(0);
-
-    try {
-      await syncProdutos.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncCategorias.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncFotos.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncprodSector.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncMarcas.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncMovimentos.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncSetores.syncData({ data, setIsLoading, setProgress, setItem });
-      await syncClientes.syncData({data, setIsLoading, setProgress, setItem})
-      console.log('Fim do processo')
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setProgress(0), 1000); // Reseta o progresso após 1 segundo
-
-    }
-  };
-
 
 
 
@@ -187,19 +128,16 @@ export const Home = ({ navigation }: any) => {
   useEffect(
     () => {
       buscaEmpresa()
-      syncDataProcess()
-
     }, [usuario.token])
 
 
   function alertSair() {
- 
         setVisibleAlert(true)
         setTitleAlert('Atenção');
         setTypeAlert('warning');
         setCancelText('Cancelar');
-        setConfirmText('OK');
-        setMessageAlert('Ao sair serão excluidos os dados do aplicativo, será necessario efetuar uma nova sincronização');
+        setConfirmText('Sim');
+        setMessageAlert('Deseja realmente sair?');
   }
 
   useEffect(() => {
@@ -213,8 +151,6 @@ export const Home = ({ navigation }: any) => {
     }
     logout()
   }, [sair])
-
-
 
 
   const data = [
@@ -248,6 +184,9 @@ export const Home = ({ navigation }: any) => {
     },
    
   ];
+  
+ 
+ 
 
   const Item = ({ value }: any) => {
     return (

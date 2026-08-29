@@ -1,16 +1,17 @@
 import { Entypo, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { useContext, useEffect, useReducer, useState } from "react";
-import { Button, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 import { AuthContext } from "../../contexts/auth";
 import useApi from "../../services/api";
 import { configMoment } from '../../services/moment';
+import { BarcodeScanner } from "../../components/barcode-scanner";
 import { ModalSeletorSeriesRequerimento } from './components/modal-seletor-series-requerimento/modal-seletor-series-requerimento';
 import { ModalSetoresRequerimento } from './components/modal-setores-requerimento/modal-setores-requerimento';
 import { ListaProdutosRequerimento, prodSectorGroupedRequest } from './components/produtos_requerimento';
 import { RenderProduto } from './components/render-produto';
+import { delay } from '../../utils/delay';
 
 
 type setor = {
@@ -67,7 +68,6 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
     const codigoEdicao = route?.params?.codigo || null;
     const isEdicao = !!codigoEdicao;
     const [loadingEdicao, setLoadingEdicao] = useState(false);
-
 
     function handleEditRequirement(state: payloadRequirement, action: actionsRequirement) {
         switch (action.type) {
@@ -133,7 +133,6 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
     const [titleAlert, setTitleAlert] = useState('');
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
 
-    const [permission, requestPermission] = useCameraPermissions();
     const [prodSeletor, setProdSeletor] = useState<any>();
 
     const [dataSetores, setDataSetores] = useState<any>();
@@ -141,6 +140,8 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
 
     const [defaultConfigFilter, setDefaultConfigFilter] = useState<'codigo' | 'num_fabricante' | 'num_original' | 'sku'>('num_fabricante');
     const [loadingDataProd, setLoadingDataProd] = useState(false);
+
+    const [ isLoadingSaveRequirement , setIsloadingSaveRequirement ] = useState(false);
 
     const [sectorOrigin, setSectorOrigin] = useState<setor>();
 
@@ -166,12 +167,10 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
         }
     }
 
-    function handleCodeRead(data: string) {
-
-        setModalvisible(false);
-        const cleanCode = data.replace(/^0+/, '') || '0';
-               fyndBarcode(cleanCode);
-    
+ async   function handleCodeRead(data: string) {
+               fyndBarcode(data);          
+                   setModalvisible(false);
+     
     }
 
     async function fyndBarcode(codeScanned: string) {
@@ -204,12 +203,19 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                             return;
                         }  
                     }
+                    const controle_lote_serie = dataProductApi.produto.controle_lote_serie;
+                      if (dataProductApi.produto.controle_lote_serie === 'S') {
+                        setTitleAlert('Atenção');
+                        setTypeAlert('info');
+                        setMessageAlert(`Produto controlado por série. Selecione as séries no card do produto.`);
+                        setVisibleAlert(true);
+                    }
                     dispatch({
                         type: 'add_item', payload: {
                             produto: dataProductApi.produto.codigo,
                             descricao: dataProductApi.produto.descricao,
                             controle_lote_serie: dataProductApi.produto.controle_lote_serie,
-                            quantidade: 1,
+                            quantidade:  controle_lote_serie == 'S' ? 0 : 1 ,
                             quantidade_disponivel: dataProductApi.setor[0].estoque,    
                             custo: 0,
                             lotes_series: []
@@ -390,14 +396,18 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
 
         try {
             let response;
-            if (isEdicao) {
-                payload.codigo = codigoEdicao;
-                response = await api.put(`/requirements/${payload.codigo}`, payload);
-            } else {
-                response = await api.post(`/requirements`, payload);
-            }
+                setIsloadingSaveRequirement(true)
+             if (isEdicao) {
+                 payload.codigo = codigoEdicao;
+                 response = await api.put(`/requirements/${payload.codigo}`, payload);
+             } else {
+                 response = await api.post(`/requirements`, payload);
+             }
+
+                await delay(500)
 
             if (response.status === 200 || response.status === 201) {
+                setIsloadingSaveRequirement(false)
                 setTitleAlert('Sucesso');
                 setTypeAlert('success');
                 setMessageAlert(isEdicao ? 'Requerimento atualizado com sucesso.' : 'Requerimento criado com sucesso.');
@@ -405,7 +415,6 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                 dispatch({ type: 'reset' });
                 setSectorOrigin(undefined);
                 setSectorDestinattion(undefined);
-                navigation.goBack();
             }
         } catch (e: any) {
             console.log(`[X] Erro ao ${isEdicao ? 'atualizar' : 'criar'} requerimento:`, e.response.data);
@@ -413,25 +422,13 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
             setTypeAlert('error');
             setMessageAlert(`Erro ao ${isEdicao ? 'atualizar' : 'criar'} requerimento. ${e.response.data}`);
             setVisibleAlert(true);
-        } 
+        }finally{
+                setIsloadingSaveRequirement(false)
+        }
     }   
 
-    if (!permission) return null;
-
-    if (modalVisible && !permission.granted) {
-        return (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontWeight: "bold", margin: 10, color: "#89898fff", fontSize: 17 }}>
-                    Você precisa liberar o acesso a camera para continuar!
-                </Text>
-                <Button onPress={requestPermission} title="Liberar acesso" />
-            </View>
-        );
-    }
-
     return (
-        <View style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
-
+        <ScrollView style={{ flex: 1, backgroundColor: '#EAF4FE' }}>
 
          {/* --- HEADER --- */}
             <View style={{
@@ -459,19 +456,22 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                     {/** SELETOR SETOR DE ORIGEM */}
                     <TouchableOpacity
                         style={{
-                            flex: 1, backgroundColor: "#FFF", borderRadius: 12, padding: 15, justifyContent: "center", alignItems: "center", elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, borderLeftWidth: 5, borderLeftColor: sectorOrigin ? '#1E9C43' : '#185FED', minHeight: 90
+                            flex: 1, backgroundColor: "#FFF", borderRadius: 12, padding: 5,
+                             justifyContent: "center", alignItems: "center", elevation: 3, shadowColor: '#000', 
+                             shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, borderLeftWidth: 5, borderLeftColor: sectorOrigin ? '#1E9C43' : '#185FED', minHeight: 70
                         }}
                         onPress={() => setIsVisibleSectorOrigin(true)} >
 
-                        <Text style={{ color: sectorOrigin ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
+                       
+                        <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
+                                    <Entypo name="arrow-up" size={17} color={sectorOrigin ? '#1E9C43' : '#185FED'} /> Setor de Origem <Entypo name="location" size={17} color={sectorOrigin ? '#1E9C43' : '#185FED'} />
+                        </Text>
+                         <Text style={{ color: sectorOrigin ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
                             {sectorOrigin ? sectorOrigin.descricao : 'Selecionar'}
                         </Text>
-                        <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
-                            Setor de Origem
-                        </Text>
-                        <Entypo name="location" size={28} color={sectorOrigin ? '#1E9C43' : '#185FED'} />
+
                         {sectorOrigin && (
-                            <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                            <View style={{ position: 'absolute', top: 2, right: 8 }}>
                                 <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
                             </View>
                         )}
@@ -480,21 +480,23 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                     {/** SELETOR SETOR DE DESTINO */}
                     <TouchableOpacity
                         style={{
-                            flex: 1,backgroundColor: "#FFF",borderRadius: 12,padding: 15,justifyContent: "center",alignItems: "center",elevation: 3,shadowColor: '#000',shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.1,shadowRadius: 3,borderLeftWidth: 5,borderLeftColor: sectorDestinattion ? '#1E9C43' : '#185FED',minHeight: 90 }}
+                            flex: 1,backgroundColor: "#FFF",borderRadius: 12,padding: 5,justifyContent: "center",alignItems: "center",elevation: 3,shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.1,shadowRadius: 3,borderLeftWidth: 5,borderLeftColor: sectorDestinattion ? '#1E9C43' : '#185FED',minHeight: 70 }}
                         onPress={() => setIsVisibleSectorDestinattion(true)}>
-                        <Text style={{ color: sectorDestinattion ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
-                            {sectorDestinattion ? sectorDestinattion.descricao : 'Selecionar'}
-                        </Text>
+                    
                         <Text style={{ color: '#333', fontSize: 12, fontWeight: 'bold', marginTop: 6 }}>
-                            Setor de Destino
+                          <Entypo name="arrow-down" size={17} color={sectorDestinattion ? '#1E9C43' : '#185FED'} /> Setor de Destino <Entypo name="location" size={17} color={sectorDestinattion ? '#1E9C43' : '#185FED'} />
+                        </Text>
+                         <Text style={{ color: sectorDestinattion ? '#1E9C43' : '#999', fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>
+                            {sectorDestinattion ? sectorDestinattion.descricao : 'Selecionar'}
                         </Text>
 
                         {sectorDestinattion && (
-                            <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                            <View style={{ position: 'absolute', top: 2,   right: 8 }}>
                                 <Ionicons name="checkmark-circle" size={20} color="#1E9C43" />
                             </View>
                         )}
-                        <Entypo name="location" size={28} color={sectorDestinattion ? '#1E9C43' : '#185FED'} />
+                       
                     </TouchableOpacity>
                 </View>
 
@@ -581,28 +583,12 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
                 </View>
 
 
-            {/* --- MODAL CÂMERA PARA LER CODIGO DE BARRAS DO PRODUTO--- */}
-            <Modal visible={modalVisible} animationType="slide">
-                <CameraView
-                    style={{ flex: 1 }}
-                    facing="back"
-                    onBarcodeScanned={({ data }) => {
-                        if (data) handleCodeRead(data);
-                    }}
-                >
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                        <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                        <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-
-                        <TouchableOpacity
-                            onPress={() => setModalvisible(false)}
-                            style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                        >
-                            <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </CameraView>
-            </Modal>
+            {/* --- SCANNER DE CÓDIGO DE BARRAS --- */}
+            <BarcodeScanner
+                visible={modalVisible}
+                onClose={() => setModalvisible(false)}
+                onBarcodeScanned={(data) => handleCodeRead(data)}
+            />
 
             { /** MODAL SELETOR SETOR ORIGEM */}
             {isVisibleSectorOrigin &&
@@ -644,12 +630,30 @@ export const NovoRequerimento = ({ navigation, route }: any) => {
             {/** --- Alerta -- */}
             <CustomAlert
                 visible={visibleAlert}
-                onConfirm={() => setVisibleAlert(false)}
+                onConfirm={() =>{
+                     setVisibleAlert(false);
+                     if(typeAlert == 'success'){
+                       navigation.goBack();
+                     }
+                    }
+                }
                 title={titleAlert}
                 message={messageAlert}
                 type={typeAlert}
             />
+         
+               {
+                isLoadingSaveRequirement && 
+                <Modal   transparent={true}>
+                    <View style={{ flex:1, backgroundColor: "rgba(0, 0, 0, 0.3)" , alignItems:'center', justifyContent:'center'}}>
+                        <ActivityIndicator
+                        size={50}
+                        />
+                  </View>
+                </Modal>
+              }
 
-        </View>
+                         </ScrollView>
+
     )
 }

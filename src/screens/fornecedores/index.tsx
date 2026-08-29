@@ -1,7 +1,7 @@
 import { FontAwesome5 } from "@expo/vector-icons";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { useClients } from "../../database/queryClientes/queryCliente";
@@ -10,6 +10,9 @@ import useApi from "../../services/api";
 import { ApiConfig } from "../../types/type-config-api";
 import { RenderItensSuplier } from "./components/render-item/render-item";
 import { delay } from "../../utils/delay";
+import { AuthContext } from "../../contexts/auth";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 
 export type fornecedor = {
     codigo: number,
@@ -34,12 +37,40 @@ export function Fornecedores({ navigation }: any) {
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [isloadingDataSupplier, setIsLoadingDataSupplier] = useState(false);
     const api = useApi();
-     const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+   
+        const [visibleAlert, setVisibleAlert] = useState(false);
+        const [messageAlert, setMessageAlert] = useState('');
+        const [titleAlert, setTitleAlert] = useState('');
+        const [typeAlert, setTypeAlert] = useState<AlertType>('info');
     
 
-    const useQueryConfigApi = queryConfig_api();
+    const { usuario, permissoes }: any = useContext(AuthContext);
 
-    const useQueryClients = useClients();
+
+    const [ isEnabledCreateSuplier] =useState( verifyUserPermission('fornecedores','criar',permissoes));
+
+    const [ isEnabledViewerSuplier] =useState( verifyUserPermission('fornecedores','ler',permissoes));
+
+    const [ isEnabledEditSuplier] =useState( verifyUserPermission('fornecedores','editar',permissoes));
+
+
+
+    function handleCreateNewSuplier(){
+        if(!isEnabledCreateSuplier){
+            setTitleAlert('Atenção!');
+                    setTypeAlert('warning');
+                    setMessageAlert('Você não tem permisssão para criar novos Fornecedores!');
+                    setVisibleAlert(true);
+        }else{
+            navigation.navigate('cadastro_fornecedores')
+        }
+    }
+
+
+
+
+    const useQueryConfigApi = queryConfig_api();
 
     async function getConfigMobileApi() {
         try {
@@ -56,6 +87,9 @@ export function Fornecedores({ navigation }: any) {
 
     useEffect(() => {
         getConfigMobileApi();
+        console.log(permissoes)
+        console.log("isEnabledEditSuplier ", isEnabledEditSuplier)
+        
     }, [])
  
 
@@ -96,7 +130,15 @@ export function Fornecedores({ navigation }: any) {
 
 
     function handleSelect(item: fornecedor) {
-        navigation.navigate('cadastro_fornecedores', { codigo_fornecedor: item.codigo })
+        if(!isEnabledEditSuplier){
+            setTitleAlert('Atenção!');
+                    setTypeAlert('warning');
+                    setMessageAlert('Você não tem permisssão para editar Fornecedores!');
+                    setVisibleAlert(true);
+        }else{
+           navigation.navigate('cadastro_fornecedores', { codigo_fornecedor: item.codigo })
+        }
+        
     }
 
     const FilterOption = ({ value, label }: { value: number, label: string }) => {
@@ -229,6 +271,7 @@ export function Fornecedores({ navigation }: any) {
                 </View>
             
             :
+            isEnabledViewerSuplier ?
                 <FlatList
                     data={dados}
                     renderItem={({ item }) => <RenderItensSuplier item={item} handleSelect={handleSelect} />}
@@ -242,17 +285,29 @@ export function Fornecedores({ navigation }: any) {
                     )}
 
                         refreshControl={
-                                                         <RefreshControl
-                                                          refreshing={refreshing}
-                                                          onRefresh={onRefresh}
-                                                          colors={['#185FED']}
-                                                          tintColor="#185FED"
-                                                      />
-                                                }
+                                                <RefreshControl
+                                                 refreshing={refreshing}
+                                                 onRefresh={onRefresh}
+                                                 colors={['#185FED']}
+                                                 tintColor="#185FED"
+                                             />
+                        }
 
                 />
+                : 
+                    <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                        <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os Fornecedores!</Text>
+                 </View>
             }
-           
+                 <CustomAlert
+                           visible={visibleAlert}
+                           onConfirm={() => {
+                               setVisibleAlert(false);
+                           }}
+                           title={titleAlert}
+                           message={messageAlert}
+                           type={typeAlert}
+                       />
 
             {/* --- BOTÃO FLUTUANTE (FAB) --- */}
             <TouchableOpacity
@@ -273,7 +328,7 @@ export function Fornecedores({ navigation }: any) {
                     zIndex: 999
                 }}
                 onPress={() => {
-                    navigation.navigate('cadastro_fornecedores')
+                    handleCreateNewSuplier()
                 }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />

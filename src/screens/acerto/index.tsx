@@ -2,12 +2,15 @@ import { AntDesign, Ionicons } from "@expo/vector-icons";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
 import { ModalFilter } from "./components/modal-filter";
 import { delay } from "../../utils/delay";
+import { AuthContext } from "../../contexts/auth";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
+import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 
 type resultQueryMov = {
     data_recadastro: string
@@ -60,7 +63,16 @@ export const Acertos = ({ navigation }: any) => {
     const [dateFilter, setDateFilter] = useState(moment.dataAtual());
     const [refreshing, setRefreshing] = useState(false);
 
+    const { usuario, permissoes }: any = useContext(AuthContext);
 
+    const [ isEnabledCreateInventoryAdjustment ] = useState( verifyUserPermission("acertos", 'criar', permissoes))
+    const [ isEnabledViewerInventoryAdjustment ] = useState( verifyUserPermission("acertos", 'ler', permissoes))
+
+       const [visibleAlert, setVisibleAlert] = useState(false);
+        const [messageAlert, setMessageAlert] = useState('');
+        const [titleAlert, setTitleAlert] = useState('');
+        const [typeAlert, setTypeAlert] = useState<AlertType>('info');
+    
 
     async function buscaPorDescricao() {
         try {
@@ -171,6 +183,18 @@ export const Acertos = ({ navigation }: any) => {
     const getStatusIcon = (tipo: string) => {
         return tipo === 'E' ? 'arrow-up-circle' : 'arrow-down-circle';
     };
+
+
+    function handleCreateInventoryAdjustment (){
+        isEnabledCreateInventoryAdjustment ?     
+                       navigation.navigate('novo_acerto') 
+                        :
+                      setVisibleAlert(true);
+                      setTitleAlert("Atenção!");
+                      setTypeAlert('warning');
+                      setMessageAlert("Você não tem permissão para criar novos acertos!");
+   }
+
 
     // --- RENDER ITEM (MANTIDO E ADAPTADO AO ESTILO INLINE) ---
     function renderItem({ item }: { item: resultMovRequest }) {
@@ -328,7 +352,8 @@ export const Acertos = ({ navigation }: any) => {
                   <ActivityIndicator size={50} color="#185FED" style={{ marginTop: 20 }} />
                 </View>
             ) : (
-                <FlatList
+                isEnabledViewerInventoryAdjustment  ? 
+                ( <FlatList
                     data={dataMovimet}
                     renderItem={(i) => renderItem(i)}
                     keyExtractor={(i: resultMovRequest) => i.codigo.toString()}
@@ -347,8 +372,13 @@ export const Acertos = ({ navigation }: any) => {
                                 tintColor="#185FED"
                             />
                         }
-
-                />
+                /> ) 
+                :
+                   (
+                     <View style={{flex:1, alignItems:"center", justifyContent:"center" }}>
+                            <Text style={{ fontWeight:"bold", color:'#999'}}>Você não tem permissão para ver os acertos de estoque!</Text>
+                     </View>
+                    )
             )}
 
             {/* --- FAB --- */}
@@ -370,12 +400,21 @@ export const Acertos = ({ navigation }: any) => {
                     zIndex: 999
                 }}
                 onPress={() => {
-                    navigation.navigate('novo_acerto')
+                     handleCreateInventoryAdjustment()
                 }}
             >
                 <MaterialIcons name="add" size={32} color="#FFF" />
             </TouchableOpacity>
  
+                    <CustomAlert
+                        message={messageAlert}
+                        onConfirm={ ()=>{ 
+                            setVisibleAlert(false)
+                        }
+                        }
+                        title={titleAlert}
+                        visible={visibleAlert}
+                    />
 
             <ModalFilter
                  dateFilter={dateFilter}

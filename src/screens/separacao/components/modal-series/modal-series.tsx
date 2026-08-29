@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import useApi from "../../../../services/api";
 import { serie } from "../..";
-import { CameraView } from "expo-camera";
+import { BarcodeScanner } from "../../../../components/barcode-scanner";
 
 type ModalProps = {
     visible: boolean;
@@ -44,8 +44,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
     const [exibirNegativo, setExibirNegativo] = useState(false);
     const [ isVisiblesSwitchStockSeries , setIsVisiblesSwitchStockSeries]  = useState(false);
     const [ situacao_estoque, setSituacao_estoque] = useState<typeSituations>('positivo');
-
-    const [isVisibleCamera, setIsVisibleCamera ] = useState(false);
+    const [ isVisibleScanner, setIsVisibleScanner ] = useState(false);
 
     useEffect(() => {
         if (visible) {
@@ -157,8 +156,6 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
   
   
     async function handleCodeRead(data: string) {
-         setIsVisibleCamera(false);
-
           try {
             setIsloadingDataSeries(true);
             const params: Record<string, any> = {
@@ -426,7 +423,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
   
      {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
                 <TouchableOpacity
-                    onPress={() => { setIsVisibleCamera(true) }}
+                    onPress={() => { setIsVisibleScanner(true) }}
                     style={{
                         backgroundColor: '#185FED',
                         width: 56, height: 56,
@@ -446,28 +443,13 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
                     <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
                 </TouchableOpacity>
 
-                         {/* MODAL CÂMERA */}
-                                    <Modal visible={isVisibleCamera} animationType="slide">
-                                        <CameraView
-                                            style={{ flex: 1 }}
-                                            facing="back"
-                                            onBarcodeScanned={({ data }) => {
-                                                if (data) handleCodeRead(data);
-                                            }}
-                                        >
-                                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                                                <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                                                <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-                        
-                                                <TouchableOpacity
-                                                    onPress={() => setIsVisibleCamera(false)}
-                                                    style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                                                >
-                                                    <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </CameraView>
-                                    </Modal>
+                {/* SCANNER DE SÉRIES */}
+                <BarcodeScanner
+                    visible={isVisibleScanner}
+                    onClose={() => setIsVisibleScanner(false)}
+                    onBarcodeScanned={(data) => handleCodeRead(data)}
+                    stripZeros={false}
+                />
 
                     </View>
              </View>

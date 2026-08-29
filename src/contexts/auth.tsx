@@ -9,15 +9,20 @@ type user = {
      token :string
 }
 
+export type Permissao = {
+     id : string
+}
+
 export const AuthContext = createContext({});
 
 
     function AuthProvider({children}:any){
         const [usuario, setUsuario] = useState<user>();
         const [ logado, setLogado ] = useState<boolean>(false);
+        const [ permissoes, setPermissoes ] = useState<Permissao[]>([]);
 
         return(
-            <AuthContext.Provider value={ {logado, setLogado ,usuario, setUsuario}}>
+            <AuthContext.Provider value={ {logado, setLogado ,usuario, setUsuario, permissoes, setPermissoes}}>
                 {children}
             </AuthContext.Provider>
         )

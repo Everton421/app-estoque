@@ -2,8 +2,8 @@ import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import useApi from "../../../../services/api";
-import { CameraView } from "expo-camera";
 import { AlertType, CustomAlert } from "../../../../components/custom-alert/custom-alert";
+import { BarcodeScanner } from "../../../../components/barcode-scanner";
 
 type LoteSerieItem = {
     lote_serie: number;
@@ -35,7 +35,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
     const [isloadingDataSeries, setIsloadingDataSeries] = useState(false);
     const [dataSeries, setDataSeries] = useState<type_lote_serie_setor[]>([]);
     const [selectedSeries, setSelectedSeries] = useState<LoteSerieItem[]>([]);
-    const [isVisibleCamera, setIsVisibleCamera] = useState(false);
+    const [isVisibleScanner, setIsVisibleScanner] = useState(false);
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [messageAlert, setMessageAlert] = useState<string>('');
     const [typeAlert, setTypeAlert] = useState<AlertType>('info');
@@ -68,9 +68,6 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
     }
 
     async function handleCodeRead(data: string) {
-        setIsVisibleCamera(false);
-
-
         try {
             setIsloadingDataSeries(true);
             const params: Record<string, any> = {
@@ -318,7 +315,7 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            onPress={() => setIsVisibleCamera(true)}
+                            onPress={() => setIsVisibleScanner(true)}
                             style={{
                                 backgroundColor: '#185FED',
                                 width: 56, height: 56,
@@ -338,26 +335,13 @@ export const ModalSeletorSeriesRequerimento = ({ visible, setVisible, produto, s
                             <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
                         </TouchableOpacity>
 
-                        <Modal visible={isVisibleCamera} animationType="slide">
-                            <CameraView
-                                style={{ flex: 1 }}
-                                facing="back"
-                                onBarcodeScanned={({ data }) => {
-                                    if (data) handleCodeRead(data);
-                                }}
-                            >
-                                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-                                    <View style={{ width: 280, height: 280, borderWidth: 2, borderColor: '#FFF', borderRadius: 20 }} />
-                                    <Text style={{ color: '#FFF', marginTop: 20, fontWeight: 'bold' }}>Posicione o código de barras na área</Text>
-                                    <TouchableOpacity
-                                        onPress={() => setIsVisibleCamera(false)}
-                                        style={{ position: 'absolute', bottom: 50, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 }}
-                                    >
-                                        <Text style={{ color: '#000', fontWeight: 'bold' }}>Cancelar</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </CameraView>
-                        </Modal>
+                        {/* SCANNER DE SÉRIES */}
+                        <BarcodeScanner
+                            visible={isVisibleScanner}
+                            onClose={() => setIsVisibleScanner(false)}
+                            onBarcodeScanned={(data) => handleCodeRead(data)}
+                            stripZeros={false}
+                        />
 
                         <CustomAlert
                             visible={visibleAlert}

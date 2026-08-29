@@ -38,31 +38,12 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
     const [loading, setLoading] = useState(false);
     const [marcaSelecionada, setMarcaSelecionada] = useState(null);
     const api = useApi();
-    const useQueryConfigApi = queryConfig_api();
 
-    const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
-
-
-
-         async function getConfigMobileApi() {
-                try {
-                    setLoading(true)
-                    const resultConfigMobileApi = await useQueryConfigApi.select(1);
-                    if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
-                        setConfigMobileApi(resultConfigMobileApi[0]);
-                    }
-                } catch (e) {
-                } finally {
-                    setLoading(false)
-                }
-            }
+     
     
-       useEffect(() => {
-            getConfigMobileApi();
-        }, [])
+  
 
           const buscarMarcas = async () => {
-         if(configMobileApi && configMobileApi.offline === 'N'){
              try{
                     setLoading(true)
                     const responsebrandsProduct = await api.get('/marcas/search', 
@@ -80,20 +61,7 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
                 }finally{
                     setLoading(false)
                 }
-
-         }else{
-            setLoading(true);
-            try {
-                let dados: any = await useQueryMarcas.selectAll();
-                if (dados?.length > 0) {
-                    setData(dados);
-                }
-            } catch (e) {
-                console.log(e);
-            } finally {
-                setLoading(false);
-            }
-            }
+ 
         }
 
 
@@ -103,7 +71,7 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
         if (active) {
             buscarMarcas();
         }
-    }, [active,pesquisa, configMobileApi ]);
+    }, [active,pesquisa   ]);
 
   
     function selecionaMarca(item: any) {
@@ -116,7 +84,7 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
         return (
             <TouchableOpacity
                 onPress={() => selecionaMarca(item)}
-                style={[{
+              style={[{
                     backgroundColor: "#FFF",
                     borderRadius: 12,
                     marginHorizontal: 15,
@@ -128,20 +96,22 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
                     shadowOpacity: 0.1,
                     shadowRadius: 3,
                     flexDirection: 'row',
+                    borderLeftWidth:5,
+                    borderLeftColor: payloadProduct.grupo  == item.codigo ? '#4CAF50' : '#185FED',
                     alignItems: 'center'},
-                     payloadProduct.marca == item.codigo &&    {backgroundColor:'#185FED' }
-                ]}
+                     payloadProduct.grupo  == item.codigo &&  { backgroundColor: "#f2fdf2"   },
+                      
+                 ] }
             >
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                       
                         <Text style={[{ fontSize: 14, color: '#185FED', fontWeight: 'bold' },
-                              payloadProduct.marca == item.codigo &&  {color:'#FFF' }
                         ]}>Cód: {item.codigo}</Text>
                     </View>
-                    <Text numberOfLines={2} style={[{ fontSize: 14, fontWeight: '600', color: '#333', marginTop: 4 },
-                       payloadProduct.marca == item.codigo &&    {color:'#FFF' }
+                    <Text numberOfLines={2} style={[{ fontSize: 14,  fontWeight: '600', color: '#333', marginTop: 4 },
                     ]}>
-                        {item.descricao}
+                                <FontAwesome name="bookmark" size={24} color="#185FED" />  {item.descricao}
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -167,7 +137,7 @@ export const RenderModalMarcas = ({ dispatch, payloadProduct }: props) => {
             >
                 <FontAwesome name="tag" size={18} color="#185FED" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#757575", fontSize: 16 }}>
-                    {payloadProduct.marca ? payloadProduct.marca : "Selecionar marca..."}
+                    {payloadProduct.marca ? `Marca:${payloadProduct.marca}` : "Selecionar marca..."}
                 </Text>
             </TouchableOpacity>
 

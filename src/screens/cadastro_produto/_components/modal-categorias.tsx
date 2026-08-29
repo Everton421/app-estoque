@@ -1,23 +1,22 @@
+import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-    View,
-    FlatList,
-    Text,
-    TouchableOpacity,
-    TextInput,
-    Modal,
     ActivityIndicator,
+    FlatList,
+    Modal,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useCategoria } from "../../../database/queryCategorias/queryCategorias";
+import { actionEditPayloadProduct, typePayloadProduct } from "..";
 import { queryConfig_api } from "../../../database/queryConfig_Api/queryConfig_api";
 import useApi from "../../../services/api";
 import { ApiConfig } from "../../../types/type-config-api";
-import { actionEditPayloadProduct, typePayloadProduct } from "..";
 
-type props = { 
- dispatch: React.ActionDispatch<[action: actionEditPayloadProduct]>
- payloadProduct: typePayloadProduct
+type props = {
+    dispatch: React.ActionDispatch<[action: actionEditPayloadProduct]>
+    payloadProduct: typePayloadProduct
 }
 export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
 
@@ -26,9 +25,6 @@ export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
         descricao: string
     }
 
-
-    
-    const useQuerCategorias = useCategoria();
 
     let [active, setActive] = useState<boolean>(false);
     const [data, setData] = useState([])
@@ -41,57 +37,57 @@ export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
 
 
-        async function getConfigMobileApi() {
-            try {
-                setLoading(true)
-                const resultConfigMobileApi = await useQueryConfigApi.select(1);
-                if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
-                    setConfigMobileApi(resultConfigMobileApi[0]);
-                }
-            } catch (e) {
-            } finally {
-                setLoading(false)
+    async function getConfigMobileApi() {
+        try {
+            setLoading(true)
+            const resultConfigMobileApi = await useQueryConfigApi.select(1);
+            if (resultConfigMobileApi && resultConfigMobileApi.length > 0) {
+                setConfigMobileApi(resultConfigMobileApi[0]);
             }
+        } catch (e) {
+        } finally {
+            setLoading(false)
         }
+    }
 
-   useEffect(() => {
+    useEffect(() => {
         getConfigMobileApi();
     }, [])
 
- const buscarCategorias = async () => {
-               try{
-                    setLoading(true)
-                    const responseCategorysproduct = await api.get('/categorias/search', 
-                        {
-                            params: { 
-                                limit: 25,
-                                search: pesquisa,
-                                ativo: 'S'
-                            }
-                        }
-                    );
-                      setData(responseCategorysproduct?.data);
-                }catch(e){
-                    console.log( "[X] Erro ao buscar categorias na api ",e )
-                }finally{
-                    setLoading(false)
+    const buscarCategorias = async () => {
+        try {
+            setLoading(true)
+            const responseCategorysproduct = await api.get('/categorias/search',
+                {
+                    params: {
+                        limit: 25,
+                        search: pesquisa,
+                        ativo: 'S'
+                    }
                 }
-        };
+            );
+            setData(responseCategorysproduct?.data);
+        } catch (e) {
+            console.log("[X] Erro ao buscar categorias na api ", e)
+        } finally {
+            setLoading(false)
+        }
+    };
 
 
     useEffect(() => {
-       
+
 
         if (active) {
             buscarCategorias();
         }
-    }, [active, pesquisa,configMobileApi]);
+    }, [active, pesquisa, configMobileApi]);
 
- 
+
 
 
     function selecionaCategoria(item: any) {
-        dispatch({ type: 'switch_grupo', payload: item.codigo})
+        dispatch({ type: 'switch_grupo', payload: item.codigo })
         setCategoriaSelecionada(item);
         setActive(false)
     }
@@ -112,21 +108,25 @@ export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
                     shadowOpacity: 0.1,
                     shadowRadius: 3,
                     flexDirection: 'row',
-                    alignItems: 'center'},
-                     payloadProduct.grupo  == item.codigo &&  {backgroundColor:'#185FED' }
-                 ] }
+                    borderLeftWidth: 5,
+                    borderLeftColor: payloadProduct.grupo == item.codigo ? '#4CAF50' : '#185FED',
+                    alignItems: 'center'
+                },
+                payloadProduct.grupo == item.codigo && { backgroundColor: "#f2fdf2" },
+
+                ]}
             >
-                <View style={[{ flex: 1 }  ]} 
+                <View style={[{ flex: 1 }]}
                 >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={[{ fontSize: 14, color: '#185FED', fontWeight: 'bold' },
-                           payloadProduct.grupo== item.codigo &&  {color:'#FFF' }
+
                         ]}>Cód: {item.codigo}</Text>
                     </View>
                     <Text numberOfLines={2} style={[{ fontSize: 14, fontWeight: '600', color: '#333', marginTop: 4 },
-                           payloadProduct.grupo == item.codigo &&  {color:'#FFF' }
+
                     ]}>
-                        {item.descricao}
+                        <MaterialIcons name="category" size={30} color={"#185FED"} />  {item.descricao}
                     </Text>
                     <Text></Text>
                 </View>
@@ -153,7 +153,7 @@ export const RenderModalCategorias = ({ dispatch, payloadProduct }: props) => {
             >
                 <FontAwesome name="list" size={18} color="#185FED" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#757575", fontSize: 16 }}>
-                    {categoriaSelecionada ? categoriaSelecionada.descricao : "Selecionar categoria..."}
+                    { payloadProduct.grupo ? `Categoria: ${payloadProduct.grupo}` : "Selecionar categoria..."}
                 </Text>
             </TouchableOpacity>
 
