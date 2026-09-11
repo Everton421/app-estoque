@@ -55,8 +55,10 @@ export interface Parcela {
 }
 
 export interface serie   {
-          lote_serie : number,
-           quantidade : number
+            lote_serie: number,
+           quantidade: string,
+           serie:string,
+           lote: null | string
 }
 
 export interface Produto {
@@ -75,7 +77,16 @@ export interface Produto {
   quantidade_separada?: number; 
 }
 type status_separacao = 'NAO INICIADA' | 'EM ANDAMENTO' | 'PAUSADA' | 'RECUSADA' | 'CONCLUIDA'
-
+   type dados_setor =
+         {
+            setor: string,
+            local_produto: string,
+            local1_produto:string,
+            local2_produto:string,
+            local3_produto:string,
+            local4_produto:string,
+            estoque: number,
+        } 
 export interface Pedido {
   cliente: Cliente;
  fornecedor: fornecedor
@@ -112,6 +123,27 @@ export interface Pedido {
     fim_separacao:string
     status_separacao: 'NAO INICIADA' | 'EM ANDAMENTO' | 'PAUSADA' | 'RECUSADA' | 'CONCLUIDA'
 }
+/*
+
+type resultOrderItens = {
+       codigo : number,
+       sequencia : number,
+        preco :string,
+        quantidade :string,
+        desconto :string,
+        total :string,
+        frete :string,
+        descricao :string,
+        id :string,
+        controle_lote_serie :string,
+        quantidade_separada :number,
+        quantidade_faturada :string,
+       series :  serie[],
+       dados_setor : dados_setor[]
+}
+*/
+
+ 
 
 type resultOrderItens = {
     descricao: string
@@ -129,11 +161,8 @@ type resultOrderItens = {
     total: number
     series: serie[]
     controle_lote_serie: 'S' | 'N'
-    local_produto: string
-    local1_produto: string
-    local2_produto: string
-    local3_produto: string
-    local4_produto: string
+   dados_setor : dados_setor[]
+
 }
 
 export const Separacao = ({ navigation, route }: any) => {
@@ -212,7 +241,7 @@ export const Separacao = ({ navigation, route }: any) => {
                         setTitleAlert("Erro")
                         return
                     }
-                    if( orderData.status_separacao == 'EM ANDAMENTO'){
+                    if( orderData.status_separacao == 'EM ANDAMENTO' && ( orderData.usuario_separacao != 0 && orderData.usuario_separacao != usuario.codigo  ) ){
                             setVisibleAlert(true)
                         setMessageAlert(`Pedido ${codigo_pedido} já esta em processo de separação!`)
                         setTypeAlert('warning') 
@@ -317,11 +346,11 @@ export const Separacao = ({ navigation, route }: any) => {
                 const itens = (itensOverride ?? listaSeparacao).map(item => ({
                     produto: item.codigo,
                     quantidade_separada: item.quantidade_separada || 0,
-                    series: (item.series || []).filter(s => s.quantidade > 0)
+                    series: (item.series || []).filter(s => Number(s.quantidade) > 0)
                 }));
 
                 const payload = { itens , setor: data!.setor, status_separacao, observacoes_separacao: observacao, usuario_separacao:usuario_separacao};
-                console.log(payload)
+                console.log(JSON.stringify(payload.itens))
              const response = await api.post(`/pedidos/${codigo_pedido}/separar`, payload);
              
                    if (response.status >= 200 && response.status < 300) {
@@ -356,10 +385,11 @@ export const Separacao = ({ navigation, route }: any) => {
             return;
         }
         if (action === 'RECUSADA') {
-            const zeroedItems = listaSeparacao.map(p => ({ ...p, quantidade_separada: 0, series: [] }));
-            setListaSeparacao(zeroedItems);
-            // se a separacao for recusada é passado o usuario 0 na separação, para que o pedido apareça para outros usuarios separar
-            saveOrderApi('RECUSADA', 0 , zeroedItems);
+                const zeroedItems = listaSeparacao.map(p => ({ ...p, quantidade_separada: 0, series: [] }));
+               setListaSeparacao(zeroedItems);
+                  // se a separacao for recusada é passado o usuario 0 na separação, para que o pedido apareça para outros usuarios separar
+               saveOrderApi('RECUSADA', 0 , zeroedItems);
+   
         } else {
             saveOrderApi(action, usuario.codigo);
         }
@@ -409,7 +439,9 @@ export const Separacao = ({ navigation, route }: any) => {
 
                     <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd. Pedida: {item.quantidade}</Text>
                 </View>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>ean: {item.num_fabricante}</Text>
+                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}> 
+                     <MaterialCommunityIcons name="barcode-scan" size={13} color="#185FED" /> {item.num_fabricante}
+                  </Text>
 
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }}>
                     {item.descricao || "Produto sem descrição"}
@@ -463,15 +495,7 @@ export const Separacao = ({ navigation, route }: any) => {
                        item.controle_lote_serie == 'S' ? (
                                         <TouchableOpacity
                                           style={{ 
-                                            backgroundColor: '#FFF', 
-                                            borderRadius: 12, 
-                                            paddingVertical: 15, 
-                                            flexDirection: 'row', 
-                                            justifyContent: 'space-around', 
-                                            alignItems: 'center', 
-                                            gap: 10, 
-                                            marginTop:10,
-                                            elevation:10
+                                            backgroundColor: '#FFF', borderLeftColor: concluido ? '#4CAF50' : '#FFC107', borderLeftWidth: 2,borderBottomWidth: 2,borderBottomColor: concluido ? '#4CAF50' : '#FFC107', borderRadius: 12, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', gap: 10, marginTop:10,elevation:10
                                         }}    
                                              onPress={() => setSelectedProductForSeries(item) }
                                         >
@@ -484,12 +508,34 @@ export const Separacao = ({ navigation, route }: any) => {
                                     )
                                 }
 
-                      <View style={{ marginTop:10 }}>
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Locais: </Text>
-                        {item.local1_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local1_produto }</Text> }
-                        {item.local2_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local2_produto }</Text> }
-                        {item.local3_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local3_produto }</Text> }
-                        {item.local4_produto && <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>local : {item.local4_produto }</Text> }
+                      <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                        {item.dados_setor.flatMap((i) => {
+                          const locais: { setor: string; local: string }[] = [];
+                          if (i.local_produto) locais.push({ setor: i.setor, local: i.local_produto });
+                          if (i.local1_produto) locais.push({ setor: i.setor, local: i.local1_produto });
+                          if (i.local2_produto) locais.push({ setor: i.setor, local: i.local2_produto });
+                          if (i.local3_produto) locais.push({ setor: i.setor, local: i.local3_produto });
+                          if (i.local4_produto) locais.push({ setor: i.setor, local: i.local4_produto });
+                          return locais;
+                        }).map((loc, index) => (
+                          <View
+                            key={index}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: '#EAF1FD',
+                              borderRadius: 14,
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
+                              gap: 4,
+                            }}
+                          >
+                            <Ionicons name="location" size={12} color="#185FED" />
+                            <Text style={{ fontSize: 11, color: '#185FED', fontWeight: '600' }}>
+                              {loc.setor}: {loc.local}
+                            </Text>
+                          </View>
+                        ))}
                       </View>
 
             </View>
@@ -515,7 +561,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 flex: 1,
                 backgroundColor: color,
                 borderRadius: 10,
-                paddingVertical: 12,
+                paddingVertical: 10,
                 flexDirection: 'row',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -618,13 +664,13 @@ export const Separacao = ({ navigation, route }: any) => {
                 data && !isloadingOrderData &&(
             <>
                     <View style={{ backgroundColor: '#FFF', borderRadius: 12, marginHorizontal: 15,   marginBottom: 15, padding: 15, elevation: 2 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                        
-                            <MaterialIcons name="receipt-long" size={24} color="#185FED" style={{ marginRight: 10 }} />
-                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
-                                    Pedido #{ data.codigo}      <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}> id Ext: {data.id_externo ? data.id_externo : '' } </Text> 
+                        <View style={{ flexDirection: 'row', alignItems: 'center'  }}>
+                               <MaterialIcons name="receipt-long" size={20} color="#185FED" style={{ marginRight: 10 }} />
+                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333' }} numberOfLines={2}>
+                                    Pedido #{ data.codigo}   
                                 </Text>
                         </View>
+                            <Text style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>    <Text style={{ fontWeight: 'bold' }}>id Ext:</Text> {data.id_externo ? data.id_externo : '' }  </Text> 
 
                    <TouchableOpacity
                         style={{ 
@@ -646,7 +692,7 @@ export const Separacao = ({ navigation, route }: any) => {
                                     
                         {
                             data.tipo == 6 ?
-                             <Text style={{ fontSize: 15,top:5, color: '#555', marginBottom: 4 }}>
+                             <Text style={{ fontSize: 15,top:5, color: '#555', marginBottom: 4 }} numberOfLines={1}>
                                <Text style={{ fontWeight: 'bold' }}>Fornecedor:</Text> { data.fornecedor && data.fornecedor?.nome}
                              </Text>
                             
@@ -657,24 +703,13 @@ export const Separacao = ({ navigation, route }: any) => {
                         }                                    
 
                         {data.contato ? (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
                                     <MaterialCommunityIcons name="storefront-outline" size={16} color="#757575" style={{ marginRight: 4 }} />
                                     <Text style={{ fontSize: 13, color: '#757575', fontWeight: '500' }}>{data.contato}</Text>
                                 </View>
-                            ) : <View style={{ marginBottom: 8 }} />}
+                            ) : <View style={{ marginBottom: 5 }} />}
 
-                       
-                    
-                    { data.setor != undefined && 
-                        <Text style={{ fontSize: 14, color: '#666' }}>
-                            <Text style={{ fontWeight: 'bold' }}>Setor:</Text> {data.setor}
-                        </Text>
-                    }
-                     <Text style={{ fontSize: 14, color: '#666' }}>
-                            <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
-                        </Text>
-
-                    <View style={{ marginTop: 10 }}>
+                    <View style={{ marginTop: 2 }}>
                         <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold', marginBottom: 4 }}>Observação:</Text>
                         <TextInput
                             style={{
@@ -694,6 +729,9 @@ export const Separacao = ({ navigation, route }: any) => {
                             multiline
                         />
                     </View>
+                     <Text style={{ fontSize: 14, color: '#666' , marginTop:4}}>
+                            <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
+                        </Text>
                     </View>
                     
 
@@ -731,26 +769,26 @@ export const Separacao = ({ navigation, route }: any) => {
                     shadowOffset: { width: 0, height: -2 },
                     shadowOpacity: 0.1,
                     shadowRadius: 4
-                }}>
+                    }}>
 
                     <FooterActionButton
                         label="Concluir"
                         color="#1E9C43"
-                        icon={<Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />}
+                        icon={<Ionicons name="checkmark-circle-outline" size={15} color="#FFF" />}
                         onPress={() => openConfirmAction('CONCLUIDA')}
                     />
 
                     <FooterActionButton
                         label="Pausar"
                         color="#185FED"
-                        icon={<Feather name="pause-circle" size={18} color="#FFF" />}
+                        icon={<Feather name="pause-circle" size={15} color="#FFF" />}
                         onPress={() => openConfirmAction('PAUSADA')}
                     />
 
                     <FooterActionButton
                         label="Cancelar"
                         color="#9C0404"
-                        icon={<AntDesign name="close-circle" size={18} color="#FFF" />}
+                        icon={<AntDesign name="close-circle" size={15} color="#FFF" />}
                         onPress={() => openConfirmAction('RECUSADA')}
                     />
 
@@ -797,7 +835,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 onClose={() => setSelectedProductForSeries(null)}
                 onConfirm={(updatedSeries) => {
                     if (selectedProductForSeries) {
-                        const total = updatedSeries.reduce((sum, s) => sum + s.quantidade, 0);
+                        const total = updatedSeries.reduce((sum, s) => sum + Number(s.quantidade), 0);
                         setListaSeparacao(prev => prev.map(p =>
                             p.codigo === selectedProductForSeries.codigo
                                 ? { ...p, series: updatedSeries, quantidade_separada: total }

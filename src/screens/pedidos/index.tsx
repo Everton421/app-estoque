@@ -16,6 +16,7 @@ import { ApiConfig } from "../../types/type-config-api";
 import { delay } from "../../utils/delay";
 import { ModalFilter } from "./components/modal-filter/modal-filter";
 import { ModalPrint } from "./components/modal-print-pedido";
+import { verifyUserPermission } from "../../services/verify-user-permissions";
 
 export type pedido = {
     codigo?: number,
@@ -90,6 +91,7 @@ export type branch = {
 }
 
 
+type statusOrderSeparation = 'NAO INICIADA' |  'EM ANDAMENTO' |  'PAUSADA' | 'RECUSADA' | 'CONCLUIDA';
 
 export type filterOrdersituation = '*' | 'EA' | 'AI' | 'FI' | 'FP' | 'RE' | 'BM'
 
@@ -97,7 +99,8 @@ export type typefilterOrders = {
     tipo: number, 
     data_inicial: string, 
     data_final: string, 
-    situacao: filterOrdersituation, 
+    situacao: filterOrdersituation,
+    status_separacao:statusOrderSeparation[] | null
     filial: branch | null, 
     limit: number, 
     search: string 
@@ -113,19 +116,22 @@ export type actionsFilterOrder =
     | { type: 'switch_seller', paylod: seller | null }
     | { type: 'switch_all', paylod: typefilterOrders }
     | { type: 'switch_search', paylod: string }
+    | { type: 'switch_status_separation', payload:statusOrderSeparation }
     
 
 
 export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const useMoment = configMoment();
     const { usuario, permissoes }: any = useContext(AuthContext);
- 
-    const getInitialStatus = (): filterOrdersituation => {
-        return 'AI';
-    };
+         const [ isEnabledViewerValuesOrder ] =useState( verifyUserPermission('pedidos', 'ver_valores', permissoes) || verifyUserPermission('*', '', permissoes) )
+
+         const getInitialStatus = (): filterOrdersituation => {
+                return 'AI';
+            };
  
     const initialStateFilter: typefilterOrders = { 
         tipo: tipo, 
+        status_separacao: null,
         data_inicial: useMoment.dataAtual(), 
         data_final: useMoment.dataAtual(), 
         situacao: getInitialStatus(),   
@@ -149,6 +155,20 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 return { ...state, situacao: action.paylod }
             case 'switch_seller':
                 return { ...state, vendedor: action.paylod }
+            case 'switch_status_separation': {
+                  const currentList = state.status_separacao || [];
+                  let updatedList: statusOrderSeparation[];
+                        if( currentList.includes(action.payload)){
+                            updatedList = currentList.filter((i)=> i !== action.payload);
+                        }else{
+                            updatedList = [ ...currentList, action.payload]
+                        }
+                        return {
+                            ...state,
+                            status_separacao: updatedList.length > 0 ? updatedList : null
+                        }
+                        } 
+
             case 'switch_all': 
             return action.paylod
                 default:
@@ -159,26 +179,18 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const [orcamentosRegistrados, setOrcamentosRegistrados] = useState([]);
     const [visibleModal, setVisibleModal] = useState<boolean>(false);
     const [visible, setVisible] = useState(false);
-
-
     const [orcamentoModal, setOrcamentoModal] = useState();
     const [modalVisible, setModalvisible] = useState(false);
-
     const [ titleAlert , setTitleAlert ] = useState("");
-
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [messageAlert, setMessageAlert] = useState<string>('');
     const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
     const [configMobileApi, setConfigMobileApi] = useState<ApiConfig>();
     const [refreshing, setRefreshing] = useState(false);
-    
     const [ filterSearchOrders , dispatch] = useReducer( hadleEditFilter, initialStateFilter )
-
     const [isloadingOrderData, setIsLoadingOrderData] = useState(false);
     const [filtersLoaded, setFiltersLoaded] = useState(false);
-
     const api = useApi();
-
     const useQueryConfigApi = queryConfig_api();
 
     async function getConfigMobileApi() {
@@ -195,22 +207,17 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     }
 
 
-    useEffect(() => {
-        getConfigMobileApi();
-    }, [])
-
 
     async function fyndOrderBycode(code: number) {
             try {
                 setIsLoadingOrderData(true)
                 await delay(500)
 
-
                  const responseApiOrder = await api.get(`/pedidos/${code}` );
                 
                  if(responseApiOrder.status === 200 ){ 
                     const order = responseApiOrder.data;
-                        if( order.status_separacao == 'EM ANDAMENTO' || ( order.usuario_separacao != 0 && order.usuario_separacao != usuario.codigo  )){
+                        if( order.status_separacao == 'EM ANDAMENTO' && ( order.usuario_separacao != 0 && order.usuario_separacao != usuario.codigo  )){
                             setVisibleAlert(true)
                             setMessageAlert(`Pedido ${order.codigo} já esta em processo de separação por outro usuario !`)
                             setTypeAlert('warning') 
@@ -251,6 +258,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
             }
         };
 
+        
+    useEffect(() => {
+        getConfigMobileApi();
+    }, [])
+
     useEffect(() => {
         carregarFiltros();
     }, [])
@@ -260,21 +272,38 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         AsyncStorage.setItem('filtroPedidos', JSON.stringify(filterSearchOrders));
     }, [ filterSearchOrders ])
  
+   useEffect(() => {
+        busca()
+    }, [filtersLoaded, filterSearchOrders, navigation, configMobileApi])
+
+    const buscaRef = useRef(busca);
+    buscaRef.current = busca;
+
+    useFocusEffect(
+        useCallback(() => {
+            buscaRef.current();
+        }, [])
+    );
 
 
     async function busca() {
-        //if(!filtersLoaded) return
-
         setIsLoadingOrderData(true)
+        await delay(500)
         try {
-         await delay(500,'Busca pedidos')
             let queryOrder = { 
                 ...filterSearchOrders,
                 filial:  filterSearchOrders.filial?.codigo,
                 vendedor: filterSearchOrders.vendedor?.codigo,
-                usuario_separacao: usuario.codigo
-            }
-            if (filterSearchOrders.search) queryOrder.search = filterSearchOrders.search
+                orderBy: 'codigo'
+            } as any;
+
+             if(!filterSearchOrders.filial)  delete queryOrder.filial;   
+             if(!filterSearchOrders.vendedor?.codigo)  delete queryOrder.vendedor;   
+             if (filterSearchOrders.search) queryOrder.search = filterSearchOrders.search
+
+             if(filterSearchOrders.status_separacao){
+                queryOrder.status_separacao = `${[filterSearchOrders.status_separacao]}`;
+             }
             const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
             setOrcamentosRegistrados(responseApiOrder.data);
         } catch (e) {
@@ -290,19 +319,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
         setRefreshing(false);
     };
 
-    useEffect(() => {
-        busca()
-    }, [filtersLoaded, filterSearchOrders, navigation, configMobileApi])
-
-    const buscaRef = useRef(busca);
-    buscaRef.current = busca;
-
-    useFocusEffect(
-        useCallback(() => {
-            buscaRef.current();
-        }, [])
-    );
-
+ 
 
     async function selecionaOrcamentoModal(item: any) {
             try {
@@ -334,17 +351,25 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     }
 
     const getSeparacaoParams = (situacao_separacao: string, situacao: string) => {
-        if (situacao === 'FI') {
-            return { color: '#FF9800', label: 'Fat. Integral' , id:'FI'  };
-        }
         switch (situacao_separacao) {
-            case 'I': return { color: '#4CAF50', label: 'Separado' , id:'I'};
-            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' , id:'P'};
+            case 'I': return { color: '#4CAF50', label: 'Separado' , id:'I', icon: <MaterialCommunityIcons name="package-variant-closed-check" size={20} color="#4CAF50" /> };
+            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' , id:'P' ,icon:<MaterialCommunityIcons name="package-variant-minus" size={20} color="#f29408" />};
             case 'N':
-            default: return { color: '#F44336', label: 'N. Separado', id:'N' };
+            default: return { color: '#E3F2FD', label: 'N. Separado', id:'N' ,icon:<MaterialCommunityIcons name="package-variant-plus" size={20} color="#185FED" />};
         }
     }
- 
+    const calcularTempoSeparacao = (inicio:string, fim:string) => {
+        if (!inicio || !fim) return "N/A";
+            const dataInicio = new Date(inicio) as any;
+            const dataFim = new Date(fim)as any;
+            const diferencaMs = Math.abs(dataFim - dataInicio);
+            const segundos = Math.floor(diferencaMs / 1000) % 60;
+            const minutos = Math.floor(diferencaMs / (1000 * 60)) % 60;
+            const horas = Math.floor(diferencaMs / (1000 * 60 * 60));
+            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    };
+
+
 
     const ItemOrcamento = ({ item, pedido }: { item: any, pedido: any }) => {
         const status = getStatusParams(item.situacao);
@@ -370,12 +395,17 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                  { /**     <View style={{ width: 12, height: 12, alignSelf:'flex-start',backgroundColor: status.color,bottom:10, borderRadius: 6 }} />*/}
 
                 <View style={{flex:1, justifyContent:"space-between", flexDirection:"row"  }}>
+                    
                      <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
                         ID: {item.id || item.codigo || item.id_externo }  
-                     </Text> 
+                     </Text>
+                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 ,marginHorizontal:3}}>
+                               {separacao.icon}
+                       </View>
+
                         <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
                             <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                                 <MaterialCommunityIcons name="store-check" size={20} color={   '#185FED'} /> Filial {  item.filial}    
+                                 <MaterialCommunityIcons name="store-check" size={20} color='#185FED' /> Filial {  item.filial}    
                            </Text>
                        </View>
 
@@ -396,16 +426,6 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 </View>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10, marginVertical:2 }}>
-                   
-                    
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                 
-                        <View style={{ backgroundColor: separacao.color + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                            <Text style={{ color: separacao.color, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>
-                                {separacao.label}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
 
                 {
@@ -438,7 +458,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 ) : <View style={{ marginBottom: 8 }} />}
 
                     {
-                         permissoes.some(( i:any )=> i =='pedidos.ver_valores') ? (
+                        isEnabledViewerValuesOrder ? (
                       <Text style={{ fontSize: 18, fontWeight: "bold", color: '#185FED', marginBottom: 10 }}>Total: R$ {Number(item?.total_geral).toFixed(2)}  </Text>
                          ) :(
                             <MaterialIcons name="money-off" size={35} color="#185FED" />  
@@ -467,11 +487,13 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                 { item.status_separacao === 'NAO INICIADA' && 
                                     <View style={{  flex:1}}>
                                         <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                            <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  style={{ padding: 8, backgroundColor: '#E3F2FD'  , borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                            <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  
+                                            style={{ padding: 8, backgroundColor: '#E3F2FD',    elevation:2, borderRadius: 8, flexDirection:"row", alignItems:"center"  }} 
+                                            >
                                                <Text style={{fontWeight:'bold', fontSize: 12, color: '#185FED' }}>Iniciar Separação</Text>
-                                                <Feather name="package" size={18} color="#185FED" />
+                                                <MaterialCommunityIcons name="package-variant" size={18} color="#185FED" />
                                             </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 ,elevation:2, }}>
                                                         <Feather name="eye" size={20} color="#185FED" />
                                                 </TouchableOpacity>
                                             </View>
@@ -482,11 +504,13 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                 { item.status_separacao === 'EM ANDAMENTO' && 
                                     <View style={{  flex:1}}>
                                        <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                        <TouchableOpacity  style={{alignItems:"center", justifyContent:"center",flexDirection:"row", padding: 8, backgroundColor: '#1E9C43' + '10', borderRadius: 8 }}>
+                                        <TouchableOpacity 
+                                            onPress={() =>{ usuario.codigo == pedido.usuario_separacao && fyndOrderBycode(pedido.codigo) } } 
+                                        style={{alignItems:"center", justifyContent:"center",flexDirection:"row", padding: 8, backgroundColor: '#1E9C43' + '10', borderRadius: 8 }}>
                                             <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}> Em Separação</Text>
                                               <Feather name="loader" size={20} color='#1E9C43' />
                                         </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 ,elevation:2, }}>
                                                 <Feather name="eye" size={20} color="#185FED" />
                                               </TouchableOpacity>
                                         </View>
@@ -505,17 +529,18 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                 { item.status_separacao === 'PAUSADA' && 
                                     
                                    <View style={{  flex:1}}>
-                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                        <TouchableOpacity  onPress={() => fyndOrderBycode(pedido.codigo)} style={{ padding: 8, backgroundColor: '#1E9C43' + 10, borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                       <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between" , }}>
+                                        <TouchableOpacity  onPress={() => fyndOrderBycode(pedido.codigo)}   
+                                        style={{ padding: 8, backgroundColor: '#eff9f2',    elevation:2, borderRadius: 8, flexDirection:"row", alignItems:"center"  }}>
                                             <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}>Separação pausada</Text>
                                             <Entypo name="controller-play" size={20} color='#1E9C43'  />
                                         </TouchableOpacity>
-                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 ,elevation:2, }}>
                                                 <Feather name="eye" size={20} color="#185FED" />
-                                              </TouchableOpacity>
+                                        </TouchableOpacity>
                                       </View>
 
-                                     <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+                                     <View style={{flexDirection:"row", alignItems:"center",marginTop:5, justifyContent:"space-between"}}>
                                         <Text style={{ fontSize: 11, color: '#999'  }}>
                                             Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
                                         </Text>
@@ -530,52 +555,38 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                                     <>
                                       <View style={{  flex:1}}>
                                        <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                      
-
-                                           <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  style={{ padding: 8, backgroundColor: '#E3F2FD'  , borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                           <TouchableOpacity onPress={() => fyndOrderBycode(pedido.codigo)}  style={{ padding: 8, backgroundColor: '#E3F2FD'  ,elevation:2, borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
                                                <Text style={{fontWeight:'bold', fontSize: 12, color: '#185FED' }}>Iniciar Separação</Text>
-                                                <Feather name="package" size={18} color="#185FED" />
+                                                <MaterialCommunityIcons name="package-variant" size={21} color="#185FED" />
                                             </TouchableOpacity>
-                                      
-                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', elevation:2, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                                                 <Feather name="eye" size={20} color="#185FED" />
                                               </TouchableOpacity>
                                       </View>
-                                      
-                                    { /**  
-                                       <Text style={{ fontSize: 11, color: '#b82121'  }}>
-                                            Separação recusada separador [ {item.usuario_separacao} ]
-                                        </Text> 
-                                    */}
-
-                                      <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                         <Text style={{ fontSize: 11, color: '#999'  }}>
-                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
-                                        </Text>
-                                            <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
-                                                Separador:  {item.usuario_separacao}
-                                            </Text>
-                                      </View>
+                                           <View  style={{ padding: 4   ,marginTop: 5, borderRadius: 8, flexDirection:"row", alignItems:"center",width:'70%' }}>
+                                                <MaterialCommunityIcons name="package-variant-closed-remove" size={18} color="#b82121" />
+                                               <Text style={{ marginLeft:4, fontWeight:'bold', fontSize: 10, color: '#b82121' }}>Separação recusada separador: {item.usuario_separacao} </Text>
+                                            </View>
                                     </View>
                                     </>
 
                                 }
                                   { item.status_separacao === 'CONCLUIDA' && 
-                                        
                                    <View style={{  flex:1}}>
                                        <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                        <TouchableOpacity  style={{ padding: 8, backgroundColor: '#1E9C43' + 10, borderRadius: 8, flexDirection:"row", alignItems:"center", }}>
+                                        <TouchableOpacity   style={{ padding: 8, backgroundColor: '#eff9f2'  ,elevation:2, borderRadius: 8, flexDirection:"row", alignItems:"center", }} 
+                                            onPress={() =>{ usuario.codigo == pedido.usuario_separacao && fyndOrderBycode(pedido.codigo) } } 
+                                        >
                                             <Text style={{fontWeight:'bold', fontSize: 12, color: '#1E9C43' }}>Separação Concluída</Text>
-                                            <MaterialCommunityIcons name="package-variant-closed-check" size={24} color="#1E9C43" />
+                                            <MaterialCommunityIcons name="package-variant-closed-check" size={21} color="#1E9C43" />
                                         </TouchableOpacity>
-                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start', backgroundColor: '#E3F2FD', borderRadius: 8 }}>
+                                              <TouchableOpacity onPress={() => selecionaOrcamentoModal(item)} style={{ padding: 8,alignSelf:'flex-start',elevation:2, backgroundColor: '#E3F2FD', borderRadius: 8 }}>
                                                 <Feather name="eye" size={20} color="#185FED" />
                                               </TouchableOpacity>
                                       </View>
-
                                      <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
-                                        <Text style={{ fontSize: 11, color: '#999'  }}>
-                                            Inicio separação: {new Date(item?.inicio_separacao).toLocaleDateString("pt-br", { timeZone: 'UTC' })}
+                                        <Text style={{ fontSize: 11, color: '#999',marginTop:5  }}>
+                                            Tempo separação: { calcularTempoSeparacao(item?.inicio_separacao,item?.fim_separacao ) }
                                         </Text>
                                             <Text style={{ textAlign:'right', fontSize: 11, color: '#999'  }}>
                                                 Separador:  {item.usuario_separacao}
@@ -652,12 +663,11 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                 filter={filterSearchOrders}
                 visible={visible}
                 setVisible={setVisible}
-            
             />
 
             <ModalPrint visible={visibleModal} orcamento={orcamentoModal} setVisible={setVisibleModal} />
             {
-                isloadingOrderData ?
+                  isloadingOrderData ?
                     (
                         <View style={{ flex: 1, alignItems: "center", justifyContent: 'center' }}>
                             <ActivityIndicator color='#185FED' size={50} />

@@ -44,7 +44,7 @@ export const ModalPrint = ({ visible, orcamento, setVisible }) => {
 
     const print = async () => {
         try {
-            const html = generateOrderHTML(orcamento);
+            const html = generateOrderHTML(orcamento, isEnabledViewerValues);
             await Print.printAsync({ html });
         } catch (error) {
             console.error('Erro ao imprimir:', error);
@@ -289,8 +289,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContainer: {
-        width: '95%',
-        height: '90%',
+        width: '97%',
+        height: '97%',
         backgroundColor: COLORS.lightGray,
         borderRadius: SIZES.borderRadius,
         padding: SIZES.padding,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.gray,
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 15,
         fontWeight: 'bold',
         color: COLORS.text,
     },

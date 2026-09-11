@@ -56,7 +56,7 @@ type pedido ={
       total:number 
   }
 
-export function generateOrderHTML(pedido: pedido): string {
+export function generateOrderHTML(pedido: pedido , isEnabledViewerValues: boolean ): string {
 
   const produtosHTML = pedido.produtos
     ? pedido.produtos.map(
@@ -64,9 +64,9 @@ export function generateOrderHTML(pedido: pedido): string {
         <tr>
           <td class="border p-1 text-left">${produto.codigo}</td>
           <td class="border p-1 text-left">Produto ${produto.descricao}</td>  
-          <td class="border p-1 text-right">${produto.quantidade}</td>
-          <td class="border p-1 text-right">${(produto.preco ?? 0).toFixed(2)}</td>
-          <td class="border p-1 text-right">${(produto.total ?? 0).toFixed(2)}</td>
+          <td class="border p-1 text-right">${Number(produto.quantidade)}</td>
+          <td class="border p-1 text-right">${ isEnabledViewerValues ? (Number(produto.preco) ?? 0).toFixed(2) : '$' }</td>
+          <td class="border p-1 text-right">${ isEnabledViewerValues ? Number(produto.total ?? 0).toFixed(2) : '$'}</td>
         </tr>
       `
       ).join('')
@@ -79,8 +79,8 @@ export function generateOrderHTML(pedido: pedido): string {
           <td class="border p-1 text-left">${servico.codigo}</td>
           <td class="border p-1 text-left">Serviço ${servico.aplicacao}</td>
           <td class="border p-1 text-right">${servico.quantidade}</td>
-          <td class="border p-1 text-right">${(servico.valor ?? 0).toFixed(2)}</td>
-          <td class="border p-1 text-right">${(servico.total ?? 0).toFixed(2)}</td>
+          <td class="border p-1 text-right">${isEnabledViewerValues ? (servico.valor ?? 0).toFixed(2) : '$'}</td>
+          <td class="border p-1 text-right">${isEnabledViewerValues ? (servico.total ?? 0).toFixed(2) : '$'}</td>
         </tr>
       `
       ).join('')
@@ -91,7 +91,7 @@ export function generateOrderHTML(pedido: pedido): string {
         (parcela) => `
         <tr>
           <td class="border p-1 text-left">${parcela.parcela}</td>
-          <td class="border p-1 text-right">${(parcela.valor ?? 0).toFixed(2)}</td>
+          <td class="border p-1 text-right">${ isEnabledViewerValues ? Number(parcela.valor ?? 0).toFixed(2) : '$'}</td>
           <td class="border p-1 text-right">${parcela.vencimento}</td>
         </tr>
       `
@@ -269,7 +269,7 @@ export function generateOrderHTML(pedido: pedido): string {
       </div>
 
       <div class="text-right font-bold text-lg">
-        Total Geral: R$ <span data-total-geral>${(pedido.total_geral ?? 0).toFixed(2)}</span>
+        Total Geral: R$ <span data-total-geral>${isEnabledViewerValues ? Number(pedido.total_geral ?? 0).toFixed(2) : '$'}</span>
       </div>
 
     </div>

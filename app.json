@@ -6,24 +6,25 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-intersig.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "splash": {
+        "image": "./assets/splash-intersig.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
- 
     "android": {
-      "adaptiveIcon": {
-       "foregroundImage": "./assets/splash-intersig.png",
+      "splash": {
+        "image": "./assets/splash-intersig.png",
+        "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.everton421.newappestoque",
-      "usesCleartextTraffic": true
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/splash-intersig.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.everton421.newappestoque"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,8 +36,20 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-build-properties",
-      "expo-sqlite" 
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "minifyWithProguard": true,
+            "newArchEnabled": true
+          }
+        }
+      ],
+      "expo-sqlite",
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar"
     ]
   }
 }

@@ -284,97 +284,19 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
     return (
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
              <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
-                <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={onClose} />
             
-                <View style={{ maxHeight:'93%', flex: 1,marginTop: 45,backgroundColor: "#FFF", borderRadius: 20,overflow: 'hidden',elevation: 10 }}> 
-                    
+                <View style={{   flex: 1,marginTop: 15,backgroundColor: "#FFF",borderTopRightRadius:20,  borderTopLeftRadius: 20,overflow: 'hidden',elevation: 10 }}> 
+                        {/**HEADER */}
                     <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Lote Séries:</Text>
-                            {/** 
-
-                            <TouchableOpacity
-                                style={{
-                                    backgroundColor: '#FFF',
-                                    borderRadius: 8,
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    gap: 6
-                                }}
-                                onPress={() => setIsVisiblesSwitchStockSeries(!isVisiblesSwitchStockSeries)}
-                            >
-                                <Text style={{ color: '#333', fontSize: 13, fontWeight: '600' }}>
-                                    {situacao_estoque.charAt(0).toUpperCase() + situacao_estoque.slice(1)}
-                                </Text>
-                                <Ionicons 
-                                    name={isVisiblesSwitchStockSeries ? "caret-up" : "caret-down"} 
-                                    size={14} 
-                                    color="#185FED" 
-                                />
-                            </TouchableOpacity>
-                              
-                             */}
-                        </View>
-
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#FFF" />
                         </TouchableOpacity>
-                    </View>
-                    { /**
-
-                    {isVisiblesSwitchStockSeries && (
-                        <View style={{
-                            position: 'absolute',
-                            top: 60,
-                            right: 20,
-                            backgroundColor: '#FFF',
-                            borderRadius: 12,
-                            padding: 8,
-                            minWidth: 140,
-                            elevation: 5,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.25,
-                            shadowRadius: 4,
-                            zIndex: 100
-                        }}>
-                            {["negativo", "positivo", "todos", "zerado"].map((item) => (
-                                <TouchableOpacity
-                                    key={item}
-                                    style={{
-                                        paddingVertical: 10,
-                                        paddingHorizontal: 12,
-                                        borderRadius: 8,
-                                        backgroundColor: situacao_estoque === item ? '#E3F2FD' : 'transparent',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between'
-                                    }}
-                                    onPress={() => {
-                                        setSituacao_estoque(item);
-                                        setIsVisiblesSwitchStockSeries(false);
-                                    }}
-                                >
-                                    <Text style={{
-                                        fontWeight: "600",
-                                        color: situacao_estoque === item ? '#185FED' : '#333',
-                                        textTransform: 'capitalize'
-                                    }}>
-                                        {item}
-                                    </Text>
-                                    {situacao_estoque === item && (
-                                        <Ionicons name="checkmark-circle" size={18} color="#185FED" />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Lote Séries:</Text>
                         </View>
-                    )}
-                          
-                         */
-                    }
+                    </View>
 
+                    {/** HEADER */}
                     <View style={{ flex: 1, padding: 20 }}>
                         {isloadingDataSeries ? (
                             <ActivityIndicator size={25} color='#185FED' />
@@ -394,7 +316,7 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
                         )}
                     </View>
 
-                    <View style={{ padding: 15, borderTopWidth: 1, borderTopColor: '#E0E0E0' }}>
+                    <View style={{ padding: 10, borderTopWidth: 1, borderTopColor: '#E0E0E0' }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>
                                 Total separado: <Text style={{ color: '#185FED', fontWeight: 'bold' }}>{totalSelected}</Text>
@@ -406,53 +328,45 @@ export const ModalSeries = ({ visible, onClose, setor, codigo_pedido, codigo_pro
                             )}
                         </View>
                         <TouchableOpacity
-                            style={{
-                                backgroundColor: '#185FED',
-                                borderRadius: 12,
-                                paddingVertical: 12,
-                                flexDirection: 'row',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: 10
-                            }}
+                            style={{ backgroundColor: '#185FED', borderRadius: 12, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 }}
                             onPress={handleConfirm}
-                        >
+                           >
                             <AntDesign name="check" size={20} color="#FFF" />
                             <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Confirmar</Text>
                         </TouchableOpacity>
   
-     {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
-                <TouchableOpacity
-                    onPress={() => { setIsVisibleScanner(true) }}
-                    style={{
-                        backgroundColor: '#185FED',
-                        width: 56, height: 56,
-                        borderRadius: 28,
-                        position: "absolute",
-                        elevation: 6,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 3 },
-                        shadowOpacity: 0.3,
-                        right: 20,
-                        bottom: 90, 
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 99
-                    }}
-                >
-                    <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
-                </TouchableOpacity>
+                {/* BOTÃO FLUTUANTE DE LEITURA (acima do rodapé) */}
+                            <TouchableOpacity
+                                onPress={() => { setIsVisibleScanner(true) }}
+                                style={{
+                                    backgroundColor: '#185FED',
+                                    width: 56, height: 56,
+                                    borderRadius: 28,
+                                    position: "absolute",
+                                    elevation: 6,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 3 },
+                                    shadowOpacity: 0.3,
+                                    right: 20,
+                                    bottom: 90, 
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    zIndex: 99
+                                }}
+                            >
+                                <MaterialCommunityIcons name="barcode-scan" size={28} color="#FFF" />
+                            </TouchableOpacity>
 
-                {/* SCANNER DE SÉRIES */}
-                <BarcodeScanner
-                    visible={isVisibleScanner}
-                    onClose={() => setIsVisibleScanner(false)}
-                    onBarcodeScanned={(data) => handleCodeRead(data)}
-                    stripZeros={false}
-                />
+                            {/* SCANNER DE SÉRIES */}
+                            <BarcodeScanner
+                                visible={isVisibleScanner}
+                                onClose={() => setIsVisibleScanner(false)}
+                                onBarcodeScanned={(data) => handleCodeRead(data)}
+                                stripZeros={false}
+                            />
 
                     </View>
-             </View>
+               </View>
              </View>
         </Modal>
     );

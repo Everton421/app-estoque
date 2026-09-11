@@ -19,6 +19,14 @@ export const BarcodeScanner = ({ visible, onClose, onBarcodeScanned, stripZeros:
     const shouldStrip = stripZerosProp !== undefined ? stripZerosProp : stripZerosGlobal;
 
     useEffect(() => {
+        if (!visible || mode !== "leitor") return;
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [visible, mode]);
+
+    useEffect(() => {
         if (!visible) return;
         loadMode();
     }, [visible]);
@@ -97,7 +105,7 @@ export const BarcodeScanner = ({ visible, onClose, onBarcodeScanned, stripZeros:
             <View style={{ flex: 1, backgroundColor: "#F5F7FA", justifyContent: "center", alignItems: "center", padding: 20 }}>
                 <TextInput
                     ref={inputRef}
-                    style={{ height: 1, opacity: 0, width: 1 }}
+                    style={{ height: 1, opacity: 0, width: 200 }}
                     autoFocus={true}
                     showSoftInputOnFocus={false}
                     onSubmitEditing={(e) => {
@@ -136,7 +144,7 @@ export const BarcodeScanner = ({ visible, onClose, onBarcodeScanned, stripZeros:
                         <Text style={{ textAlign: "center", marginBottom: 10, color: "#666" }}>--- Modo de Teste ---</Text>
                         <Button
                             title="Simular Leitura"
-                            onPress={() => handleBarcodeRead("00001")}
+                            onPress={() => handleBarcodeRead("0000123")}
                         />
                     </View>
                 )}

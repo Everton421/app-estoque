@@ -1,10 +1,13 @@
 import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
-import AntDesign from '@expo/vector-icons/AntDesign';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+ import { 
+  Entypo, 
+  MaterialCommunityIcons, 
+  AntDesign, 
+  Ionicons, 
+  MaterialIcons 
+} from "@expo/vector-icons";
 import { BarcodeScanner } from "../../components/barcode-scanner";
 import { AlertType, CustomAlert } from "../../components/custom-alert/custom-alert";
 import { AuthContext } from "../../contexts/auth";
@@ -79,7 +82,6 @@ export function Produtos({ navigation }: any) {
     const api = useApi();
 
         const [ isEnabledViewerValues ] =useState( verifyUserPermission('produtos', 'ver_valores', permissoes))
-
         const [ isEnabledViewerProducts ] =useState( verifyUserPermission('produtos', 'ler', permissoes))
         const [ isEnabledCreateProducts ] =useState( verifyUserPermission('produtos', 'criar', permissoes))
         const [ isEnabledEditProducts ] =useState( verifyUserPermission('produtos', 'editar', permissoes))

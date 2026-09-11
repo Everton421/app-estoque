@@ -8,9 +8,7 @@ const useApi = () => {
     const  { usuario } :any    = useContext(AuthContext);
  
 
-     const baseUrl = "https://dev.intersig.com.br:3000" ;
-    //const baseUrl = "http://192.168.100.115:3000" ;
-          
+      const baseUrl = __DEV__ ? "http://192.168.100.115:3000" : "https://dev.intersig.com.br:3000" ;
     const api = axios.create({
         baseURL: baseUrl, 
         timeout: 10000, // 10 segundos de limite
