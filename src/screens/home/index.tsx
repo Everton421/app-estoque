@@ -1,41 +1,15 @@
 import { AntDesign, Entypo, FontAwesome6, MaterialCommunityIcons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { InitialLoadingData } from "../../components/initialloadingData";
-import { AuthContext } from "../../contexts/auth";
-import { ConnectedContext } from "../../contexts/conectedContext";
-import { queryConfig_api } from "../../database/queryConfig_Api/queryConfig_api";
-import { queryEmpresas } from "../../database/queryEmpresas/queryEmpresas";
-import { useSyncCategorias } from "../../hooks/sync-categorias/useSyncCategorias";
-import { useSyncFotos } from "../../hooks/sync-fotos/useSyncFotos";
-import { useSyncMarcas } from "../../hooks/sync-marcas/useSyncMarcas";
-import { useSyncMovimentos } from "../../hooks/sync-movimentos/useSyncMovimentos";
-import { useSyncProdSector } from "../../hooks/sync-produto-setor/useSyncProdutosSetor";
-import { useSyncProdutos } from "../../hooks/sync-produtos/useSyncProdutos";
-import { useSyncSetores } from "../../hooks/sync-setores/useSyncSetores";
-import useApi from "../../services/api";
-import { configMoment } from "../../services/moment";
-import { restartDatabaseService } from "../../services/restartDatabase";
-import { useSyncClients } from '../../hooks/sync-clientes/useSyncClientes';
-import { defaultColors } from '../../styles/global';
+import { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { CustomAlert } from '../../components/custom-alert/custom-alert';
+import { AuthContext } from "../../contexts/auth";
+import { queryEmpresas } from "../../database/queryEmpresas/queryEmpresas";
+import useApi from "../../services/api";
+import { restartDatabaseService } from "../../services/restartDatabase";
+import { defaultColors } from '../../styles/global';
 
-
-  type typeCompanyRequest = {
-    cnpj : string
-    data_contrato : string
-    telefone : string
-    nome : string
-    email : string
-    codigo : any
-    responsavel : string
-    logo : string
-    cor_fonte : string
-    cor_fundo : string
-    cor_banner : string
-  }
 
     interface EmpresaMobile  {
         codigo_empresa:number,
@@ -49,25 +23,9 @@ import { CustomAlert } from '../../components/custom-alert/custom-alert';
 
 export const Home = ({ navigation }: any) => {
 
-  const { connected, setConnected }: any = useContext(ConnectedContext);
-  const { setLogado, setUsuario, usuario , permissoes}: any = useContext(AuthContext);
+  const { setLogado, setUsuario, usuario    }: any = useContext(AuthContext);
   const api = useApi();
-  
-  const syncprodSector = useSyncProdSector();
-  const syncMovimentos = useSyncMovimentos();
-  const syncProdutos = useSyncProdutos();
-  const syncCategorias = useSyncCategorias();
-  const syncFotos = useSyncFotos();
-  const syncMarcas = useSyncMarcas();
-  const syncSetores = useSyncSetores();
-  const useQueryConfigApi = queryConfig_api();
-  const useMoment = configMoment();
-  const syncClientes = useSyncClients();
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [item, setItem] = useState<string | undefined >();
-
+ 
   const [ visibleAlert , setVisibleAlert ] = useState(false);
   const [ messageAlert , setMessageAlert ] = useState<string>('');
   const [typeAlert,      setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
@@ -206,10 +164,7 @@ export const Home = ({ navigation }: any) => {
 
     <View style={{ flex: 1, backgroundColor: "#EAF4FE", height: 'auto' }}>
 
-      <InitialLoadingData
-        isLoading={isLoading}
-        item={item!}
-        progress={progress} />
+    
 
       <View style={{ backgroundColor: '#185FED', elevation: 7, padding: 5, height: 200, borderBottomEndRadius: 50, borderStartEndRadius: 50 }}>
           < View style={{ width: '100%', alignItems: "center", flexDirection: "row", justifyContent: "space-between" }} >
@@ -259,7 +214,7 @@ export const Home = ({ navigation }: any) => {
           </View>
       </View>
 
-     <CustomAlert 
+                <CustomAlert 
                           visible={visibleAlert}
                           message={messageAlert}
                           onConfirm={async ()=>{  
@@ -276,7 +231,6 @@ export const Home = ({ navigation }: any) => {
                           type={typeAlert}
                           cancelText={cancelText}
                           confirmText={confirmText}
-
                           />
       <ScrollView style={{ flex: 1 }}>
 
@@ -325,11 +279,7 @@ export const Home = ({ navigation }: any) => {
                 <Text style={{ fontWeight: "bold", fontSize: 15, color:   defaultColors.gray, width: '50%', textAlign: 'center' }} >Setores</Text>
                 <AntDesign name="caret-down" size={24} color={defaultColors.darkBlue} />
             </TouchableOpacity>
-                 
-            
-
-     
-
+               
         </View>
       </ScrollView>
 

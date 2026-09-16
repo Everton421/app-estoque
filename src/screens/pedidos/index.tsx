@@ -122,16 +122,21 @@ export type actionsFilterOrder =
 
 export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
     const useMoment = configMoment();
-    const { usuario, permissoes }: any = useContext(AuthContext);
+    
+    const { usuario, permissoes, filiais }: any = useContext(AuthContext);
+
          const [ isEnabledViewerValuesOrder ] =useState( verifyUserPermission('pedidos', 'ver_valores', permissoes) || verifyUserPermission('*', '', permissoes) )
 
          const getInitialStatus = (): filterOrdersituation => {
                 return 'AI';
             };
+            const getInitialStatusSeparation = (): statusOrderSeparation[] =>{
+                return ['NAO INICIADA', 'RECUSADA', 'PAUSADA', 'EM ANDAMENTO'];
+            }
  
     const initialStateFilter: typefilterOrders = { 
         tipo: tipo, 
-        status_separacao: null,
+        status_separacao: getInitialStatusSeparation(),
         data_inicial: useMoment.dataAtual(), 
         data_final: useMoment.dataAtual(), 
         situacao: getInitialStatus(),   
@@ -288,7 +293,7 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     async function busca() {
         setIsLoadingOrderData(true)
-        await delay(500)
+        await delay(800)
         try {
             let queryOrder = { 
                 ...filterSearchOrders,
@@ -299,12 +304,10 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
              if(!filterSearchOrders.filial)  delete queryOrder.filial;   
              if(!filterSearchOrders.vendedor?.codigo)  delete queryOrder.vendedor;   
-             if (filterSearchOrders.search) queryOrder.search = filterSearchOrders.search
-
-             if(filterSearchOrders.status_separacao){
-                queryOrder.status_separacao = `${[filterSearchOrders.status_separacao]}`;
-             }
-            const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
+             if (filterSearchOrders.search) queryOrder.search = filterSearchOrders.search;
+            if(filterSearchOrders.situacao) queryOrder.situacao =filterSearchOrders.situacao; 
+            
+             const responseApiOrder = await api.get('/pedidos', { params: queryOrder });
             setOrcamentosRegistrados(responseApiOrder.data);
         } catch (e) {
             console.log("[X] Erro ao buscar pedidos na api ", e)
@@ -352,10 +355,24 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
 
     const getSeparacaoParams = (situacao_separacao: string, situacao: string) => {
         switch (situacao_separacao) {
-            case 'I': return { color: '#4CAF50', label: 'Separado' , id:'I', icon: <MaterialCommunityIcons name="package-variant-closed-check" size={20} color="#4CAF50" /> };
-            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' , id:'P' ,icon:<MaterialCommunityIcons name="package-variant-minus" size={20} color="#f29408" />};
+            case 'I': return { color: '#4CAF50', label: 'Separado' , id:'I', 
+                icon: 
+                        <View style={{  backgroundColor: '#efffed' , paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 ,marginHorizontal:3}}>
+                            <MaterialCommunityIcons name="package-variant-closed-check" size={20} color="#4CAF50" /> 
+                       </View>
+
+            };
+            case 'P': return { color: '#FF9800', label: 'Sep. Parcial' , id:'P' ,icon:
+                        <View style={{  backgroundColor: '#febc49' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 ,marginHorizontal:3}}>
+                            <MaterialCommunityIcons name="package-variant-minus" size={20} color="#f29408" />
+                       </View>
+                };
             case 'N':
-            default: return { color: '#E3F2FD', label: 'N. Separado', id:'N' ,icon:<MaterialCommunityIcons name="package-variant-plus" size={20} color="#185FED" />};
+            default: return { color: '#E3F2FD', label: 'N. Separado', id:'N' , icon: 
+                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 ,marginHorizontal:3}}>
+                            <MaterialCommunityIcons name="package-variant-plus" size={20} color="#185FED" />
+                       </View>
+            };
         }
     }
     const calcularTempoSeparacao = (inicio:string, fim:string) => {
@@ -395,34 +412,31 @@ export const Lista_pedidos = ({ navigation, tipo, to, route }: any) => {
                  { /**     <View style={{ width: 12, height: 12, alignSelf:'flex-start',backgroundColor: status.color,bottom:10, borderRadius: 6 }} />*/}
 
                 <View style={{flex:1, justifyContent:"space-between", flexDirection:"row"  }}>
-                    
-                     <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
-                        ID: {item.id || item.codigo || item.id_externo }  
-                     </Text>
-                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 ,marginHorizontal:3}}>
-                               {separacao.icon}
-                       </View>
-
-                        <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                                 <MaterialCommunityIcons name="store-check" size={20} color='#185FED' /> Filial {  item.filial}    
-                           </Text>
-                       </View>
+                        <Text style={{ fontSize: 13, color: '#666', fontWeight: 'bold', flex: 1 }}>
+                            ID: {item.id || item.codigo || item.id_externo }  
+                        </Text>
+                             {separacao.icon}
 
                    {
                     item.tipo == 3 ?
                         <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20',marginHorizontal:3, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
                             <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                                Os <FontAwesome5 name="tools" size={16} color="#185FED" />
+                                  <FontAwesome5 name="tools" size={16} color="#185FED" />
                             </Text>
                        </View>
                     :
                         <View style={{alignItems:"center", justifyContent:"center", backgroundColor: '#307CEB' + '20',marginHorizontal:3, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
                             <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
-                              Venda <MaterialCommunityIcons name="cart-check" size={18} color="#185FED" />
+                                <MaterialCommunityIcons name="cart-check" size={18} color="#185FED" />
                             </Text>
                        </View>
                   }
+
+                     <View style={{  backgroundColor: '#307CEB' + '20', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontSize: 10,justifyContent:'center',  color: '#185FED', fontWeight: 'bold', flex: 1 }}>
+                                 <MaterialCommunityIcons name="store-check" size={20} color='#185FED' /> Filial {  item.filial}    
+                           </Text>
+                       </View>
                 </View>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: 'flex-start', marginBottom: 10, marginVertical:2 }}>

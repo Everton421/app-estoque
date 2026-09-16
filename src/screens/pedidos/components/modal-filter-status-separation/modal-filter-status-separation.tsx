@@ -101,7 +101,7 @@ export const ModalFilterStatusSeparation = ({  visible, setVisible,selectedFilte
                                                 }}
                                                 onPress={() => handleSelectStatus(opt.id)}
                                             >
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                                <View style={{flex:1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                                                     <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: opt.color }} />
                                                     <Text style={{ fontSize: 15, fontWeight: isSelected ? 'bold' : '500', color: isSelected ? '#185FED' : '#555' }}>
                                                         {opt.label}

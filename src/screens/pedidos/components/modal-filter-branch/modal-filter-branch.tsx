@@ -1,9 +1,11 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import useApi from '../../../../services/api';
 import { branch } from '../..';
+import { AuthContext } from '../../../../contexts/auth';
+import { CustomAlert } from '../../../../components/custom-alert/custom-alert';
 
 type props = {
         visible: boolean,
@@ -21,10 +23,12 @@ type propsBranch = {
 }
 
   const RenderBranch = ({ setVisible, branch, selectBranch, branchSelected }: propsBranch) => {
+
+
     return (
         <TouchableOpacity
             style={{
-                backgroundColor:   branch.codigo == branchSelected ? '#e7ffe2' : '#FFF' ,
+                backgroundColor:   branch.codigo == branchSelected ? '#f5fff4' : '#FFF' ,
                 marginHorizontal: 10,
                 marginVertical: 5,
                 borderRadius: 12,
@@ -41,7 +45,6 @@ type propsBranch = {
             }}
             onPress={() => { 
                 branchSelected && branchSelected == branch.codigo ? selectBranch(null) : selectBranch(branch)
-            setVisible(false)
             }}
         >
             <View style={{
@@ -62,7 +65,7 @@ type propsBranch = {
                   
                 </View>
             </View>
-
+            
             <MaterialIcons name="chevron-right" size={24} color="#BDBDBD" />
         </TouchableOpacity>
     )
@@ -70,11 +73,18 @@ type propsBranch = {
 
 export const ModalBranches = ({ visible, setVisible, selectBranch, branchSelected }: props)=>{
     const api = useApi();
+    const  context  = useContext(AuthContext) as any 
+     const filiais = context.filiais as branch[];
+
+    const [titleAlert , setTitleAlert ] = useState("");
+    const [visibleAlert, setVisibleAlert] = useState(false);
+    const [messageAlert, setMessageAlert] = useState<string>('');
+    const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
 
     const [ dataBranches, setDataBranches  ]= useState<branch[]>();
     const [searchText, setSearchText] = useState('');
 
-        
+            
     async function findbranches() {
         try{
 
@@ -82,7 +92,7 @@ export const ModalBranches = ({ visible, setVisible, selectBranch, branchSelecte
         if(searchText){
                 params.nome_fantasia = searchText
         }
-        const resultDataSector = await api.get('/filias/search',{
+        const resultDataSector = await api.get('/filiais/search',{
             params 
         });
         if (resultDataSector && resultDataSector?.status == 200) {
@@ -91,11 +101,34 @@ export const ModalBranches = ({ visible, setVisible, selectBranch, branchSelecte
         }catch( e ){
             console.log(e)
         }
-    
+    }
+
+    function handleSelectBranch(branch:branch | null){
+
+        if(branch){
+            const isEnabledViewer = filiais.some(( i )=> i.codigo == branch.codigo)
+            if(isEnabledViewer){
+                if(branch.codigo == branchSelected){
+                  selectBranch(null);
+                }else{
+                  selectBranch(branch);
+                }
+                setVisible(false)
+            
+            }else{
+                setVisibleAlert(true);
+                setTitleAlert("Atenção!");
+                setTypeAlert('warning');
+                setMessageAlert("Você não tem permissão para usar este recurso!");
+            }
+        }else{
+            selectBranch(null);
+            setVisible(false);
+        }
     }
 
 
-
+       
     useEffect(()=>{
          findbranches()
     },[searchText])
@@ -103,8 +136,16 @@ export const ModalBranches = ({ visible, setVisible, selectBranch, branchSelecte
 return  ( 
         <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={() => setVisible(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: 'center', alignItems: 'center' }}>
+                <CustomAlert
+                    visible={visibleAlert}
+                    message={messageAlert}
+                    onConfirm={() => setVisibleAlert(false)}
+                    title={titleAlert}
+                    type={typeAlert}
+                />
                     <View style={{ width: '90%', height: '80%', backgroundColor: "#FFF", borderRadius: 16, overflow: 'hidden', elevation: 10 }}>
                         
+
                         <View style={{ backgroundColor: '#185FED', padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Selecionar Filial</Text>
                             <TouchableOpacity onPress={() => setVisible(false)}>
@@ -133,11 +174,15 @@ return  (
 
                         <FlatList
                             data={dataBranches}
-                            renderItem={({ item }) => <RenderBranch setVisible={setVisible} branchSelected={branchSelected}  branch={item} selectBranch={selectBranch} />}
+                            //renderItem={({ item }) => <RenderBranch setVisible={setVisible} branchSelected={branchSelected}  branch={item} selectBranch={selectBranch} />}
+                            renderItem={({ item }) => <RenderBranch setVisible={setVisible} branchSelected={branchSelected}  branch={item} selectBranch={handleSelectBranch} />}
+                            
                             contentContainerStyle={{ paddingVertical: 10 }}
                         />
                     </View>
                 </View>
+
+                 
             </Modal>
 )
 }

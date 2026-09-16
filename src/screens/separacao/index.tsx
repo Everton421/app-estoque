@@ -2,7 +2,7 @@ import { AntDesign, Entypo, Feather, Ionicons, MaterialCommunityIcons, MaterialI
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { CustomAlert } from "../../components/custom-alert/custom-alert";
 import { CustomHeader } from "../../components/custom-header/custom-header";
 import { BarcodeScanner } from "../../components/barcode-scanner";
@@ -162,6 +162,7 @@ type resultOrderItens = {
     series: serie[]
     controle_lote_serie: 'S' | 'N'
    dados_setor : dados_setor[]
+   fotos?:string[]
 
 }
 
@@ -355,10 +356,12 @@ export const Separacao = ({ navigation, route }: any) => {
              
                    if (response.status >= 200 && response.status < 300) {
                        allowExitRef.current = true;
-                       setVisibleAlert(true);
-                       setMessageAlert(`Separação salva com sucesso! \n Status da separação: ${status_separacao}`);
-                       setTypeAlert('success');
-                       setTitleAlert("Sucesso");
+                       //setVisibleAlert(true);
+                       //setMessageAlert(`Separação salva com sucesso! \n Status da separação: ${status_separacao}`);
+                       //setTypeAlert('success');
+                       //setTitleAlert("Sucesso");
+                      navigation.goBack()
+
                    } else {
                        throw new Error('Resposta inválida da API');
                    }
@@ -430,22 +433,37 @@ export const Separacao = ({ navigation, route }: any) => {
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
                        { item.id && 
-                            <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold', flex:1 }} numberOfLines={1}>Id: {item.id}</Text>
+                            <Text style={{ fontSize: 11, color: '#185FED', fontWeight: 'bold', flex:1 }} numberOfLines={1}>Id: {item.id}</Text>
                        }
                        {
                            item.id === 0  && 
-                        <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
+                        <Text style={{ fontSize: 11, color: '#185FED', fontWeight: 'bold' }}>Cód: {item.codigo}</Text>
                     } 
 
-                    <Text style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>Qtd. Pedida: {item.quantidade}</Text>
+                 <Text style={{ fontSize: 11, color: '#185FED', fontWeight: 'bold',}}> 
+                         <MaterialCommunityIcons name="barcode-scan" size={13} color="#185FED" />  {item.num_fabricante && item.num_fabricante}
+                       </Text>
                 </View>
-                    <Text style={{ fontSize: 12, color: '#185FED', fontWeight: 'bold' }}> 
-                     <MaterialCommunityIcons name="barcode-scan" size={13} color="#185FED" /> {item.num_fabricante}
-                  </Text>
 
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 }}>
-                    {item.descricao || "Produto sem descrição"}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                    {/** card da foto */}
+                    <View style={{padding:2,   borderRadius:10, marginHorizontal:5}}>
+                        { item.fotos && item.fotos.length > 0 ? 
+                        <Image source={{ uri: `${item.fotos[0]}` }}
+                            style={{width: 70, height: 70}}
+                            alt=""
+                            />
+                            :
+                            <MaterialCommunityIcons name="camera" size={50} color="#185FED" />  
+                            }
+                    </View>
+                    <Text style={{ flex:1, fontSize: 13, textAlign:"left", fontWeight: 'bold', color: '#333', marginBottom: 15 }}
+                        numberOfLines={4}
+                    >
+                        {item.descricao || "Produto sem descrição"}
+                    </Text>
+                </View>
+                
 
                 <View style={{ 
                     flexDirection: 'row', 
@@ -455,7 +473,9 @@ export const Separacao = ({ navigation, route }: any) => {
                     padding: 10, 
                     borderRadius: 8 
                 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#555' }}>Qtd. Separada:</Text>
+                    <View>
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: '#555' }}>Qtd. Pedida: { item.quantidade}</Text>
+                    </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                         <TouchableOpacity
@@ -587,7 +607,7 @@ export const Separacao = ({ navigation, route }: any) => {
                 onBack={() => navigation.goBack()} 
               />
 
-              <CustomAlert 
+            <CustomAlert 
                   visible={visibleAlert}
                   message={messageAlert}
                   onConfirm={() => { 
@@ -596,7 +616,7 @@ export const Separacao = ({ navigation, route }: any) => {
                   }}
                   title={titleAlert}
                   type={typeAlert}
-              />
+              />  
 
               <CustomAlert
                   visible={confirmVisible}
@@ -729,9 +749,7 @@ export const Separacao = ({ navigation, route }: any) => {
                             multiline
                         />
                     </View>
-                     <Text style={{ fontSize: 14, color: '#666' , marginTop:4}}>
-                            <Text style={{ fontWeight: 'bold' }}>Total de itens na lista:</Text> {listaSeparacao.length}
-                        </Text>
+                    
                     </View>
                     
 

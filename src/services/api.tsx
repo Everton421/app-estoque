@@ -1,14 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { use, useContext } from "react";
+import {  useContext } from "react";
 import { AuthContext } from "../contexts/auth";
-import NetInfo from '@react-native-community/netinfo';
  
 const useApi = () => {
     const  { usuario } :any    = useContext(AuthContext);
  
 
-      const baseUrl = __DEV__ ? "http://192.168.100.115:3000" : "https://dev.intersig.com.br:3000" ;
+      const baseUrl = __DEV__ ? "http://100.120.164.10:3000" : "https://dev.intersig.com.br:3000" ;
     const api = axios.create({
         baseURL: baseUrl, 
         timeout: 10000, // 10 segundos de limite

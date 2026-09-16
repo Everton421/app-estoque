@@ -1,24 +1,33 @@
-import { TextInput, Text, TouchableOpacity, View, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import useApi from "../../services/api";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../../contexts/auth";
-import { useUsuario } from "../../database/queryUsuario/queryUsuario";
-import { usePermissoes, Permissao } from "../../database/queryPermissoes/queryPermissoes";
-import { restartDatabaseService } from "../../services/restartDatabase";
-import { CustomAlert } from "../../components/custom-alert/custom-alert";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { filterRequeriment } from "../requerimentos";
+import { useContext, useEffect, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { CustomAlert } from "../../components/custom-alert/custom-alert";
+import { AuthContext } from "../../contexts/auth";
+import { Permissao, usePermissoes } from "../../database/queryPermissoes/queryPermissoes";
+import { useUsuario } from "../../database/queryUsuario/queryUsuario";
+import useApi from "../../services/api";
 import { configMoment } from "../../services/moment";
+import { restartDatabaseService } from "../../services/restartDatabase";
 import { typefilterOrders } from "../pedidos";
-  type typeUserRequest = {
+import { verifyUserPermission } from "../../services/verify-user-permissions";
+
+
+type typeUserRequest = {
     codigo:string
     email:string
     nome:string
       }
+
+type brancheRequest = { 
+     ativo : 'S' | 'n',  cnpj: string, codigo: number,  nome_fantasia: string, razao_social: string
+}
+
+type statusSeparation = 'NAO INICIADA' |  'EM ANDAMENTO' |  'PAUSADA' | 'RECUSADA' | 'CONCLUIDA';
+
+
 export const Login = ({ navigation }: any) => {
 
     const api = useApi();
@@ -33,11 +42,7 @@ export const Login = ({ navigation }: any) => {
     const [typeAlert, setTypeAlert] = useState<'success' | 'error' | 'warning' | 'info'>('warning');
     const [titleAlert, setTitleAlert] = useState<string>('');
 
-    const [ isLoadingHelth, setIsLoadingHelth] = useState(false);
-    const [ healthApi, setHealthApi] = useState(false);
-    const [ messagehealthApi, setMessagehealthApi] = useState('');
-
-    const { setLogado, setUsuario, setPermissoes }: any = useContext(AuthContext);
+    const { setLogado, setUsuario, setPermissoes, permissoes, filiais, setFiliais}: any = useContext(AuthContext);
 
     const[email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
@@ -46,17 +51,7 @@ export const Login = ({ navigation }: any) => {
     const[showPassword, setShowPassword] = useState(false); // Para mostrar/ocultar senha
 
 
-   
-const initialStateFilter: typefilterOrders = { 
-        tipo: 2, 
-        data_inicial: useMoment.dataAtual(), 
-        data_final: useMoment.dataAtual(), 
-        situacao: 'AI', 
-        filial: null, 
-        limit: 1000000, 
-        search: '', 
-        vendedor: null
-    }   
+
     useEffect(() => {
         async function buscaUser() {
             let users: any = await useQueryUsuario.selectRemember();
@@ -119,6 +114,26 @@ async function getPermissoesApi(token: string, codigo: number){
           console.log(`[X] Erro ao tentar consultar permissões`, e?.response?.data || e)
         }
 }
+
+
+    async function getFiliaisUsuario(token: string ){
+    try {
+            const responseUsuarioFiliais = await api.get("/filiais/usuario",
+                {
+                headers: {
+                    token:  token
+                }
+                }) ;
+            if(responseUsuarioFiliais.status == 200 ){
+                        return responseUsuarioFiliais.data.filiais   as brancheRequest[]
+            }
+            
+            } catch (e: any) {
+            console.log(`[X] Erro ao tentar consultar filiais do usuario`, e?.response?.data || e)
+            }
+    }   
+
+
     async function logar() {
         if (!email) return dispararAlerta("Erro", "É necessário informar o e-mail!", "error");
         if (!senha) return dispararAlerta("Erro", "É necessário informar a senha!", "error");
@@ -131,15 +146,27 @@ async function getPermissoesApi(token: string, codigo: number){
                 console.log(`[V] Novo usuario diferente do usuario logado anteriormente...`)
                  await useRestart.restart();
             }
-            
             loginApi(user)
-   
     }
+
+
+             function switchInitialStatusFilter(  permissoes:string[]){
+                            let dataFilterEnabled =[];
+                            if(verifyUserPermission('*', '', permissoes) ){
+                                dataFilterEnabled=  ['NAO INICIADA', 'RECUSADA', 'PAUSADA', 'EM ANDAMENTO']
+                            }else{
+                                if( verifyUserPermission('pedidos', 'ver_separacao_recusada',permissoes )) dataFilterEnabled.push('RECUSADA');
+                                if( verifyUserPermission('pedidos', 'ver_separacao_em_andamento', permissoes)) dataFilterEnabled.push('EM ANDAMENTO');
+                                if( verifyUserPermission('pedidos', 'ver_separacao_nao_iniciada', permissoes)) dataFilterEnabled.push('NAO INICIADA');
+                                if( verifyUserPermission('pedidos', 'ver_separacao_pausada', permissoes))  dataFilterEnabled.push('PAUSADA');
+                            }
+                         return dataFilterEnabled as statusSeparation[];
+                }
+    
  
 
     async function loginApi (user:any){
-                let baseUrl = "https://dev.intersig.com.br:3000";
-
+     
             try {
                 setLoading(true);
                 let responseLoginRequest = await api.post(`/login`,
@@ -164,13 +191,31 @@ async function getPermissoesApi(token: string, codigo: number){
                         lembrar: lembrarUsuario,
                         token: responseLoginRequest.data.token
                     };
-                            AsyncStorage.setItem('filtroPedidos', JSON.stringify(initialStateFilter));
                     
                          setUsuario(userMobile);
   
                      await useQueryUsuario.deleteAll();
                      await useQueryUsuario.insert(userMobile);
                      await getPermissoesApi(token, userMobile.codigo);
+                      const resultbranchesRequest= await getFiliaisUsuario(token);
+
+                      setFiliais(resultbranchesRequest ? resultbranchesRequest : null )
+                      const status_separacao = switchInitialStatusFilter(permissoes).length > 0 ? switchInitialStatusFilter(permissoes) : null;
+                      const branchInitialFilter = resultbranchesRequest?.length ? resultbranchesRequest[0] : null;   
+
+                     const initialStateFilter: typefilterOrders = { 
+                                tipo: 2, 
+                                data_inicial: useMoment.dataAtual(), 
+                                data_final: useMoment.dataAtual(), 
+                                status_separacao,
+                                situacao: 'AI', 
+                                filial: branchInitialFilter as any, 
+                                limit: 1000000, 
+                                search: '', 
+                                vendedor: null
+                            }
+                            AsyncStorage.setItem('filtroPedidos', JSON.stringify(initialStateFilter));
+
                      setLogado(true);
                      return;
                 }

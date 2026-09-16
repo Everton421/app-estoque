@@ -13,6 +13,13 @@ export type Permissao = {
      id : string
 }
 
+export type filiaisUsuario = {
+         codigo: number,
+         nome_fantasia: string,
+         razao_social: string,
+         cnpj: string,
+         ativo: 'S' | 'N'
+}
 export const AuthContext = createContext({});
 
 
@@ -20,9 +27,10 @@ export const AuthContext = createContext({});
         const [usuario, setUsuario] = useState<user>();
         const [ logado, setLogado ] = useState<boolean>(false);
         const [ permissoes, setPermissoes ] = useState<Permissao[]>([]);
+        const [filiais, setFiliais ] = useState<filiaisUsuario[]>([])
 
         return(
-            <AuthContext.Provider value={ {logado, setLogado ,usuario, setUsuario, permissoes, setPermissoes}}>
+            <AuthContext.Provider value={ {logado, setLogado ,usuario, setUsuario, permissoes, setPermissoes , filiais, setFiliais}}>
                 {children}
             </AuthContext.Provider>
         )
